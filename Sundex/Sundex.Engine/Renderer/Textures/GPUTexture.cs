@@ -61,8 +61,14 @@ public class GPUTexture : IBindable
         {
             UploadQueue.Enqueue(() =>
             {
+                // ImageSharp splits a large image into several buffers unless the host asked for
+                // contiguous ones; such a frame is copied into one rather than refused.
                 if (!frame.DangerousTryGetSinglePixelMemory(out var pixelMemory))
-                    throw new Exception("Unable to get pixel memory.");
+                {
+                    var copy = new TPixel[frame.Width * frame.Height];
+                    frame.CopyPixelDataTo(copy);
+                    pixelMemory = copy;
+                }
 
                 var handle = pixelMemory.Pin();
                 var pixelInfo = UploadInfoProvider<TPixel>.UploadInfo;

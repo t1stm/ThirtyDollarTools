@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sundex.Slug\Sundex.Slug.csproj"/>
+    <ProjectReference Include="..\Sundex.Reactive\Sundex.Reactive.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

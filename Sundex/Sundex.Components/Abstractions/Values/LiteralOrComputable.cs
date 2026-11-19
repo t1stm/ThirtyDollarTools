@@ -15,6 +15,19 @@ public readonly struct LiteralOrComputable(float value, bool isPercentage = fals
 
     public static readonly LiteralOrComputable AutoSize = new(0, false, true);
 
+    /// <summary>Reads <c>auto</c>, <c>50%</c>, <c>12px</c> or <c>12</c>, as markup and stylesheets write them.</summary>
+    public static LiteralOrComputable Parse(string text)
+    {
+        var value = text.Trim();
+        if (value.Equals("auto", StringComparison.OrdinalIgnoreCase)) return AutoSize;
+        var percent = value.EndsWith('%');
+        if (percent) value = value[..^1];
+        else if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase)) value = value[..^2];
+        return new LiteralOrComputable(
+            float.Parse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture),
+            percent);
+    }
+
     public static implicit operator LiteralOrComputable(float value)
     {
         return new LiteralOrComputable(value);
@@ -33,9 +46,9 @@ public readonly struct LiteralOrComputable(float value, bool isPercentage = fals
             : Value.ToString(CultureInfo.InvariantCulture);
     }
 
-    public static LiteralOrComputable Percent(float i)
+    public static LiteralOrComputable Percent(float percent)
     {
-        return new LiteralOrComputable(i, true);
+        return new LiteralOrComputable(percent, true);
     }
 
     public override bool Equals(object? obj)

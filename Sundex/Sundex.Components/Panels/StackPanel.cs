@@ -6,6 +6,7 @@ using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Panels;
 
+[Sundex.Components.Attributes.MarkupTag("stack")]
 public class StackPanel(UIContext context)
     : Panel(context)
 {
@@ -59,13 +60,13 @@ public class StackPanel(UIContext context)
             {
                 float sumW = 0;
                 float maxH = 0;
-                var i = 0;
+                var index = 0;
                 foreach (var child in Children)
                 {
-                    var (cw, ch) = child.Measure(innerW, innerH);
-                    sumW += cw;
-                    if (i++ > 0) sumW += Spacing;
-                    if (ch > maxH) maxH = ch;
+                    var (childWidth, childHeight) = child.Measure(innerW, innerH);
+                    sumW += childWidth;
+                    if (index++ > 0) sumW += Spacing;
+                    if (childHeight > maxH) maxH = childHeight;
                 }
 
                 contentW = sumW;
@@ -76,13 +77,13 @@ public class StackPanel(UIContext context)
             {
                 float sumH = 0;
                 float maxW = 0;
-                var i = 0;
+                var index = 0;
                 foreach (var child in Children)
                 {
-                    var (cw, ch) = child.Measure(innerW, innerH);
-                    sumH += ch;
-                    if (i++ > 0) sumH += Spacing;
-                    if (cw > maxW) maxW = cw;
+                    var (childWidth, childHeight) = child.Measure(innerW, innerH);
+                    sumH += childHeight;
+                    if (index++ > 0) sumH += Spacing;
+                    if (childWidth > maxW) maxW = childWidth;
                 }
 
                 contentW = maxW;
@@ -105,9 +106,9 @@ public class StackPanel(UIContext context)
 
         switch (styleValue)
         {
-            case StringValue sv when propertyInfo.PropertyType == typeof(LayoutDirection):
+            case StringValue stringValue when propertyInfo.PropertyType == typeof(LayoutDirection):
             {
-                LayoutDirection? direction = sv.Value switch
+                LayoutDirection? direction = stringValue.Value switch
                 {
                     "horizontal" => LayoutDirection.Horizontal,
                     "vertical" => LayoutDirection.Vertical,

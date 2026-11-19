@@ -1,6 +1,6 @@
 using System.Globalization;
-using Shared.Renderer.Planes;
-using Shared.Renderer.Planes.Extensions;
+using Sundex.Components.Renderer.Planes;
+using Sundex.Components.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
@@ -418,19 +418,19 @@ public class ComponentBuilderV1 : IComponentBuilder
                     element.Height = ParseLiteralOrComputable(value);
                     break;
                 case "padding":
-                    if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var p))
-                        if (element is IPositioningElement pe)
-                            pe.Padding = p;
+                    if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var percent))
+                        if (element is IPositioningElement positioned)
+                            positioned.Padding = percent;
                     break;
                 case "spacing":
-                    if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var s))
+                    if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
                         switch (element)
                         {
-                            case StackPanel sp:
-                                sp.Spacing = s;
+                            case StackPanel stack:
+                                stack.Spacing = number;
                                 break;
-                            case FlexPanel fp:
-                                fp.Spacing = s;
+                            case FlexPanel flex:
+                                flex.Spacing = number;
                                 break;
                         }
 
@@ -451,11 +451,11 @@ public class ComponentBuilderV1 : IComponentBuilder
                     if (Enum.TryParse<LayoutDirection>(value, true, out var dir))
                         switch (element)
                         {
-                            case StackPanel sp:
-                                sp.Direction = dir;
+                            case StackPanel stack:
+                                stack.Direction = dir;
                                 break;
-                            case FlexPanel fp:
-                                fp.Direction = dir;
+                            case FlexPanel flex:
+                                flex.Direction = dir;
                                 break;
                         }
 
@@ -467,8 +467,8 @@ public class ComponentBuilderV1 : IComponentBuilder
     {
         if (value.EndsWith('%'))
         {
-            if (float.TryParse(value[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var p))
-                return new LiteralOrComputable(p, true);
+            if (float.TryParse(value[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var percent))
+                return new LiteralOrComputable(percent, true);
         }
         else if (value.Equals("auto", StringComparison.OrdinalIgnoreCase))
         {
@@ -476,13 +476,13 @@ public class ComponentBuilderV1 : IComponentBuilder
         }
         else if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))
         {
-            if (float.TryParse(value[..^2], NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
-                return new LiteralOrComputable(v);
+            if (float.TryParse(value[..^2], NumberStyles.Float, CultureInfo.InvariantCulture, out var pixels))
+                return new LiteralOrComputable(pixels);
         }
         else
         {
-            if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
-                return new LiteralOrComputable(v);
+            if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+                return new LiteralOrComputable(number);
         }
 
         return new LiteralOrComputable(0);
@@ -494,8 +494,8 @@ public class ComponentBuilderV1 : IComponentBuilder
         var background = GetStyleForNode(node, property, styleSheet);
         return background switch
         {
-            GradientValue gv => gv.GenerateGradientPlane(),
-            ColorValue cv => new ColoredPlane { Color = cv.Vector },
+            GradientValue gradientValue => gradientValue.GenerateGradientPlane(),
+            ColorValue colorValue => new ColoredPlane { Color = colorValue.Vector },
             _ => null
         };
     }

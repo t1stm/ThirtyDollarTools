@@ -41,6 +41,20 @@ public class FontProvider : IFontProvider
             : throw new Exception($"Unable to find font: {fontName}");
     }
 
+    /// <summary>
+    ///     Adds a font the app bundles, by the name labels ask for it by (<c>font = "Golos-500"</c>).
+    ///     The glyph data is built on a worker straight away, so the first label in it doesn't wait.
+    /// </summary>
+    public void AddFont(string fontName, Stream stream)
+    {
+        var font = SlugFont.Load(stream);
+        LoadedFonts[fontName] = font;
+        Task.Run(() => _ = font.SlugData);
+    }
+
+    /// <summary>Makes <paramref name="alias" /> another name for a loaded font: how an app replaces the default.</summary>
+    public void Alias(string alias, string fontName) => LoadedFonts[alias] = LoadedFonts[fontName];
+
     private void AddFont(string fontName, AssetStream assetStream)
     {
         var lookup = LoadedFonts.GetAlternateLookup<ReadOnlySpan<char>>();

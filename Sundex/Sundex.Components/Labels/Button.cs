@@ -5,6 +5,7 @@ using Sundex.Components.Panels;
 
 namespace Sundex.Components.Labels;
 
+[Sundex.Components.Attributes.MarkupTag("button")]
 public class Button : FlexPanel
 {
     /// <param name="font">The label's font; null for the interface font. See <see cref="Label" />.</param>
@@ -13,20 +14,48 @@ public class Button : FlexPanel
     {
     }
 
+    /// <summary>
+    ///     A button with no label of its own, for markup: its children are whatever the markup puts
+    ///     in it. <see cref="Label" /> is a detached placeholder until something sets it.
+    /// </summary>
+    public Button(UIContext context) : base(context)
+    {
+        Direction = LayoutDirection.Vertical;
+        Padding = 5;
+        HorizontalAlign = Align.Center;
+        VerticalAlign = Align.Center;
+        Label = new Label(context);
+        UpdateCursorOnHover = true;
+        Focusable = true;
+    }
+
     public Button(UIContext context, Label label, Renderable? background = null) : base(context)
     {
+        Direction = LayoutDirection.Vertical;
+        Padding = 5;
         HorizontalAlign = Align.Center;
         VerticalAlign = Align.Center;
         Background = background;
 
         Children = [Label = label];
         UpdateCursorOnHover = true;
+        Focusable = true;
     }
 
-    public override LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
-    public override float Padding { get; set; } = 5;
 
     public override string Tag => "button";
+
+    /// <summary>Enter and Space press a focused button, as in a browser.</summary>
+    public override bool HandleKeyDown(OpenTK.Windowing.Common.KeyboardKeyEventArgs args)
+    {
+        if (Disabled || args.IsRepeat ||
+            args.Key is not (OpenTK.Windowing.GraphicsLibraryFramework.Keys.Enter
+                or OpenTK.Windowing.GraphicsLibraryFramework.Keys.KeyPadEnter
+                or OpenTK.Windowing.GraphicsLibraryFramework.Keys.Space))
+            return false;
+        OnClick?.Invoke(this);
+        return true;
+    }
     public Label Label { get; set; }
 
     [NamedSetting("text-value")]
@@ -43,5 +72,4 @@ public class Button : FlexPanel
         set => Label.FontSizePx = value;
     }
 
-    [NamedSetting("width")] public override LiteralOrComputable Width { get; set; } = new(0, false, true);
 }

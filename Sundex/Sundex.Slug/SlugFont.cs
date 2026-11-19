@@ -121,18 +121,41 @@ public sealed class SlugFont
 
     /// <summary>
     ///     Moves the rendered outline onto the baseline, so the top of its ink sits at the height
-    ///     the font's own metrics give it: <c>Ascender − TopSideBearing</c>. The height comes from
-    ///     those metrics rather than from where SixLabors placed the outline, because SixLabors
-    ///     grows its line box for ink above the ascender and so pushes tall glyphs down by their
-    ///     own overshoot; both sides of the correction use this library's own curve bounds.
+    ///     the glyph's own bounding box gives it (<c>yMax</c>, in font units). The height comes from
+    ///     the font rather than from where SixLabors placed the outline, because SixLabors grows its
+    ///     line box for ink above the ascender and so pushes tall glyphs down by their own overshoot;
+    ///     both sides of the correction use this library's own curve bounds.
+    ///     <para>
+    ///         Not <c>VerticalMetrics.Ascender − TopSideBearing</c>: that equals <c>yMax</c> only when
+    ///         SixLabors synthesises the vertical metrics. A font with real <c>vhea</c>/<c>vmtx</c>
+    ///         tables (Golos) has a vertical-layout ascender and bearings there, and rendered about
+    ///         half an em low (bug 2.2).
+    ///     </para>
     /// </summary>
     private void AnchorToBaseline(Shape shape, FontGlyphMetrics glyphMetrics)
     {
-        var yMax = (_fontMetrics.VerticalMetrics.Ascender - glyphMetrics.TopSideBearing)
-                   / (double)_fontMetrics.UnitsPerEm;
+        var top = InkTop(glyphMetrics) ?? _fontMetrics.VerticalMetrics.Ascender - glyphMetrics.TopSideBearing;
+        var yMax = top / (double)_fontMetrics.UnitsPerEm;
 
-        shape.TranslateY(yMax - shape.GetBounds().T);
+        shape.TranslateY(yMax - shape.GetBounds().Top);
     }
+
+    // SixLabors.Fonts 3.2 keeps a glyph's bounding box internal. Read once by reflection; if a later
+    // version renames it, InkTop is null and the vertical-metrics formula (right for fonts without
+    // vhea/vmtx) takes over.
+    private static readonly System.Reflection.PropertyInfo? BoundsProperty =
+        typeof(FontGlyphMetrics).GetProperty("Bounds", System.Reflection.BindingFlags.Instance |
+                                                       System.Reflection.BindingFlags.NonPublic |
+                                                       System.Reflection.BindingFlags.Public);
+
+    private static readonly System.Reflection.PropertyInfo? BoundsMax =
+        BoundsProperty?.PropertyType.GetProperty("Max");
+
+    /// <summary>The top of the glyph's ink in font units (its bounding box's <c>yMax</c>), when available.</summary>
+    private static float? InkTop(FontGlyphMetrics glyphMetrics) =>
+        BoundsProperty?.GetValue(glyphMetrics) is { } bounds && BoundsMax?.GetValue(bounds) is Vector2 max
+            ? max.Y
+            : null;
 
     /// <summary>
     ///     Decodes the first character into a codepoint, so a surrogate pair resolves to the one

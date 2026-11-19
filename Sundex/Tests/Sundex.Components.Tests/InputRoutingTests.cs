@@ -203,6 +203,127 @@ public class InputRoutingTests
         Assert.Equal(1, parent.ScrollCalls);
     }
 
+    private static (TestUIContext ctx, Panel root, FlexPanel page, FlexPanel shelf) ScrollableShelf()
+    {
+        var (ctx, root) = NewTree();
+        var page = new FlexPanel(ctx)
+        {
+            Width = 200, Height = 300, Direction = LayoutDirection.Vertical, OverflowY = Overflow.Scroll
+        };
+        var shelf = new FlexPanel(ctx)
+        {
+            Width = 200, Height = 100, Shrink = 0, OverflowX = Overflow.Scroll, ScrollXRequiresShift = true
+        };
+        shelf.Children = [new Panel(ctx) { Width = 500, Height = 100, Shrink = 0 }];
+        page.Children = [shelf, new Panel(ctx) { Width = 200, Height = 500, Shrink = 0 }];
+        root.Children = [page];
+        root.Layout();
+        return (ctx, root, page, shelf);
+    }
+
+    [Fact]
+    public void Scroll_WithoutShift_PassesTheHorizontalShelfToScrollThePage()
+    {
+        var (ctx, root, page, shelf) = ScrollableShelf();
+
+        Scroll(ctx, root, 50, 50, -1);
+
+        Assert.Equal(0, shelf.ScrollX);
+        Assert.Equal(96, page.ScrollY);
+    }
+
+    [Theory]
+    [InlineData(0, -1)]
+    [InlineData(-1, 0)]
+    public void Scroll_WithShift_ScrollsTheShelf_AndReleasingShiftScrollsThePage(float deltaX, float deltaY)
+    {
+        var (ctx, root, page, shelf) = ScrollableShelf();
+        ctx.ShiftDown = true;
+
+        ctx.UpdatePointer(root, 50, 50, false, false, false, new Vector2(deltaX, deltaY));
+
+        Assert.Equal(96, shelf.ScrollX);
+        Assert.Equal(0, page.ScrollY);
+
+        ctx.ShiftDown = false;
+        Scroll(ctx, root, 50, 50, -1);
+
+        Assert.Equal(96, shelf.ScrollX);
+        Assert.Equal(96, page.ScrollY);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Scroll_WithShift_AtEitherShelfEdge_DoesNotScrollThePage(bool atEnd)
+    {
+        var (ctx, root, page, shelf) = ScrollableShelf();
+        ctx.ShiftDown = true;
+        shelf.ScrollX = atEnd ? shelf.MaxScrollX : 0;
+        page.ScrollY = 40;
+        root.Layout();
+
+        Scroll(ctx, root, 50, 50, atEnd ? -1 : 1);
+
+        Assert.Equal(atEnd ? shelf.MaxScrollX : 0, shelf.ScrollX);
+        Assert.Equal(40, page.ScrollY);
+    }
+
+    [Fact]
+    public void Scroll_WithShift_WhenTheShelfFits_DoesNotScrollThePage()
+    {
+        var (ctx, root, page, shelf) = ScrollableShelf();
+        ctx.ShiftDown = true;
+        shelf.Children[0].Width = 100;
+        root.Layout();
+        Assert.Equal(0, shelf.MaxScrollX);
+
+        Scroll(ctx, root, 50, 50, -1);
+
+        Assert.Equal(0, shelf.ScrollX);
+        Assert.Equal(0, page.ScrollY);
+    }
+
+    [Fact]
+    public void Scroll_WithShift_OverTheShelf_ScrollsOnlyHorizontally()
+    {
+        var (ctx, root, page, shelf) = ScrollableShelf();
+        ctx.ShiftDown = true;
+        shelf.OverflowY = Overflow.Scroll;
+        shelf.Children[0].Height = 200;
+        root.Layout();
+
+        Scroll(ctx, root, 50, 50, -1);
+
+        Assert.Equal(96, shelf.ScrollX);
+        Assert.Equal(0, shelf.ScrollY);
+        Assert.Equal(0, page.ScrollY);
+    }
+
+    [Fact]
+    public void Scroll_WithShift_OutsideTheShelf_StillScrollsThePage()
+    {
+        var (ctx, root, page, shelf) = ScrollableShelf();
+        ctx.ShiftDown = true;
+
+        Scroll(ctx, root, 50, 150, -1);
+
+        Assert.Equal(0, shelf.ScrollX);
+        Assert.Equal(96, page.ScrollY);
+    }
+
+    [Fact]
+    public void Scroll_WithoutTheShiftRequirement_PreservesHorizontalWheelScrolling()
+    {
+        var (ctx, root, page, shelf) = ScrollableShelf();
+        shelf.ScrollXRequiresShift = false;
+
+        Scroll(ctx, root, 50, 50, -1);
+
+        Assert.Equal(96, shelf.ScrollX);
+        Assert.Equal(0, page.ScrollY);
+    }
+
     [Fact]
     public void Focus_ClickFocusesAndClickAwayBlurs()
     {
@@ -429,15 +550,15 @@ public class InputRoutingTests
         public Keys LastKey { get; private set; } = Keys.Unknown;
         public string Text { get; private set; } = "";
 
-        public override bool HandleKeyDown(KeyboardKeyEventArgs e)
+        public override bool HandleKeyDown(KeyboardKeyEventArgs args)
         {
-            LastKey = e.Key;
-            return e.Key != Keys.Escape;
+            LastKey = args.Key;
+            return args.Key != Keys.Escape;
         }
 
-        public override void HandleTextInput(TextInputEventArgs e)
+        public override void HandleTextInput(TextInputEventArgs args)
         {
-            Text += e.AsString;
+            Text += args.AsString;
         }
     }
 }

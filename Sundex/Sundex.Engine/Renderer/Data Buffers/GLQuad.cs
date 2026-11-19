@@ -34,21 +34,21 @@ public class GLQuad : IGamePreloadable
         EBO = new GLBuffer<int>(deleteQueue, BufferTarget.ElementArrayBuffer);
 
         var (x, y, z) = (0f, 0f, 0);
-        var (w, h) = (1f, 1f);
+        var (width, height) = (1f, 1f);
 
         ReadOnlySpan<float> verticesWithoutUV =
         [
-            x, y + h, z,
-            x + w, y + h, z,
-            x + w, y, z,
+            x, y + height, z,
+            x + width, y + height, z,
+            x + width, y, z,
             x, y, z
         ];
 
         ReadOnlySpan<float> verticesWithUV =
         [
-            x, y + h, z, 0.0f, 1.0f,
-            x + w, y + h, z, 1.0f, 1.0f,
-            x + w, y, z, 1.0f, 0.0f,
+            x, y + height, z, 0.0f, 1.0f,
+            x + width, y + height, z, 1.0f, 1.0f,
+            x + width, y, z, 1.0f, 0.0f,
             x, y, z, 0.0f, 0.0f
         ];
 

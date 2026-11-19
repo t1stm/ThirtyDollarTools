@@ -16,6 +16,7 @@ using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using VisualizerScene;
+using Placement = ThirtyDollarConverter.Objects.Placement;
 
 namespace DrumMasterScene;
 

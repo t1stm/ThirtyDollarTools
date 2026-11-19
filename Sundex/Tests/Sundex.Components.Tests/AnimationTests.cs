@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer;
+using Sundex.Core;
 using Sundex.Core.Animations;
 
 namespace Sundex.Components.Tests;

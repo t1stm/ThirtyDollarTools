@@ -140,18 +140,18 @@ public abstract class Renderable : IRenderable, IPositionable, IClippable
 
         if (bit_stack.IsEnabled(AnimationFeature.ScaleMultiply))
         {
-            var s = animation.GetScale_Multiply(this);
+            var scale = animation.GetScale_Multiply(this);
 
-            if (s != Vector3.One)
-                finalScale *= s;
+            if (scale != Vector3.One)
+                finalScale *= scale;
         }
 
         if (bit_stack.IsEnabled(AnimationFeature.ScaleAdd))
         {
-            var s = animation.GetScale_Add(this);
+            var scale = animation.GetScale_Add(this);
 
-            if (s != Vector3.One)
-                finalScale += s;
+            if (scale != Vector3.One)
+                finalScale += scale;
         }
 
         if (bit_stack.IsEnabled(AnimationFeature.RotationAdd))

@@ -29,6 +29,7 @@ using ThirtyDollarConverter.Parser;
 using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Settings;
 using VisualizerScene.UI;
+using Placement = ThirtyDollarConverter.Objects.Placement;
 
 namespace VisualizerScene;
 

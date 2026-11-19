@@ -74,14 +74,16 @@ public class LabelTests
         // fits under 80, the "c" after it would not.
         var context = new TestUIContext();
         var label = new Label(context, "aaa bbb ccc");
-        var oneLine = label.Height.Value;
+        var oneLine = label.Measure(float.MaxValue, float.MaxValue).height;
 
         label.WrapWidth = 80;
 
         Assert.Equal("aaa bbb ccc", label.Value.ToString());
         Assert.Equal("aaa bbb\nccc", GetTextSlice(label).Value.TrimEnd('\0').ToString());
-        Assert.True(label.Height.Value > oneLine);
-        Assert.True(label.Width.Value <= 80);
+        // A label is content-sized: what it measures to is its size.
+        var (width, height) = label.Measure(float.MaxValue, float.MaxValue);
+        Assert.True(height > oneLine);
+        Assert.True(width <= 80);
     }
 
     [Fact]
@@ -104,6 +106,27 @@ public class LabelTests
     private static float GetTextSliceFontSize(Label label)
     {
         return GetTextSlice(label).FontSize;
+    }
+
+    [Fact]
+    public void ANewlineLeavesNoGlyphFromALongerEarlierString()
+    {
+        // Bug 2.8: a newline takes a character but no glyph slot, so the slice's last slot was
+        // never rewritten and kept a glyph of the longer string before it. (A label repaints its
+        // glyphs itself; the slice is what a plain text user writes through.)
+        var context = new TestUIContext();
+        var label = new Label(context, "abcdef");
+        label.Layout();
+        var slice = GetTextSlice(label);
+        var buffer = (TextBuffer)typeof(TextSlice).GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
+            .First(field => field.FieldType == typeof(TextBuffer)).GetValue(slice)!;
+        var last = slice.Offset + slice.Value.Length - 1;
+        Assert.NotEqual(Vector2.Zero, buffer.Characters[last].Scale.Xy);
+
+        slice.SetValue("ab\ncd");
+        slice.UpdateCharacters();
+
+        Assert.Equal(Vector2.Zero, buffer.Characters[last].Scale.Xy);
     }
 
     private static TextSlice GetTextSlice(Label label)

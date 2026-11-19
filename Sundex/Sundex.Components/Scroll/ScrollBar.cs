@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
@@ -47,10 +47,10 @@ public sealed class ScrollBar : Panel
     {
         get
         {
-            var p = Parent;
-            if (p is null) return 0;
-            var pc = p.Computed;
-            return pc.Width - Computed.Width;
+            var parent = Parent;
+            if (parent is null) return 0;
+            var parentComputed = parent.Computed;
+            return parentComputed.Width - Computed.Width;
         }
         set => throw new NotSupportedException();
     }
@@ -67,10 +67,10 @@ public sealed class ScrollBar : Panel
     {
         get
         {
-            var p = Parent;
-            if (p is null) return 0;
-            var pc = p.Computed;
-            return pc.Height;
+            var parent = Parent;
+            if (parent is null) return 0;
+            var parentComputed = parent.Computed;
+            return parentComputed.Height;
         }
         set => throw new NotSupportedException();
     }

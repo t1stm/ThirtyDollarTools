@@ -1,8 +1,8 @@
 using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
-using Shared.Renderer.Planes.Extensions;
+using Sundex.Components.Renderer.Planes;
+using Sundex.Components.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
@@ -14,6 +14,7 @@ using Sundex.Style.DSL.Abstract.Values.Keywords;
 
 namespace Sundex.Components.Bars;
 
+[Sundex.Components.Attributes.MarkupTag("progress")]
 public class ProgressBar : UIElement
 {
     public ProgressBar(UIContext context, Panel backgroundPanel, Panel foregroundPanel)
@@ -211,11 +212,11 @@ public class ProgressBar : UIElement
         Panel newPanel;
         switch (styleValue)
         {
-            case GradientValue gv when propertyInfo.PropertyType == typeof(Panel):
+            case GradientValue gradientValue when propertyInfo.PropertyType == typeof(Panel):
             {
                 newPanel = new Panel(Context)
                 {
-                    Background = gv.GenerateGradientPlane(),
+                    Background = gradientValue.GenerateGradientPlane(),
                     BorderRadius = BorderRadius,
                     Width = new LiteralOrComputable(100, true),
                     Height = new LiteralOrComputable(100, true),
@@ -225,13 +226,13 @@ public class ProgressBar : UIElement
                 break;
             }
 
-            case ColorValue cv when propertyInfo.PropertyType == typeof(Panel):
+            case ColorValue colorValue when propertyInfo.PropertyType == typeof(Panel):
             {
                 newPanel = new Panel(Context)
                 {
                     Background = new ColoredPlane
                     {
-                        Color = cv.Vector
+                        Color = colorValue.Vector
                     },
                     BorderRadius = BorderRadius,
                     Width = new LiteralOrComputable(100, true),

@@ -62,14 +62,15 @@ public class MarkdownViewTests
     {
         var (view, _) = View(Long);
         var label = Assert.IsType<Label>(view.Children[0]);
-        var narrow = label.Height.Value;
+        // A label is content-sized: its laid-out height is what it wrapped to.
+        var narrow = label.Computed.Height;
         Assert.True(narrow > 19.2f, "it should take more than one line");
 
         view.Width = 800;
         view.InvalidateLayout();
         view.Layout();
 
-        Assert.True(label.Height.Value < narrow, "a wider view should take fewer lines");
+        Assert.True(label.Computed.Height < narrow, "a wider view should take fewer lines");
     }
 
     [Fact]
@@ -77,7 +78,7 @@ public class MarkdownViewTests
     {
         var (view, _) = View(string.Join(' ', Enumerable.Repeat(Long, 20)));
 
-        Assert.Equal(view.Children[0].Height.Value, view.ContentHeight);
+        Assert.Equal(view.Children[0].Computed.Height, view.ContentHeight);
         Assert.Equal(view.ContentHeight - 100, view.MaxScroll);
         Assert.True(view.MaxScroll > 0);
 

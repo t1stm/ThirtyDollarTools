@@ -18,46 +18,46 @@ internal readonly struct Vector2d(double x, double y) : IEquatable<Vector2d>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Dot(Vector2d a, Vector2d b)
+    public static double Dot(Vector2d left, Vector2d right)
     {
-        return a.X * b.X + a.Y * b.Y;
+        return left.X * right.X + left.Y * right.Y;
     }
 
     /// <summary>The 2D "cross product" — the z component of the 3D cross product.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Cross(Vector2d a, Vector2d b)
+    public static double Cross(Vector2d left, Vector2d right)
     {
-        return a.X * b.Y - a.Y * b.X;
+        return left.X * right.Y - left.Y * right.X;
     }
 
-    public static Vector2d operator +(Vector2d a, Vector2d b)
+    public static Vector2d operator +(Vector2d left, Vector2d right)
     {
-        return new Vector2d(a.X + b.X, a.Y + b.Y);
+        return new Vector2d(left.X + right.X, left.Y + right.Y);
     }
 
-    public static Vector2d operator -(Vector2d a, Vector2d b)
+    public static Vector2d operator -(Vector2d left, Vector2d right)
     {
-        return new Vector2d(a.X - b.X, a.Y - b.Y);
+        return new Vector2d(left.X - right.X, left.Y - right.Y);
     }
 
-    public static Vector2d operator -(Vector2d a)
+    public static Vector2d operator -(Vector2d left)
     {
-        return new Vector2d(-a.X, -a.Y);
+        return new Vector2d(-left.X, -left.Y);
     }
 
-    public static Vector2d operator *(Vector2d a, double s)
+    public static Vector2d operator *(Vector2d left, double scalar)
     {
-        return new Vector2d(a.X * s, a.Y * s);
+        return new Vector2d(left.X * scalar, left.Y * scalar);
     }
 
-    public static Vector2d operator *(double s, Vector2d a)
+    public static Vector2d operator *(double scalar, Vector2d left)
     {
-        return new Vector2d(a.X * s, a.Y * s);
+        return new Vector2d(left.X * scalar, left.Y * scalar);
     }
 
-    public static Vector2d operator /(Vector2d a, double s)
+    public static Vector2d operator /(Vector2d left, double scalar)
     {
-        return new Vector2d(a.X / s, a.Y / s);
+        return new Vector2d(left.X / scalar, left.Y / scalar);
     }
 
     /// <summary>Component-wise product.</summary>
@@ -68,7 +68,7 @@ internal readonly struct Vector2d(double x, double y) : IEquatable<Vector2d>
 
     public override bool Equals(object? obj)
     {
-        return obj is Vector2d o && Equals(o);
+        return obj is Vector2d other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -76,14 +76,14 @@ internal readonly struct Vector2d(double x, double y) : IEquatable<Vector2d>
         return HashCode.Combine(X, Y);
     }
 
-    public static bool operator ==(Vector2d a, Vector2d b)
+    public static bool operator ==(Vector2d left, Vector2d right)
     {
-        return a.Equals(b);
+        return left.Equals(right);
     }
 
-    public static bool operator !=(Vector2d a, Vector2d b)
+    public static bool operator !=(Vector2d left, Vector2d right)
     {
-        return !a.Equals(b);
+        return !left.Equals(right);
     }
 
     public override string ToString()

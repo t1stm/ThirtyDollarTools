@@ -2,7 +2,7 @@ using System.Globalization;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
 using Sundex.Components.Labels;
@@ -16,6 +16,7 @@ namespace Sundex.Components.Inputs;
 ///     While typing, <see cref="Value" /> parses the raw text live; the text itself is
 ///     normalized (clamped/reformatted, or reverted to the last committed value) on blur.
 /// </summary>
+[Sundex.Components.Attributes.MarkupTag("numeric-input")]
 public class NumericInput : TextInput
 {
     private readonly SpinnerButton _minus;
@@ -91,7 +92,10 @@ public class NumericInput : TextInput
         set => _unit.Color = value;
     }
 
-    private float UnitWidth => Unit.Length == 0 ? 0 : _unit.Width.Value + StepSpacing;
+    private float UnitWidth => Unit.Length == 0 ? 0 : UnitSize.Width + StepSpacing;
+
+    // A label is content-sized: what it measures to is its size.
+    private (float Width, float Height) UnitSize => _unit.Measure(float.MaxValue, float.MaxValue);
 
     /// <summary>The raw text (this class hides the string <see cref="TextInput.Value" />).</summary>
     public string Text => base.Value;
@@ -107,15 +111,15 @@ public class NumericInput : TextInput
         get
         {
             if (_shown != null && base.Value == _shown) return Math.Clamp(_lastValid, Min, Max);
-            return double.TryParse(base.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)
-                ? Math.Clamp(v, Min, Max)
+            return double.TryParse(base.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+                ? Math.Clamp(parsed, Min, Max)
                 : null;
         }
         set
         {
-            if (value is { } v)
+            if (value is { } number)
             {
-                _lastValid = Math.Clamp(v, Min, Max);
+                _lastValid = Math.Clamp(number, Min, Max);
                 _shown = _lastValid.ToString("0.####", CultureInfo.InvariantCulture);
                 base.Value = _shown;
             }
@@ -150,9 +154,9 @@ public class NumericInput : TextInput
         return true;
     }
 
-    public override bool HandleKeyDown(KeyboardKeyEventArgs e)
+    public override bool HandleKeyDown(KeyboardKeyEventArgs args)
     {
-        switch (e.Key)
+        switch (args.Key)
         {
             case Keys.Up:
                 StepBy(1);
@@ -163,7 +167,7 @@ public class NumericInput : TextInput
                 return true;
 
             default:
-                return base.HandleKeyDown(e);
+                return base.HandleKeyDown(args);
         }
     }
 
@@ -188,7 +192,7 @@ public class NumericInput : TextInput
         _minus.X = innerWidth - 2 * size - StepSpacing;
         _plus.X = innerWidth - size;
         _unit.X = innerWidth - 2 * size - StepSpacing - UnitWidth;
-        _unit.Y = (Computed.Height - 2 * Padding - _unit.Height.Value) / 2;
+        _unit.Y = (Computed.Height - 2 * Padding - UnitSize.Height) / 2;
 
         base.DoLayout();
     }
@@ -204,6 +208,8 @@ public class NumericInput : TextInput
             new ColoredPlane { Color = FieldColors.Step })
         {
             BorderRadius = 4;
+            // Part of the field: focus stays in the text.
+            Focusable = false;
         }
 
         public override string Tag => "numeric-step";

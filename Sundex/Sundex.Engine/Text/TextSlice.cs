@@ -199,6 +199,12 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             newLineCount = 0;
         }
 
+        // A newline or a surrogate pair takes a character and no slot, so the walk above ends short
+        // of the slice's capacity: blank the slots it never reached, or they keep the glyphs a
+        // longer earlier string put there (bug 2.8).
+        for (var slot = bufferIndex; slot < val.Length && Offset + slot < textBuffer.Characters.Capacity; slot++)
+            textBuffer.Characters[Offset + slot] = new TextCharacter();
+
         var textCharacters = textBuffer.Characters;
         var size = positioningProvider.UpdatePositions(
             ref textCharacters, layoutsSpan, Offset, bufferIndex);

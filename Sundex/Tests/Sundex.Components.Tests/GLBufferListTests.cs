@@ -16,7 +16,7 @@ public class GLBufferListTests
     private static GLBufferList<int> Filled(int count)
     {
         var list = new GLBufferList<int>(new DeleteQueue(), count);
-        for (var i = 0; i < count; i++) list.Add(i * 10);
+        for (var index = 0; index < count; index++) list.Add(index * 10);
         return list;
     }
 
@@ -27,9 +27,9 @@ public class GLBufferListTests
     private static TrackedBufferReference<int>[] References(GLBufferList<int> list, bool backToFront)
     {
         var references = new TrackedBufferReference<int>[list.Count];
-        for (var i = 0; i < list.Count; i++)
+        for (var position = 0; position < list.Count; position++)
         {
-            var index = backToFront ? list.Count - 1 - i : i;
+            var index = backToFront ? list.Count - 1 - position : position;
             references[index] = list.GetReferenceAt(index);
         }
 
@@ -43,7 +43,7 @@ public class GLBufferListTests
         var references = References(list, true);
 
         list.RemoveAt(0);
-        for (var i = 1; i < references.Length; i++) list.Remove(references[i]);
+        for (var index = 1; index < references.Length; index++) list.Remove(references[index]);
 
         Assert.Empty(list);
     }

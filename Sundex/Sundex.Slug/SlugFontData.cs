@@ -104,19 +104,19 @@ public sealed class SlugFontData
         var advances = new double[runes.Count];
         Parallel.For(0, runes.Count,
             new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) },
-            i =>
+            index =>
             {
                 Span<char> characters = stackalloc char[2];
-                var length = runes[i].EncodeToUtf16(characters);
+                var length = runes[index].EncodeToUtf16(characters);
                 var shape = new Shape();
-                if (font.TryBuildShape(characters[..length], shape, out advances[i])) shapes[i] = shape;
+                if (font.TryBuildShape(characters[..length], shape, out advances[index])) shapes[index] = shape;
             });
 
         var builder = new Builder();
         var glyphs = new Dictionary<int, SlugGlyph>();
-        for (var i = 0; i < runes.Count - 1; i++)
-            if (shapes[i] is { } shape)
-                glyphs[runes[i].Value] = builder.Add(shape, advances[i]);
+        for (var index = 0; index < runes.Count - 1; index++)
+            if (shapes[index] is { } shape)
+                glyphs[runes[index].Value] = builder.Add(shape, advances[index]);
 
         var notDef = builder.Add(shapes[^1] ?? new Shape(), shapes[^1] is null ? 0 : advances[^1]);
         return builder.Finish(glyphs, notDef);
@@ -136,15 +136,15 @@ public sealed class SlugFontData
     }
 
     /// <summary>One quadratic as stored, and where its first texel sits in the curve texture.</summary>
-    private readonly record struct Curve(Vector2 P1, Vector2 P2, Vector2 P3, int X, int Y)
+    private readonly record struct Curve(Vector2 Point1, Vector2 Point2, Vector2 Point3, int X, int Y)
     {
-        public float MinX => MathF.Min(MathF.Min(P1.X, P2.X), P3.X);
-        public float MaxX => MathF.Max(MathF.Max(P1.X, P2.X), P3.X);
-        public float MinY => MathF.Min(MathF.Min(P1.Y, P2.Y), P3.Y);
-        public float MaxY => MathF.Max(MathF.Max(P1.Y, P2.Y), P3.Y);
+        public float MinX => MathF.Min(MathF.Min(Point1.X, Point2.X), Point3.X);
+        public float MaxX => MathF.Max(MathF.Max(Point1.X, Point2.X), Point3.X);
+        public float MinY => MathF.Min(MathF.Min(Point1.Y, Point2.Y), Point3.Y);
+        public float MaxY => MathF.Max(MathF.Max(Point1.Y, Point2.Y), Point3.Y);
 
-        public bool IsHorizontalLine => P1.Y == P2.Y && P2.Y == P3.Y;
-        public bool IsVerticalLine => P1.X == P2.X && P2.X == P3.X;
+        public bool IsHorizontalLine => Point1.Y == Point2.Y && Point2.Y == Point3.Y;
+        public bool IsVerticalLine => Point1.X == Point2.X && Point2.X == Point3.X;
     }
 
     /// <summary>
@@ -169,16 +169,16 @@ public sealed class SlugFontData
 
         public Builder()
         {
-            for (var i = 0; i < _lists.Length; i++) _lists[i] = [];
+            for (var index = 0; index < _lists.Length; index++) _lists[index] = [];
         }
 
         /// <summary>Writes <paramref name="shape" />'s curves and bands and returns the glyph pointing at them.</summary>
         public SlugGlyph Add(Shape shape, double advance)
         {
             _glyphCurves.Clear();
-            for (var c = 0; c < shape.ContourCount; c++)
+            for (var contour = 0; contour < shape.ContourCount; contour++)
             {
-                foreach (ref var edge in shape.ContourEdges(c)) AddEdge(edge);
+                foreach (ref var edge in shape.ContourEdges(contour)) AddEdge(edge);
                 FlushRun();
             }
 
@@ -192,23 +192,23 @@ public sealed class SlugFontData
             }
 
             var bounds = shape.GetBounds();
-            float l = (float)bounds.L, b = (float)bounds.B, r = (float)bounds.R, t = (float)bounds.T;
+            float left = (float)bounds.Left, bottom = (float)bounds.Bottom, right = (float)bounds.Right, top = (float)bounds.Top;
 
-            var nv = ChooseBandCount(l, r - l, vertical: true);
-            var nh = ChooseBandCount(b, t - b, vertical: false);
+            var verticalBands = ChooseBandCount(left, right - left, vertical: true);
+            var horizontalBands = ChooseBandCount(bottom, top - bottom, vertical: false);
 
-            var loc = ReserveHeaders(nh + nv);
+            var loc = ReserveHeaders(horizontalBands + verticalBands);
             var glyphStart = loc.Y * TextureWidth + loc.X;
 
             // Horizontal bands first, then vertical: the shader reads them in that order.
-            WriteBands(glyphStart, 0, b, t - b, nh, vertical: false);
-            WriteBands(glyphStart, nh, l, r - l, nv, vertical: true);
+            WriteBands(glyphStart, 0, bottom, top - bottom, horizontalBands, vertical: false);
+            WriteBands(glyphStart, horizontalBands, left, right - left, verticalBands, vertical: true);
 
             return Record(new SlugGlyph((float)advance,
-                new Vector4(l - QuadPadding, b - QuadPadding, r + QuadPadding, t + QuadPadding),
-                new Vector4(BandScale(nv, r - l), BandScale(nh, t - b),
-                    -l * BandScale(nv, r - l), -b * BandScale(nh, t - b)),
-                new Vector4(loc.X, loc.Y, nv - 1, nh - 1)));
+                new Vector4(left - QuadPadding, bottom - QuadPadding, right + QuadPadding, top + QuadPadding),
+                new Vector4(BandScale(verticalBands, right - left), BandScale(horizontalBands, top - bottom),
+                    -left * BandScale(verticalBands, right - left), -bottom * BandScale(horizontalBands, top - bottom)),
+                new Vector4(loc.X, loc.Y, verticalBands - 1, horizontalBands - 1)));
         }
 
         /// <summary>Pads the textures out to whole rows and hands them over.</summary>
@@ -239,52 +239,52 @@ public sealed class SlugFontData
             {
                 case EdgeKind.Linear:
                     // Lengyel's README: a line is the quadratic with its second end point doubled.
-                    AddQuadratic(ToFloat(edge.P0), ToFloat(edge.P1), ToFloat(edge.P1));
+                    AddQuadratic(ToFloat(edge.Point0), ToFloat(edge.Point1), ToFloat(edge.Point1));
                     return;
 
                 case EdgeKind.Quadratic:
-                    AddQuadratic(ToFloat(edge.P0), ToFloat(edge.P1), ToFloat(edge.P2));
+                    AddQuadratic(ToFloat(edge.Point0), ToFloat(edge.Point1), ToFloat(edge.Point2));
                     return;
 
                 default:
                     // ponytail: four quadratics by midpoint approximation, which is plenty for
                     // glyph-sized curves. Every bundled font is TrueType, so this path is unused
                     // today; switch to an error-bounded split if a CFF font is ever bundled.
-                    for (var i = 0; i < 4; i++)
+                    for (var quarter = 0; quarter < 4; quarter++)
                     {
-                        CubicPiece(edge, i / 4.0, (i + 1) / 4.0, out var c0, out var c1, out var c2, out var c3);
-                        AddQuadratic(ToFloat(c0), ToFloat((3 * (c1 + c2) - (c0 + c3)) / 4), ToFloat(c3));
+                        CubicPiece(edge, quarter / 4.0, (quarter + 1) / 4.0, out var point0, out var point1, out var point2, out var point3);
+                        AddQuadratic(ToFloat(point0), ToFloat((3 * (point1 + point2) - (point0 + point3)) / 4), ToFloat(point3));
                     }
 
                     return;
             }
         }
 
-        /// <summary>The control points of the part of a cubic between parameters <paramref name="t0" /> and <paramref name="t1" />.</summary>
-        private static void CubicPiece(in EdgeSegment edge, double t0, double t1,
-            out Vector2d c0, out Vector2d c1, out Vector2d c2, out Vector2d c3)
+        /// <summary>The control points of the part of a cubic between parameters <paramref name="start" /> and <paramref name="end" />.</summary>
+        private static void CubicPiece(in EdgeSegment edge, double start, double end,
+            out Vector2d point0, out Vector2d point1, out Vector2d point2, out Vector2d point3)
         {
-            c0 = edge.Point(t0);
-            c3 = edge.Point(t1);
-            c1 = c0 + ThirdDerivative(edge, t0) * (t1 - t0);
-            c2 = c3 - ThirdDerivative(edge, t1) * (t1 - t0);
+            point0 = edge.Point(start);
+            point3 = edge.Point(end);
+            point1 = point0 + ThirdDerivative(edge, start) * (end - start);
+            point2 = point3 - ThirdDerivative(edge, end) * (end - start);
         }
 
         /// <summary>A cubic's exact first derivative over three (unlike <see cref="EdgeSegment.Direction" />, no fallbacks).</summary>
-        private static Vector2d ThirdDerivative(in EdgeSegment edge, double t)
+        private static Vector2d ThirdDerivative(in EdgeSegment edge, double progress)
         {
-            var u = 1 - t;
-            return (edge.P1 - edge.P0) * (u * u) + (edge.P2 - edge.P1) * (2 * u * t) + (edge.P3 - edge.P2) * (t * t);
+            var inverse = 1 - progress;
+            return (edge.Point1 - edge.Point0) * (inverse * inverse) + (edge.Point2 - edge.Point1) * (2 * inverse * progress) + (edge.Point3 - edge.Point2) * (progress * progress);
         }
 
-        private void AddQuadratic(Vector2 p1, Vector2 p2, Vector2 p3)
+        private void AddQuadratic(Vector2 point1, Vector2 point2, Vector2 point3)
         {
             // Consecutive curves share their texel only when they really share the end point.
-            if (_run.Count > 0 && (_runEnd != p1 || _run.Count / 2 == TextureWidth - 1)) FlushRun();
+            if (_run.Count > 0 && (_runEnd != point1 || _run.Count / 2 == TextureWidth - 1)) FlushRun();
 
-            _run.Add(p1);
-            _run.Add(p2);
-            _runEnd = p3;
+            _run.Add(point1);
+            _run.Add(point2);
+            _runEnd = point3;
         }
 
         /// <summary>Writes the collected run as <c>n + 1</c> texels, never across a row end.</summary>
@@ -295,14 +295,14 @@ public sealed class SlugFontData
             var curveCount = _run.Count / 2;
             var start = StartRun(_curves, curveCount + 1);
 
-            for (var i = 0; i < curveCount; i++)
+            for (var index = 0; index < curveCount; index++)
             {
-                var p1 = _run[i * 2];
-                var p2 = _run[i * 2 + 1];
-                var p3 = i + 1 < curveCount ? _run[(i + 1) * 2] : _runEnd;
+                var point1 = _run[index * 2];
+                var point2 = _run[index * 2 + 1];
+                var point3 = index + 1 < curveCount ? _run[(index + 1) * 2] : _runEnd;
 
-                AddTexel(_curves, p1.X, p1.Y, p2.X, p2.Y);
-                _glyphCurves.Add(new Curve(p1, p2, p3, (start + i) % TextureWidth, (start + i) / TextureWidth));
+                AddTexel(_curves, point1.X, point1.Y, point2.X, point2.Y);
+                _glyphCurves.Add(new Curve(point1, point2, point3, (start + index) % TextureWidth, (start + index) / TextureWidth));
             }
 
             AddTexel(_curves, _runEnd.X, _runEnd.Y, 0, 0);
@@ -340,31 +340,31 @@ public sealed class SlugFontData
             }
 
             // A line parallel to the bands joins none of them, whatever the count.
-            var m = 0;
+            var curveCount = 0;
             foreach (ref readonly var curve in CollectionsMarshal.AsSpan(_glyphCurves))
             {
                 if (vertical ? curve.IsVerticalLine : curve.IsHorizontalLine) continue;
 
-                _lo[m] = (double)(vertical ? curve.MinX : curve.MinY) - BandEpsilon - min;
-                _hi[m] = (double)(vertical ? curve.MaxX : curve.MaxY) + BandEpsilon - min;
-                m++;
+                _lo[curveCount] = (double)(vertical ? curve.MinX : curve.MinY) - BandEpsilon - min;
+                _hi[curveCount] = (double)(vertical ? curve.MaxX : curve.MaxY) + BandEpsilon - min;
+                curveCount++;
             }
 
-            ReadOnlySpan<double> lo = _lo.AsSpan(0, m), hi = _hi.AsSpan(0, m);
-            Span<double> first = _first.AsSpan(0, m), last = _last.AsSpan(0, m);
+            ReadOnlySpan<double> low = _lo.AsSpan(0, curveCount), high = _hi.AsSpan(0, curveCount);
+            Span<double> first = _first.AsSpan(0, curveCount), last = _last.AsSpan(0, curveCount);
             int best = 1, bestLongest = int.MaxValue;
 
-            for (var n = 1; n <= MaxBands; n++)
+            for (var bands = 1; bands <= MaxBands; bands++)
             {
-                var scale = n / (double)extent;
-                BandIndices(lo, scale, n, first);
-                BandIndices(hi, scale, n, last);
+                var scale = bands / (double)extent;
+                BandIndices(low, scale, bands, first);
+                BandIndices(high, scale, bands, last);
 
                 var longest = 0;
-                for (var band = 0; band < n; band++) longest = Math.Max(longest, CountInBand(first, last, band));
+                for (var band = 0; band < bands; band++) longest = Math.Max(longest, CountInBand(first, last, band));
 
                 if (longest >= bestLongest) continue;
-                best = n;
+                best = bands;
                 bestLongest = longest;
             }
 
@@ -376,20 +376,20 @@ public sealed class SlugFontData
         ///     falls in, as a whole-number double.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        internal static void BandIndices(ReadOnlySpan<double> values, double scale, int n, Span<double> indices)
+        internal static void BandIndices(ReadOnlySpan<double> values, double scale, int bandCount, Span<double> indices)
         {
             var width = Vector<double>.Count;
             var vScale = new Vector<double>(scale);
-            var vLast = new Vector<double>(n - 1);
+            var vLast = new Vector<double>(bandCount - 1);
 
-            var i = 0;
-            for (; i <= values.Length - width; i += width)
+            var position = 0;
+            for (; position <= values.Length - width; position += width)
             {
-                var index = Vector.Floor(new Vector<double>(values[i..]) * vScale);
-                Vector.Min(Vector.Max(index, Vector<double>.Zero), vLast).CopyTo(indices[i..]);
+                var index = Vector.Floor(new Vector<double>(values[position..]) * vScale);
+                Vector.Min(Vector.Max(index, Vector<double>.Zero), vLast).CopyTo(indices[position..]);
             }
 
-            for (; i < values.Length; i++) indices[i] = Math.Clamp(Math.Floor(values[i] * scale), 0, n - 1);
+            for (; position < values.Length; position++) indices[position] = Math.Clamp(Math.Floor(values[position] * scale), 0, bandCount - 1);
         }
 
         /// <summary>How many of the ranges <c>[first, last]</c> include <paramref name="band" />.</summary>
@@ -401,52 +401,52 @@ public sealed class SlugFontData
 
             // A comparison sets a lane to all ones, which is -1 as a long, so the sum counts down.
             var negativeCount = Vector<long>.Zero;
-            var i = 0;
-            for (; i <= first.Length - width; i += width)
-                negativeCount += Vector.LessThanOrEqual(new Vector<double>(first[i..]), vBand) &
-                                 Vector.GreaterThanOrEqual(new Vector<double>(last[i..]), vBand);
+            var index = 0;
+            for (; index <= first.Length - width; index += width)
+                negativeCount += Vector.LessThanOrEqual(new Vector<double>(first[index..]), vBand) &
+                                 Vector.GreaterThanOrEqual(new Vector<double>(last[index..]), vBand);
 
             var count = (int)-Vector.Sum(negativeCount);
-            for (; i < first.Length; i++)
-                if (first[i] <= band && band <= last[i])
+            for (; index < first.Length; index++)
+                if (first[index] <= band && band <= last[index])
                     count++;
 
             return count;
         }
 
         /// <summary>
-        ///     Which of <paramref name="n" /> bands a curve's ε-widened range touches, on the x axis
+        ///     Which of <paramref name="bandCount" /> bands a curve's ε-widened range touches, on the x axis
         ///     for vertical bands and the y axis for horizontal ones. False for a straight line
         ///     parallel to the bands, which no ray along them can cross.
         /// </summary>
-        private static bool TryGetBandRange(in Curve curve, float min, float extent, int n, bool vertical,
+        private static bool TryGetBandRange(in Curve curve, float min, float extent, int bandCount, bool vertical,
             out int first, out int last)
         {
             first = last = 0;
             if (vertical ? curve.IsVerticalLine : curve.IsHorizontalLine) return false;
 
-            double lo = vertical ? curve.MinX : curve.MinY;
-            double hi = vertical ? curve.MaxX : curve.MaxY;
+            double low = vertical ? curve.MinX : curve.MinY;
+            double high = vertical ? curve.MaxX : curve.MaxY;
             if (extent <= 0) return true;
 
-            var scale = n / (double)extent;
-            first = Math.Clamp((int)Math.Floor((lo - BandEpsilon - min) * scale), 0, n - 1);
-            last = Math.Clamp((int)Math.Floor((hi + BandEpsilon - min) * scale), 0, n - 1);
+            var scale = bandCount / (double)extent;
+            first = Math.Clamp((int)Math.Floor((low - BandEpsilon - min) * scale), 0, bandCount - 1);
+            last = Math.Clamp((int)Math.Floor((high + BandEpsilon - min) * scale), 0, bandCount - 1);
             return true;
         }
 
         /// <summary>
-        ///     Writes <paramref name="n" /> bands' headers (from header <paramref name="headerIndex" />
+        ///     Writes <paramref name="bandCount" /> bands' headers (from header <paramref name="headerIndex" />
         ///     on) and their curve lists, each list sorted by the curves' far edge, descending.
         /// </summary>
-        private void WriteBands(int glyphStart, int headerIndex, float min, float extent, int n, bool vertical)
+        private void WriteBands(int glyphStart, int headerIndex, float min, float extent, int bandCount, bool vertical)
         {
-            for (var i = 0; i < n; i++) _lists[i].Clear();
+            for (var band = 0; band < bandCount; band++) _lists[band].Clear();
 
-            for (var c = 0; c < _glyphCurves.Count; c++)
+            for (var curve = 0; curve < _glyphCurves.Count; curve++)
             {
-                if (!TryGetBandRange(_glyphCurves[c], min, extent, n, vertical, out var first, out var last)) continue;
-                for (var i = first; i <= last; i++) _lists[i].Add(c);
+                if (!TryGetBandRange(_glyphCurves[curve], min, extent, bandCount, vertical, out var first, out var last)) continue;
+                for (var band = first; band <= last; band++) _lists[band].Add(curve);
             }
 
             // The shader stops walking a list at the first curve wholly behind the pixel, so the
@@ -455,17 +455,17 @@ public sealed class SlugFontData
                 ? (x, y) => _glyphCurves[y].MaxY.CompareTo(_glyphCurves[x].MaxY)
                 : (x, y) => _glyphCurves[y].MaxX.CompareTo(_glyphCurves[x].MaxX);
 
-            for (var i = 0; i < n; i++)
+            for (var band = 0; band < bandCount; band++)
             {
-                var list = _lists[i];
+                var list = _lists[band];
                 list.Sort(farthestFirst);
 
                 // The shader reads a list's entries along one row without wrapping, so a list
                 // never crosses a row end; only where it starts is relative to the glyph.
                 var offset = list.Count == 0 ? 0 : StartRun(_bands, list.Count) - glyphStart;
-                foreach (var c in list) AddTexel(_bands, _glyphCurves[c].X, _glyphCurves[c].Y, 0, 0);
+                foreach (var curve in list) AddTexel(_bands, _glyphCurves[curve].X, _glyphCurves[curve].Y, 0, 0);
 
-                var header = (glyphStart + headerIndex + i) * FloatsPerTexel;
+                var header = (glyphStart + headerIndex + band) * FloatsPerTexel;
                 _bands[header] = list.Count;
                 _bands[header + 1] = offset;
             }
@@ -475,7 +475,7 @@ public sealed class SlugFontData
         private (int X, int Y) ReserveHeaders(int count)
         {
             var start = StartRun(_bands, count);
-            for (var i = 0; i < count; i++) AddTexel(_bands, 0, 0, 0, 0);
+            for (var index = 0; index < count; index++) AddTexel(_bands, 0, 0, 0, 0);
             return (start % TextureWidth, start / TextureWidth);
         }
 
@@ -489,7 +489,7 @@ public sealed class SlugFontData
             if (start % TextureWidth + length <= TextureWidth) return start;
 
             var nextRow = (start / TextureWidth + 1) * TextureWidth;
-            for (var i = start; i < nextRow; i++) AddTexel(texture, 0, 0, 0, 0);
+            for (var index = start; index < nextRow; index++) AddTexel(texture, 0, 0, 0, 0);
             return nextRow;
         }
 
@@ -509,9 +509,9 @@ public sealed class SlugFontData
             return data;
         }
 
-        private static Vector2 ToFloat(Vector2d p)
+        private static Vector2 ToFloat(Vector2d point)
         {
-            return new Vector2((float)p.X, (float)p.Y);
+            return new Vector2((float)point.X, (float)point.Y);
         }
     }
 }

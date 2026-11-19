@@ -50,7 +50,7 @@ public class HotReloadTests
         // The embedded copy is whatever this file said at build time; the disk copy is
         // written here and now. Reading back what was just written is the whole mechanism.
         var provider = Provider();
-        var root = provider.SourceRoots.First(r => Directory.Exists(Path.Combine(r, "Layouts")));
+        var root = provider.SourceRoots.First(sourceRoot => Directory.Exists(Path.Combine(sourceRoot, "Layouts")));
         var path = Path.Combine(root, "Layouts", "HotReloadProbe.txt");
 
         var original = File.ReadAllText(path);

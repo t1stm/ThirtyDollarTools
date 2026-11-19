@@ -20,62 +20,62 @@ internal enum EdgeKind : byte
 /// </summary>
 internal struct EdgeSegment
 {
-    public Vector2d P0;
-    public Vector2d P1;
-    public Vector2d P2;
-    public Vector2d P3;
+    public Vector2d Point0;
+    public Vector2d Point1;
+    public Vector2d Point2;
+    public Vector2d Point3;
     public EdgeKind Kind;
 
-    public static EdgeSegment Linear(Vector2d p0, Vector2d p1)
+    public static EdgeSegment Linear(Vector2d point0, Vector2d point1)
     {
-        return new EdgeSegment { Kind = EdgeKind.Linear, P0 = p0, P1 = p1 };
+        return new EdgeSegment { Kind = EdgeKind.Linear, Point0 = point0, Point1 = point1 };
     }
 
-    public static EdgeSegment Quadratic(Vector2d p0, Vector2d p1, Vector2d p2)
+    public static EdgeSegment Quadratic(Vector2d point0, Vector2d point1, Vector2d point2)
     {
         // A quadratic whose control point sits on an end point is a straight line.
-        if (p1 == p0 || p1 == p2)
-            return Linear(p0, p2);
-        return new EdgeSegment { Kind = EdgeKind.Quadratic, P0 = p0, P1 = p1, P2 = p2 };
+        if (point1 == point0 || point1 == point2)
+            return Linear(point0, point2);
+        return new EdgeSegment { Kind = EdgeKind.Quadratic, Point0 = point0, Point1 = point1, Point2 = point2 };
     }
 
-    public static EdgeSegment Cubic(Vector2d p0, Vector2d p1, Vector2d p2, Vector2d p3)
+    public static EdgeSegment Cubic(Vector2d point0, Vector2d point1, Vector2d point2, Vector2d point3)
     {
         // Likewise, a cubic with both control points on an end point is a straight line.
-        if ((p1 == p0 || p1 == p3) && (p2 == p0 || p2 == p3))
-            return Linear(p0, p3);
-        return new EdgeSegment { Kind = EdgeKind.Cubic, P0 = p0, P1 = p1, P2 = p2, P3 = p3 };
+        if ((point1 == point0 || point1 == point3) && (point2 == point0 || point2 == point3))
+            return Linear(point0, point3);
+        return new EdgeSegment { Kind = EdgeKind.Cubic, Point0 = point0, Point1 = point1, Point2 = point2, Point3 = point3 };
     }
 
     /// <summary>The point the segment ends at, whichever control point that is for its kind.</summary>
     public readonly Vector2d EndPoint => Kind switch
     {
-        EdgeKind.Linear => P1,
-        EdgeKind.Quadratic => P2,
-        _ => P3
+        EdgeKind.Linear => Point1,
+        EdgeKind.Quadratic => Point2,
+        _ => Point3
     };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector2d Mix(Vector2d a, Vector2d b, double t)
+    private static Vector2d Mix(Vector2d from, Vector2d to, double progress)
     {
-        return a * (1 - t) + b * t;
+        return from * (1 - progress) + to * progress;
     }
 
-    /// <summary>The point at parameter <paramref name="t" /> along the segment, 0 at the start, 1 at the end.</summary>
-    public readonly Vector2d Point(double t)
+    /// <summary>The point at parameter <paramref name="progress" /> along the segment, 0 at the start, 1 at the end.</summary>
+    public readonly Vector2d Point(double progress)
     {
         return Kind switch
         {
-            EdgeKind.Linear => Mix(P0, P1, t),
-            EdgeKind.Quadratic => Mix(Mix(P0, P1, t), Mix(P1, P2, t), t),
-            _ => CubicPoint(t)
+            EdgeKind.Linear => Mix(Point0, Point1, progress),
+            EdgeKind.Quadratic => Mix(Mix(Point0, Point1, progress), Mix(Point1, Point2, progress), progress),
+            _ => CubicPoint(progress)
         };
     }
 
-    private readonly Vector2d CubicPoint(double t)
+    private readonly Vector2d CubicPoint(double progress)
     {
-        var p12 = Mix(P1, P2, t);
-        return Mix(Mix(Mix(P0, P1, t), p12, t), Mix(p12, Mix(P2, P3, t), t), t);
+        var p12 = Mix(Point1, Point2, progress);
+        return Mix(Mix(Mix(Point0, Point1, progress), p12, progress), Mix(p12, Mix(Point2, Point3, progress), progress), progress);
     }
 
     /// <summary>
@@ -83,10 +83,10 @@ internal struct EdgeSegment
     ///     extrema as well as their end points, so the box is tight rather than a hull of the
     ///     control polygon.
     /// </summary>
-    public readonly void Bound(ref double l, ref double b, ref double r, ref double t)
+    public readonly void Bound(ref double left, ref double bottom, ref double right, ref double top)
     {
-        PointBounds(P0, ref l, ref b, ref r, ref t);
-        PointBounds(EndPoint, ref l, ref b, ref r, ref t);
+        PointBounds(Point0, ref left, ref bottom, ref right, ref top);
+        PointBounds(EndPoint, ref left, ref bottom, ref right, ref top);
 
         switch (Kind)
         {
@@ -95,17 +95,17 @@ internal struct EdgeSegment
 
             case EdgeKind.Quadratic:
             {
-                var bot = P1 - P0 - (P2 - P1);
+                var bot = Point1 - Point0 - (Point2 - Point1);
                 if (bot.X != 0)
                 {
-                    var param = (P1.X - P0.X) / bot.X;
-                    if (param > 0 && param < 1) PointBounds(Point(param), ref l, ref b, ref r, ref t);
+                    var param = (Point1.X - Point0.X) / bot.X;
+                    if (param > 0 && param < 1) PointBounds(Point(param), ref left, ref bottom, ref right, ref top);
                 }
 
                 if (bot.Y != 0)
                 {
-                    var param = (P1.Y - P0.Y) / bot.Y;
-                    if (param > 0 && param < 1) PointBounds(Point(param), ref l, ref b, ref r, ref t);
+                    var param = (Point1.Y - Point0.Y) / bot.Y;
+                    if (param > 0 && param < 1) PointBounds(Point(param), ref left, ref bottom, ref right, ref top);
                 }
 
                 return;
@@ -113,32 +113,32 @@ internal struct EdgeSegment
 
             default:
             {
-                var a0 = P1 - P0;
-                var a1 = 2 * (P2 - P1 - a0);
-                var a2 = P3 - 3 * P2 + 3 * P1 - P0;
+                var coefficient0 = Point1 - Point0;
+                var coefficient1 = 2 * (Point2 - Point1 - coefficient0);
+                var coefficient2 = Point3 - 3 * Point2 + 3 * Point1 - Point0;
 
                 Span<double> parameters = stackalloc double[2];
 
-                var solutions = EquationSolver.SolveQuadratic(parameters, a2.X, a1.X, a0.X);
-                for (var i = 0; i < solutions; ++i)
-                    if (parameters[i] > 0 && parameters[i] < 1)
-                        PointBounds(Point(parameters[i]), ref l, ref b, ref r, ref t);
+                var solutions = EquationSolver.SolveQuadratic(parameters, coefficient2.X, coefficient1.X, coefficient0.X);
+                for (var index = 0; index < solutions; ++index)
+                    if (parameters[index] > 0 && parameters[index] < 1)
+                        PointBounds(Point(parameters[index]), ref left, ref bottom, ref right, ref top);
 
-                solutions = EquationSolver.SolveQuadratic(parameters, a2.Y, a1.Y, a0.Y);
-                for (var i = 0; i < solutions; ++i)
-                    if (parameters[i] > 0 && parameters[i] < 1)
-                        PointBounds(Point(parameters[i]), ref l, ref b, ref r, ref t);
+                solutions = EquationSolver.SolveQuadratic(parameters, coefficient2.Y, coefficient1.Y, coefficient0.Y);
+                for (var index = 0; index < solutions; ++index)
+                    if (parameters[index] > 0 && parameters[index] < 1)
+                        PointBounds(Point(parameters[index]), ref left, ref bottom, ref right, ref top);
 
                 return;
             }
         }
     }
 
-    private static void PointBounds(Vector2d p, ref double l, ref double b, ref double r, ref double t)
+    private static void PointBounds(Vector2d point, ref double left, ref double bottom, ref double right, ref double top)
     {
-        if (p.X < l) l = p.X;
-        if (p.Y < b) b = p.Y;
-        if (p.X > r) r = p.X;
-        if (p.Y > t) t = p.Y;
+        if (point.X < left) left = point.X;
+        if (point.Y < bottom) bottom = point.Y;
+        if (point.X > right) right = point.X;
+        if (point.Y > top) top = point.Y;
     }
 }

@@ -141,7 +141,7 @@ public sealed class SoundPicker : FlexPanel
     ///     Fills the grid from the atlas store. Call lazily - the atlases may still be
     ///     loading while the scene is constructed; sounds without an image are skipped.
     /// </summary>
-    public void Fill(IEnumerable<Sound> sounds)
+    public new void Fill(IEnumerable<Sound> sounds)
     {
         foreach (var sound in sounds)
         {

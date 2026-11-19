@@ -19,13 +19,13 @@ public record ColorValue(string Value) : IStyleValue
         if (hexTrimmed.Length is not (6 or 8))
             throw new ArgumentException("Invalid hex color format, expected #RRGGBB(AA)");
 
-        var r = byte.Parse(hexTrimmed[..2], NumberStyles.HexNumber);
-        var g = byte.Parse(hexTrimmed[2..4], NumberStyles.HexNumber);
-        var b = byte.Parse(hexTrimmed[4..6], NumberStyles.HexNumber);
-        byte a = 255;
+        var red = byte.Parse(hexTrimmed[..2], NumberStyles.HexNumber);
+        var green = byte.Parse(hexTrimmed[2..4], NumberStyles.HexNumber);
+        var blue = byte.Parse(hexTrimmed[4..6], NumberStyles.HexNumber);
+        byte alpha = 255;
         if (hexTrimmed.Length == 8)
-            a = byte.Parse(hexTrimmed[6..8], NumberStyles.HexNumber);
+            alpha = byte.Parse(hexTrimmed[6..8], NumberStyles.HexNumber);
 
-        return new Vector4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+        return new Vector4(red / 255.0f, green / 255.0f, blue / 255.0f, alpha / 255.0f);
     }
 }

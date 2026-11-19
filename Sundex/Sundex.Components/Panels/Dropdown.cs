@@ -87,7 +87,7 @@ public class DropdownMenu : ModalLayer
         VerticalAlign = Align.Start;
 
         AddChild(Menu = new Dropdown(context));
-        OnDismissRequested = m => (m.Parent as Panel)?.RemoveChild(m);
+        OnDismissRequested = layer => (layer.Parent as Panel)?.RemoveChild(layer);
     }
 
     public override string Tag => "dropdown-layer";
@@ -148,8 +148,8 @@ public class DropdownMenu : ModalLayer
     {
         base.DoLayout(); // sizes Menu from its content, and parks it at 0,0
 
-        var w = Menu.Computed.Width;
-        var h = Menu.Computed.Height;
+        var width = Menu.Computed.Width;
+        var height = Menu.Computed.Height;
 
         // "Near" is the preferred edge to hang from, "far" the one a flip hangs from. For a
         // cursor both are the same point, offset by the gap either side; for an element the
@@ -181,14 +181,14 @@ public class DropdownMenu : ModalLayer
         farY -= Computed.AbsoluteY;
 
         var x = nearX;
-        if (x + w > Computed.Width) x = farX - w; // flip to the left
+        if (x + width > Computed.Width) x = farX - width; // flip to the left
 
         var y = nearY;
-        if (y + h > Computed.Height) y = farY - h; // flip upwards
+        if (y + height > Computed.Height) y = farY - height; // flip upwards
 
         // Flip first, clamp second: a menu larger than the viewport overflows both ways.
-        Menu.X = Math.Clamp(x, 0, Math.Max(0, Computed.Width - w));
-        Menu.Y = Math.Clamp(y, 0, Math.Max(0, Computed.Height - h));
+        Menu.X = Math.Clamp(x, 0, Math.Max(0, Computed.Width - width));
+        Menu.Y = Math.Clamp(y, 0, Math.Max(0, Computed.Height - height));
         // FlexPanel.DoLayout overwrote X/Y above, so placement must re-Layout the child.
         // Loop-safe: InvalidateLayout short-circuits while our own NeedsLayout is still
         // true (it is cleared after DoLayout returns).

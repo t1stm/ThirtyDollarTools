@@ -14,16 +14,6 @@
     <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf"/>
     <EmbeddedResource Include="Assets\Shaders\Audio\voice-mix.comp"/>
     <EmbeddedResource Include="Assets\Shaders\Audio\voice-reduce.comp"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\shaded-instanced.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\shaded-instanced.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.frag"/>
     <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.frag"/>

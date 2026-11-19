@@ -29,6 +29,8 @@
   <ItemGroup>
     <Content Include="..\..\Sundex.Engine\Assets\Fonts\*.ttf" Link="Fonts\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"/>
+    <!-- Bug 2.2: the same Golos with and without vertical-layout tables. -->
+    <Content Include="Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest"/>
     <Compile Include="..\..\Sundex.Components\Icons.cs" Link="Icons.cs"/>
   </ItemGroup>
 

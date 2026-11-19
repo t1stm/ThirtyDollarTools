@@ -180,7 +180,7 @@ internal sealed class HintBarController
         if (legend.Length == 0) return int.MaxValue;
 
         _label.SetTextContents(legend);
-        var perChar = _label.Width.Value / legend.Length;
+        var perChar = _label.Measure(float.MaxValue, float.MaxValue).width / legend.Length;
         if (perChar <= 0) return int.MaxValue;
 
         var available = _bar.Width.Value - 2 * _bar.Padding - _gutter.Width.Value;

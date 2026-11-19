@@ -13,8 +13,8 @@ public class LayoutContainer(RootContainer root, XmlElement layoutElement)
     {
         var nodes = new List<SundexNode>();
         foreach (XmlNode child in LayoutElement.ChildNodes)
-            if (child is XmlElement el)
-                nodes.Add(ParseNode(el));
+            if (child is XmlElement element)
+                nodes.Add(ParseNode(element));
         return nodes;
     }
 
@@ -40,8 +40,8 @@ public class LayoutContainer(RootContainer root, XmlElement layoutElement)
 
         var children = new List<SundexNode>();
         foreach (XmlNode child in element.ChildNodes)
-            if (child is XmlElement el)
-                children.Add(ParseNode(el));
+            if (child is XmlElement childElement)
+                children.Add(ParseNode(childElement));
 
         return new SundexNode
         {

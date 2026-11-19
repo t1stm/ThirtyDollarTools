@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
@@ -13,6 +13,7 @@ namespace Sundex.Components.Inputs;
 ///     Consumers listen through <see cref="OnCheckedChanged" /> - <see cref="UIElement.OnClick" />
 ///     is used internally for the toggle, don't overwrite it.
 /// </summary>
+[Sundex.Components.Attributes.MarkupTag("checkbox")]
 public class Checkbox : StackPanel
 {
     private const float BoxSize = 18;
@@ -71,7 +72,7 @@ public class Checkbox : StackPanel
     protected override void DoLayout()
     {
         // Center the label vertically against the box before the stack positions it.
-        Label.Y = (BoxSize - Label.Height.Resolve(0)) / 2;
+        Label.Y = (BoxSize - Label.Measure(float.MaxValue, float.MaxValue).height) / 2;
         base.DoLayout();
 
         _check.SetPosition((_box.Computed.AbsoluteX + CheckInset, _box.Computed.AbsoluteY + CheckInset, 0));

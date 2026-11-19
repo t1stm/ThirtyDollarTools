@@ -1,8 +1,8 @@
 using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
-using Shared.Renderer.Planes.Extensions;
+using Sundex.Components.Renderer.Planes;
+using Sundex.Components.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
@@ -14,7 +14,8 @@ using Sundex.Style.DSL.Abstract.Values.Keywords;
 
 namespace Sundex.Components.Panels;
 
-public class Panel(UIContext context) : UIElement(context), IColoredBackground, IPositioningElement
+[Sundex.Components.Attributes.MarkupTag("panel")]
+public partial class Panel(UIContext context) : UIElement(context), IColoredBackground, IPositioningElement
 {
     private List<UIElement> _children = [];
 
@@ -37,7 +38,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
             // Mirrors AddChild: a wholesale list swap must style the newcomers too.
             if (StoredStyleSheet is { } sheet)
                 foreach (var child in _children)
-                    if (!ReferenceEquals(child.StoredStyleSheet, sheet))
+                    if (child.StoredStyleSheet is null)
                         child.ApplyStyleSheet(sheet);
 
             // Mirrors AddChild: replacing the list on an already-live panel must queue
@@ -62,7 +63,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         internal set
         {
             base.Index = value;
-            foreach (var child in Children) child.Index = value + 1;
+            foreach (var child in Children) child.Index = value + 1 + child.ZIndex;
         }
     }
 
@@ -163,17 +164,55 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
 
     protected override void DoLayout()
     {
+        PlaceBackground();
+        foreach (var child in Children) child.Layout();
+    }
+
+    /// <summary>Puts the viewport and the background where this panel now is.</summary>
+    protected void PlaceBackground()
+    {
         var x = (int)Computed.AbsoluteX;
         var y = (int)Computed.AbsoluteY;
         Viewport = (x, y, x + (int)Computed.Width, y + (int)Computed.Height);
 
-        if (Background is IBorderRadius br)
-            br.BorderRadius = BorderRadius.Resolve(Computed.Height);
+        if (Background is IBorderRadius rounded)
+            rounded.BorderRadius = BorderRadius.Resolve(Computed.Height);
 
         Background?.SetPosition((x, y, 0));
         Background?.Scale = (Computed.Width, Computed.Height, 1);
+    }
 
-        foreach (var child in Children) child.Layout();
+    /// <summary>Makes this panel a group: its descendants apply <c>state[group-hovered]</c> while it is hovered.</summary>
+    [NamedSetting("group")]
+    public bool Group { get; set; }
+
+    protected override void HoverChanged(bool hovered)
+    {
+        base.HoverChanged(hovered);
+        if (Group) SetGroupHovered(this, hovered);
+    }
+
+    private static void SetGroupHovered(Panel panel, bool hovered)
+    {
+        foreach (var child in panel.Children)
+        {
+            child.GroupHovered = hovered;
+            if (child is Panel inner) SetGroupHovered(inner, hovered);
+        }
+    }
+
+    protected override void OnDispose()
+    {
+        base.OnDispose();
+        foreach (var child in _children.ToArray()) child.Dispose();
+    }
+
+    protected override bool ChildrenNeedLayout()
+    {
+        foreach (var child in _children)
+            if (child.NeedsLayout && child.Visible)
+                return true;
+        return false;
     }
 
     protected void SetChildrenParent()
@@ -191,18 +230,27 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         child.Parent = this;
         // Code-built subtrees are composed detached and only ever meet a stylesheet here:
         // ApplyStyleSheet runs once over the markup tree, long before this child exists,
-        // so without this pass a code-built element could only be styled inline. Guarded
-        // on identity so re-parenting (view swaps, list rebuilds) doesn't re-run
-        // reflection over a large subtree that already carries this sheet.
-        if (StoredStyleSheet is { } sheet && !ReferenceEquals(child.StoredStyleSheet, sheet))
+        // so without this pass a code-built element could only be styled inline. Only an
+        // unstyled child takes the parent's sheet: one that already has a sheet keeps it,
+        // which is what scopes a markup document's styles to the elements it built, and what
+        // spares re-parenting (view swaps, list rebuilds) a second reflection pass.
+        if (StoredStyleSheet is { } sheet && child.StoredStyleSheet is null)
             child.ApplyStyleSheet(sheet);
+        // A row added under a group that is hovered right now (a list rebuilt under the pointer)
+        // joins its hover, as CSS's .group:hover .child would; one moved out of a group leaves it.
+        var grouped = GroupHovered || Group && CurrentState is UIState.Hovered or UIState.Pressed;
+        if (child.GroupHovered != grouped)
+        {
+            child.GroupHovered = grouped;
+            if (child is Panel inner) SetGroupHovered(inner, grouped);
+        }
         // DrawTo queues the child's renderables but lays it out against this panel's
         // possibly-stale Computed; re-invalidate so the next Layout pass repositions it.
         // A panel that isn't drawn itself must not queue its children either - they
         // queue with the whole subtree once this panel gets its DrawTo.
         if (Drawn) child.DrawTo(Context);
         child.InvalidateCoordinates();
-        InvalidateLayout();
+        InvalidateMeasure();
     }
 
     public void RemoveChild(UIElement child)
@@ -211,7 +259,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         Context.NotifyDetached(child);
         child.Parent = null;
         child.StopRendering();
-        InvalidateLayout();
+        InvalidateMeasure();
     }
 
     public override void DrawTo(UIContext ctx)
@@ -241,20 +289,20 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         Renderable? plane;
         switch (styleValue)
         {
-            case GradientValue gv when propertyInfo.PropertyType == typeof(Renderable):
+            case GradientValue gradientValue when propertyInfo.PropertyType == typeof(Renderable):
             {
-                var gradient = gv.GenerateGradientPlane();
+                var gradient = gradientValue.GenerateGradientPlane();
                 gradient.BorderRadius = BorderRadius.Resolve(Computed.Height);
 
                 propertyInfo.SetValue(this, plane = gradient);
                 break;
             }
 
-            case ColorValue cv when propertyInfo.PropertyType == typeof(Renderable):
+            case ColorValue colorValue when propertyInfo.PropertyType == typeof(Renderable):
             {
                 var colored = new ColoredPlane
                 {
-                    Color = cv.Vector,
+                    Color = colorValue.Vector,
                     BorderRadius = BorderRadius.Resolve(Computed.Height)
                 };
 

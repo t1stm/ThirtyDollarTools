@@ -1,3 +1,4 @@
+using Sundex.Reactive;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -143,6 +144,13 @@ public class Game : GameWindow
         GetGLInfo(GLInfo);
         LogSetup();
 
+        // This thread is the UI thread from here on: awaits come back to it, and reactive state
+        // written from anywhere else is caught in Debug builds.
+        Frame.Install();
+        Rx.OnError = (exception, where) => Logger.Error(exception, "[Reactive] {Where} threw", where);
+        Clipboard.Read = () => ClipboardString ?? "";
+        Clipboard.Write = text => ClipboardString = text;
+
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
 
@@ -170,9 +178,9 @@ public class Game : GameWindow
         foreach (var assembly in AssetAssemblies) ReflectionPreloadObjects(assembly);
 
         AppDomain.CurrentDomain.UnhandledException +=
-            (_, e) =>
+            (_, args) =>
             {
-                Logger.Fatal(e.ExceptionObject as Exception,
+                Logger.Fatal(args.ExceptionObject as Exception,
                     "[Unhandled Exception]: ({GameName}, {Id}) ", nameof(Game), _id);
             };
 
@@ -230,7 +238,7 @@ public class Game : GameWindow
         // who doesn't love reflection in a small game engine?
         var types = targetAssembly
             .GetTypes()
-            .Where(t => t.GetCustomAttribute<PreloadGraphicsContextAttribute>() != null);
+            .Where(type => type.GetCustomAttribute<PreloadGraphicsContextAttribute>() != null);
 
         foreach (var type in types)
         {
@@ -272,9 +280,9 @@ public class Game : GameWindow
         var extCount = GL.GetInteger(GetPName.NumExtensions);
         glInfo.Extensions.EnsureCapacity(extCount);
 
-        for (uint i = 0; i < extCount; i++)
+        for (uint index = 0; index < extCount; index++)
         {
-            var ext = GL.GetStringi(StringName.Extensions, i);
+            var ext = GL.GetStringi(StringName.Extensions, index);
             if (ext is not null)
                 glInfo.Extensions.Add(ext);
         }
@@ -328,6 +336,9 @@ public class Game : GameWindow
         CursorState = CursorState.Normal;
         AssetProvider.Update();
         ThreadRunner.Update();
+        // Posted work, timers and tickers, then every effect whose state changed, before the
+        // scenes lay out: ten writes in one handler cost one update.
+        Frame.Pump();
 
         var initArguments = new InitArguments
         {
@@ -359,7 +370,7 @@ public class Game : GameWindow
             Delta = args.Time
         });
 
-        if (KeyboardState.IsKeyDown(Keys.LeftControl) && KeyboardState.IsKeyDown(Keys.Q))
+        if (QuitShortcut && KeyboardState.IsKeyDown(Keys.LeftControl) && KeyboardState.IsKeyDown(Keys.Q))
             Close();
     }
 
@@ -420,16 +431,22 @@ public class Game : GameWindow
 
     /// <summary>Text arrives as events, not polled state, so it is held for the next drawn frame's <see cref="LogInput" />.</summary>
     [Conditional("DEBUG")]
-    private void LogTextInput(TextInputEventArgs e)
+    private void LogTextInput(TextInputEventArgs args)
     {
-        _pendingText.Add(e.AsString);
+        _pendingText.Add(args.AsString);
     }
+
+    /// <summary>Whether Alt+Enter (Ctrl+Cmd+F on macOS) toggles fullscreen before the scene sees the key.</summary>
+    public bool FullscreenShortcut { get; set; } = true;
+
+    /// <summary>Whether Ctrl+Q closes the game before the scene sees it.</summary>
+    public bool QuitShortcut { get; set; } = true;
 
     protected override void OnKeyDown(KeyboardKeyEventArgs e)
     {
         base.OnKeyDown(e);
 
-        if (!e.IsRepeat && IsFullscreenShortcut(e))
+        if (FullscreenShortcut && !e.IsRepeat && IsFullscreenShortcut(e))
         {
             ToggleFullscreen();
             return;
@@ -442,14 +459,14 @@ public class Game : GameWindow
     ///     Alt+Enter on Windows/Linux, Ctrl+Cmd+F on macOS - the platform-native
     ///     "toggle fullscreen" chord in both cases.
     /// </summary>
-    private static bool IsFullscreenShortcut(KeyboardKeyEventArgs e)
+    private static bool IsFullscreenShortcut(KeyboardKeyEventArgs args)
     {
         if (OperatingSystem.IsMacOS())
-            return e.Key == Keys.F &&
-                   (e.Modifiers & (KeyModifiers.Super | KeyModifiers.Control)) ==
+            return args.Key == Keys.F &&
+                   (args.Modifiers & (KeyModifiers.Super | KeyModifiers.Control)) ==
                    (KeyModifiers.Super | KeyModifiers.Control);
 
-        return (e.Key is Keys.Enter or Keys.KeyPadEnter) && e.Modifiers.HasFlag(KeyModifiers.Alt);
+        return (args.Key is Keys.Enter or Keys.KeyPadEnter) && args.Modifiers.HasFlag(KeyModifiers.Alt);
     }
 
     private void ToggleFullscreen()

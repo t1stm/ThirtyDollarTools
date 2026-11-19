@@ -27,20 +27,20 @@ public class SlugCoverageTests
         int mismatched = 0, counted = 0;
         var worst = new List<(char Character, int Mismatched)>();
 
-        for (var c = '!'; c <= '~'; c++)
+        for (var character = '!'; character <= '~'; character++)
         {
-            Assert.True(font.TryBuildShape([c], shape, out _));
-            var (glyphMismatched, glyphCounted) = Compare(data, data.GetGlyph([c]), shape, pixelsPerEm);
+            Assert.True(font.TryBuildShape([character], shape, out _));
+            var (glyphMismatched, glyphCounted) = Compare(data, data.GetGlyph([character]), shape, pixelsPerEm);
 
             mismatched += glyphMismatched;
             counted += glyphCounted;
-            if (glyphMismatched > 0) worst.Add((c, glyphMismatched));
+            if (glyphMismatched > 0) worst.Add((character, glyphMismatched));
         }
 
         var rate = mismatched / (double)counted;
         Assert.True(rate <= 0.005,
             $"{mismatched} of {counted} pixels ({rate:P2}) disagree with the outline; worst: " +
-            string.Join(", ", worst.OrderByDescending(w => w.Mismatched).Take(8).Select(w => $"'{w.Character}'={w.Mismatched}")));
+            string.Join(", ", worst.OrderByDescending(entry => entry.Mismatched).Take(8).Select(entry => $"'{entry.Character}'={entry.Mismatched}")));
     }
 
     /// <summary>Two same-wound squares that overlap render as their union. A distance field can't.</summary>
@@ -174,8 +174,8 @@ public class SlugCoverageTests
         if (!counterClockwise) Array.Reverse(corners);
 
         shape.BeginContour();
-        for (var i = 0; i < corners.Length; i++)
-            shape.AddEdge(EdgeSegment.Linear(corners[i], corners[(i + 1) % corners.Length]));
+        for (var corner = 0; corner < corners.Length; corner++)
+            shape.AddEdge(EdgeSegment.Linear(corners[corner], corners[(corner + 1) % corners.Length]));
         shape.EndContour();
     }
 
@@ -194,10 +194,10 @@ public class SlugCoverageTests
         var nearEdge = 1.0 / pixelsPerEm;
 
         int mismatched = 0, counted = 0;
-        for (var py = 0; py < height; py++)
-        for (var px = 0; px < width; px++)
+        for (var pixelY = 0; pixelY < height; pixelY++)
+        for (var pixelX = 0; pixelX < width; pixelX++)
         {
-            var sample = new Vector2(rect.X + (px + 0.5f) / pixelsPerEm, rect.Y + (py + 0.5f) / pixelsPerEm);
+            var sample = new Vector2(rect.X + (pixelX + 0.5f) / pixelsPerEm, rect.Y + (pixelY + 0.5f) / pixelsPerEm);
             var point = new Vector2d(sample.X, sample.Y);
 
             if (DistanceToOutline(segments, point) < nearEdge) continue;
@@ -210,31 +210,31 @@ public class SlugCoverageTests
         return (mismatched, counted);
     }
 
-    private static List<(Vector2d A, Vector2d B)> Flatten(Shape shape)
+    private static List<(Vector2d Start, Vector2d End)> Flatten(Shape shape)
     {
         var segments = new List<(Vector2d, Vector2d)>();
         foreach (var edge in shape.Edges)
         {
             var steps = edge.Kind == EdgeKind.Linear ? 1 : FlattenSteps;
-            for (var i = 0; i < steps; i++)
-                segments.Add((edge.Point(i / (double)steps), edge.Point((i + 1) / (double)steps)));
+            for (var step = 0; step < steps; step++)
+                segments.Add((edge.Point(step / (double)steps), edge.Point((step + 1) / (double)steps)));
         }
 
         return segments;
     }
 
-    /// <summary>The non-zero winding number of the outline around <paramref name="p" />.</summary>
-    private static int Winding(List<(Vector2d A, Vector2d B)> segments, Vector2d p)
+    /// <summary>The non-zero winding number of the outline around <paramref name="point" />.</summary>
+    private static int Winding(List<(Vector2d Start, Vector2d End)> segments, Vector2d point)
     {
         var winding = 0;
-        foreach (var (a, b) in segments)
+        foreach (var (start, end) in segments)
         {
-            var side = Vector2d.Cross(b - a, p - a);
-            if (a.Y <= p.Y)
+            var side = Vector2d.Cross(end - start, point - start);
+            if (start.Y <= point.Y)
             {
-                if (b.Y > p.Y && side > 0) winding++;
+                if (end.Y > point.Y && side > 0) winding++;
             }
-            else if (b.Y <= p.Y && side < 0)
+            else if (end.Y <= point.Y && side < 0)
             {
                 winding--;
             }
@@ -243,15 +243,15 @@ public class SlugCoverageTests
         return winding;
     }
 
-    private static double DistanceToOutline(List<(Vector2d A, Vector2d B)> segments, Vector2d p)
+    private static double DistanceToOutline(List<(Vector2d Start, Vector2d End)> segments, Vector2d point)
     {
         var best = double.MaxValue;
-        foreach (var (a, b) in segments)
+        foreach (var (start, end) in segments)
         {
-            var ab = b - a;
-            var lengthSquared = Vector2d.Dot(ab, ab);
-            var t = lengthSquared > 0 ? Math.Clamp(Vector2d.Dot(p - a, ab) / lengthSquared, 0, 1) : 0;
-            best = Math.Min(best, (a + ab * t - p).Length);
+            var segment = end - start;
+            var lengthSquared = Vector2d.Dot(segment, segment);
+            var progress = lengthSquared > 0 ? Math.Clamp(Vector2d.Dot(point - start, segment) / lengthSquared, 0, 1) : 0;
+            best = Math.Min(best, (start + segment * progress - point).Length);
         }
 
         return best;

@@ -47,24 +47,24 @@ public static partial class MarkdownParser
         var open = new OpenBlock(blocks);
         var lines = markdown.ReplaceLineEndings("\n").Split('\n');
 
-        for (var i = 0; i < lines.Length; i++)
+        for (var index = 0; index < lines.Length; index++)
         {
-            if (Fence().Match(lines[i]) is { Success: true } fence)
+            if (Fence().Match(lines[index]) is { Success: true } fence)
             {
                 open.Close();
-                i = ReadFence(lines, i + 1, fence.Groups[1].Value, blocks);
+                index = ReadFence(lines, index + 1, fence.Groups[1].Value, blocks);
                 continue;
             }
 
             var position = 0;
-            foreach (Match image in Image().Matches(lines[i]))
+            foreach (Match image in Image().Matches(lines[index]))
             {
-                ReadText(lines[i][position..image.Index], open, blocks);
+                ReadText(lines[index][position..image.Index], open, blocks);
                 ReadImage(image, open, blocks);
                 position = image.Index + image.Length;
             }
 
-            ReadText(lines[i][position..], open, blocks, position == 0);
+            ReadText(lines[index][position..], open, blocks, position == 0);
         }
 
         open.Close();
@@ -94,7 +94,7 @@ public static partial class MarkdownParser
     private static bool IsClosingFence(string line, string marker)
     {
         var trimmed = line.Trim();
-        return trimmed.Length >= marker.Length && trimmed.All(c => c == marker[0]);
+        return trimmed.Length >= marker.Length && trimmed.All(character => character == marker[0]);
     }
 
     // wholeLine is false for the text beside an image: blank there says nothing about the paragraph.
@@ -146,7 +146,7 @@ public static partial class MarkdownParser
         else
         {
             var attributes = Attribute().Matches(match.Value)
-                .ToLookup(a => a.Groups[1].Value.ToLowerInvariant(), a => a.Groups[2].Value + a.Groups[3].Value + a.Groups[4].Value);
+                .ToLookup(found => found.Groups[1].Value.ToLowerInvariant(), found => found.Groups[2].Value + found.Groups[3].Value + found.Groups[4].Value);
             url = attributes["src"].FirstOrDefault() ?? string.Empty;
             alt = attributes["alt"].FirstOrDefault() ?? string.Empty;
             width = Pixels(attributes["width"].FirstOrDefault());
@@ -175,64 +175,64 @@ public static partial class MarkdownParser
         var bold = false;
         char? italic = null;
 
-        for (var i = 0; i < text.Length; i++)
+        for (var index = 0; index < text.Length; index++)
         {
-            var c = text[i];
-            var previous = i > 0 ? text[i - 1] : ' ';
-            var next = i + 1 < text.Length ? text[i + 1] : ' ';
+            var character = text[index];
+            var previous = index > 0 ? text[index - 1] : ' ';
+            var next = index + 1 < text.Length ? text[index + 1] : ' ';
 
-            switch (c)
+            switch (character)
             {
                 case '\\' when char.IsPunctuation(next) || char.IsSymbol(next):
                     run.Append(next);
-                    i++;
+                    index++;
                     continue;
 
                 case '`':
                 {
                     var length = 1;
-                    while (i + length < text.Length && text[i + length] == '`') length++;
+                    while (index + length < text.Length && text[index + length] == '`') length++;
                     var fence = new string('`', length);
-                    var close = text.IndexOf(fence, i + length, StringComparison.Ordinal);
+                    var close = text.IndexOf(fence, index + length, StringComparison.Ordinal);
                     if (close < 0) break;
 
                     Flush();
-                    inlines.Add(new MarkdownInline(text[(i + length)..close].Trim(), bold, true));
-                    i = close + length - 1;
+                    inlines.Add(new MarkdownInline(text[(index + length)..close].Trim(), bold, true));
+                    index = close + length - 1;
                     continue;
                 }
 
-                case '*' or '_' when next == c:
+                case '*' or '_' when next == character:
                 {
-                    var marker = text.Substring(i, 2);
+                    var marker = text.Substring(index, 2);
                     // snake__case stays text; only an opening marker needs a closing one ahead.
-                    var opens = (c == '*' || !char.IsLetterOrDigit(previous)) &&
-                                text.IndexOf(marker, i + 2, StringComparison.Ordinal) >= 0;
+                    var opens = (character == '*' || !char.IsLetterOrDigit(previous)) &&
+                                text.IndexOf(marker, index + 2, StringComparison.Ordinal) >= 0;
                     if (!bold && !opens) break;
 
                     Flush();
                     bold = !bold;
-                    i++;
+                    index++;
                     continue;
                 }
 
                 case '*' or '_':
                 {
-                    if (italic == c && !char.IsWhiteSpace(previous))
+                    if (italic == character && !char.IsWhiteSpace(previous))
                     {
                         italic = null;
                         continue;
                     }
 
                     var opens = italic == null && !char.IsWhiteSpace(next) && !char.IsLetterOrDigit(previous) &&
-                                text.IndexOf(c, i + 1) >= 0;
+                                text.IndexOf(character, index + 1) >= 0;
                     if (!opens) break;
 
-                    italic = c;
+                    italic = character;
                     continue;
                 }
 
-                case '[' when Link().Match(text, i) is { Success: true } link:
+                case '[' when Link().Match(text, index) is { Success: true } link:
                 {
                     var label = link.Groups[1].Value;
                     if (TryWebUrl(WebUtility.HtmlDecode(link.Groups[2].Value), out var url))
@@ -245,11 +245,11 @@ public static partial class MarkdownParser
                         run.Append(label);
                     }
 
-                    i += link.Length - 1;
+                    index += link.Length - 1;
                     continue;
                 }
 
-                case '<' when Tag().Match(text, i) is { Success: true } tag:
+                case '<' when Tag().Match(text, index) is { Success: true } tag:
                 {
                     // <https://...> is Markdown's own way of writing a link.
                     if (tag.Groups[1].Success && TryWebUrl(tag.Groups[1].Value, out var url))
@@ -258,23 +258,23 @@ public static partial class MarkdownParser
                         inlines.Add(new MarkdownInline(tag.Groups[1].Value, bold, false, url));
                     }
 
-                    i += tag.Length - 1;
+                    index += tag.Length - 1;
                     continue;
                 }
 
-                case 'h' when !char.IsLetterOrDigit(previous) && BareUrl().Match(text, i) is { Success: true } bare:
+                case 'h' when !char.IsLetterOrDigit(previous) && BareUrl().Match(text, index) is { Success: true } bare:
                 {
                     var address = bare.Value.TrimEnd('.', ',', ':', ';', '!', '?');
                     if (!TryWebUrl(address, out var url)) break;
 
                     Flush();
                     inlines.Add(new MarkdownInline(address, bold, false, url));
-                    i += address.Length - 1;
+                    index += address.Length - 1;
                     continue;
                 }
             }
 
-            run.Append(c);
+            run.Append(character);
         }
 
         Flush();

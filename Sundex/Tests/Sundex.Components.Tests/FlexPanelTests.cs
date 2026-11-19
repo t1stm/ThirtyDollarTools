@@ -328,4 +328,24 @@ public class FlexPanelTests
         {
         }
     }
+
+    [Fact]
+    public void AChildAddedUnderAHoveredGroupJoinsItsHover()
+    {
+        // A list rebuilt under the pointer used to come back without its group-hover look.
+        var context = new TestUIContext();
+        var root = new Panel(context) { Width = 400, Height = 300 };
+        var group = new Panel(context) { Width = 200, Height = 100, Group = true };
+        root.Children = [group];
+        root.Layout();
+        context.UpdatePointer(root, 50, 50, false, false, false, OpenTK.Mathematics.Vector2.Zero);
+
+        var row = new Panel(context) { Width = 50, Height = 20 };
+        var label = new Labels.Label(context, "x");
+        row.Children = [label];
+        group.AddChild(row);
+
+        Assert.True(row.GroupHovered);
+        Assert.True(label.GroupHovered);
+    }
 }

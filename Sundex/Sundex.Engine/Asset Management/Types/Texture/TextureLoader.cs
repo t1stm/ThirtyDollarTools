@@ -64,6 +64,17 @@ public class TextureLoader : IAssetLoader<TextureHolder, TextureInfo>
             }
         }
 
+        if (createInfo.Blur > 0)
+        {
+            // A sigma given in the box's pixels shrinks by however far the texture is stretched to
+            // fill the box (the larger factor, as cover fills it), so a small picture shown large
+            // isn't blurred to one flat colour.
+            var sigma = createInfo.Blur;
+            if (createInfo is { BlurBoxWidth: > 0, BlurBoxHeight: > 0 })
+                sigma /= Math.Max(createInfo.BlurBoxWidth / image.Width, createInfo.BlurBoxHeight / image.Height);
+            if (sigma >= 0.5f) image.Mutate(context => context.GaussianBlur(sigma));
+        }
+
         createInfo.Width = image.Width;
         createInfo.Height = image.Height;
         createInfo.IsAnimated = image.Frames.Count > 1;

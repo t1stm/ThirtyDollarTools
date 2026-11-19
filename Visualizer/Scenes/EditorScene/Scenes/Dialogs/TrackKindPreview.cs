@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 using Shared.Atlases;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using EditorScene.Scenes.Views;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
@@ -205,7 +205,7 @@ internal sealed class FaithfulPreview : FlexPanel
     ///     Puts the icons in, the first time the atlases hold them; until then the boxes stay
     ///     empty. Sounds are looked up by ID, the actions by their own atlas key ("!speed").
     /// </summary>
-    public void Fill(IReadOnlyDictionary<string, Sound> sounds)
+    public new void Fill(IReadOnlyDictionary<string, Sound> sounds)
     {
         Fill(sounds, InstrumentSounds, SequenceSounds);
     }
@@ -215,7 +215,7 @@ internal sealed class FaithfulPreview : FlexPanel
     ///     Sequence box, named as the file names them. A sound the sample set lacks shows the
     ///     missing icon.
     /// </summary>
-    public void Fill(IReadOnlyDictionary<string, Sound> sounds, IReadOnlyList<string> instruments,
+    public new void Fill(IReadOnlyDictionary<string, Sound> sounds, IReadOnlyList<string> instruments,
         IEnumerable<string> sequence)
     {
         // Same guard as FaithfulPalette.Rebuild: the atlases finish loading after the editor
@@ -298,14 +298,14 @@ internal sealed class FaithfulPreview : FlexPanel
 internal sealed class ProjectPreview : Panel
 {
     private const int MaxLanes = 5;
-    private const float Padding = 10;
+    private const float Inset = 10;
     private const float LaneHeight = 20;
     private const float LanePitch = 24;
     private const float IconSize = 16;
-    private const float NameX = Padding + IconSize + 6;
+    private const float NameX = Inset + IconSize + 6;
     private const int NameLimit = 18;
-    private const float ClipX = Padding + 128;
-    private const float ClipWidth = TrackKindPreview.Width - Padding - ClipX;
+    private const float ClipX = Inset + 128;
+    private const float ClipWidth = TrackKindPreview.Width - Inset - ClipX;
     private const float TickWidth = 2;
     private const float TickHeight = 8;
 
@@ -328,12 +328,12 @@ internal sealed class ProjectPreview : Panel
 
         for (var i = 0; i < lanes.Count; i++)
         {
-            var y = Padding + i * LanePitch;
+            var y = Inset + i * LanePitch;
             var color = palette.Count == 0 ? Vector4.One : palette[i % palette.Count];
 
             var icon = sounds.TryGetValue(lanes[i], out var sound) ? _images.Create(sound, IconSize) : null;
             icon ??= new SoundImage(context, null, IconSize);
-            icon.X = Padding;
+            icon.X = Inset;
             icon.Y = y + (LaneHeight - IconSize) / 2;
             AddChild(icon);
             AddChild(new Label(context, FaithfulPalette.Shorten(lanes[i], NameLimit))
@@ -365,7 +365,7 @@ internal sealed class ProjectPreview : Panel
         if (more > 0)
             AddChild(new Label(context, $"and {more} more track{(more == 1 ? "" : "s")}, one per sound")
             {
-                Classes = ["track-preview-more"], X = NameX, Y = Padding + lanes.Count * LanePitch
+                Classes = ["track-preview-more"], X = NameX, Y = Inset + lanes.Count * LanePitch
             });
     }
 

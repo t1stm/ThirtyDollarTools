@@ -1,0 +1,24 @@
+<sundex version="2.0" component="test-card">
+  <props>
+    <prop name="title" type="string" default="Card"/>
+    <event name="picked" type="string"/>
+    <event name="closed"/>
+  </props>
+
+  <layout>
+    <flex class="card" direction="vertical">
+      <button class="pick" on.click="{() => picked(title)}">
+        <label class="title" value="{title}"/>
+      </button>
+      <button class="close" on.click="{closed}">
+        <label value="Close"/>
+      </button>
+      <slot/>
+      <if condition="{HasSlot(&quot;actions&quot;)}">
+        <flex class="actions">
+          <slot name="actions"/>
+        </flex>
+      </if>
+    </flex>
+  </layout>
+</sundex>

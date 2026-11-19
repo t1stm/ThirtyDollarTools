@@ -2,7 +2,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Atlases;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;

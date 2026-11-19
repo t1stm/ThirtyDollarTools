@@ -16,59 +16,59 @@ public static class SteppingFunctions
         return current;
     }
 
-    public static float Apply(SteppingFunction function, float t)
+    public static float Apply(SteppingFunction function, float progress)
     {
         return function switch
         {
-            SteppingFunction.Linear => t,
-            SteppingFunction.Exponential => t >= 1f ? 1f : 1f - MathF.Exp(-7.5f * t),
-            SteppingFunction.SineIn => 1f - MathF.Cos(t * MathF.PI / 2f),
-            SteppingFunction.SineOut => MathF.Sin(t * MathF.PI / 2f),
-            SteppingFunction.SineInOut => -(MathF.Cos(MathF.PI * t) - 1f) / 2f,
-            SteppingFunction.QuadIn => t * t,
-            SteppingFunction.QuadOut => 1f - (1f - t) * (1f - t),
-            SteppingFunction.QuadInOut => t < 0.5f ? 2f * t * t : 1f - MathF.Pow(-2f * t + 2f, 2f) / 2f,
-            SteppingFunction.CubicIn => t * t * t,
-            SteppingFunction.CubicOut => 1f - MathF.Pow(1f - t, 3f),
-            SteppingFunction.CubicInOut => t < 0.5f ? 4f * t * t * t : 1f - MathF.Pow(-2f * t + 2f, 3f) / 2f,
-            SteppingFunction.QuartIn => t * t * t * t,
-            SteppingFunction.QuartOut => 1f - MathF.Pow(1f - t, 4f),
-            SteppingFunction.QuartInOut => t < 0.5f ? 8f * t * t * t * t : 1f - MathF.Pow(-2f * t + 2f, 4f) / 2f,
-            SteppingFunction.QuintIn => t * t * t * t * t,
-            SteppingFunction.QuintOut => 1f - MathF.Pow(1f - t, 5f),
-            SteppingFunction.QuintInOut => t < 0.5f ? 16f * t * t * t * t * t : 1f - MathF.Pow(-2f * t + 2f, 5f) / 2f,
-            SteppingFunction.ExpoIn => Math.Abs(t) < 0.001f ? 0f : MathF.Pow(2f, 10f * t - 10f),
-            SteppingFunction.ExpoOut => Math.Abs(t - 1f) < 0.001f ? 1f : 1f - MathF.Pow(2f, -10f * t),
-            SteppingFunction.ExpoInOut => Math.Abs(t) < 0.001f ? 0f :
-                Math.Abs(t - 1f) < 0.001f ? 1f :
-                t < 0.5f ? MathF.Pow(2f, 20f * t - 10f) / 2f : (2f - MathF.Pow(2f, -20f * t + 10f)) / 2f,
-            SteppingFunction.CircIn => 1f - MathF.Sqrt(1f - MathF.Pow(t, 2f)),
-            SteppingFunction.CircOut => MathF.Sqrt(1f - MathF.Pow(t - 1f, 2f)),
-            SteppingFunction.CircInOut => t < 0.5f
-                ? (1f - MathF.Sqrt(1f - MathF.Pow(2f * t, 2f))) / 2f
-                : (MathF.Sqrt(1f - MathF.Pow(-2f * t + 2f, 2f)) + 1f) / 2f,
-            SteppingFunction.BackIn => 2.70158f * t * t * t - 1.70158f * t * t,
-            SteppingFunction.BackOut => 1f + 2.70158f * MathF.Pow(t - 1f, 3f) + 1.70158f * MathF.Pow(t - 1f, 2f),
-            SteppingFunction.BackInOut => t < 0.5f
-                ? MathF.Pow(2f * t, 2f) * ((2.59491f + 1f) * 2f * t - 2.59491f) / 2f
-                : (MathF.Pow(2f * t - 2f, 2f) * ((2.59491f + 1f) * (t * 2f - 2f) + 2.59491f) + 2f) / 2f,
-            SteppingFunction.ElasticIn => Math.Abs(t) < 0.001f ? 0f :
-                Math.Abs(t - 1f) < 0.001f ? 1f :
-                -MathF.Pow(2f, 10f * t - 10f) * MathF.Sin((t * 10f - 10.75f) * (2f * MathF.PI / 3f)),
-            SteppingFunction.ElasticOut => Math.Abs(t) < 0.001f ? 0f :
-                Math.Abs(t - 1f) < 0.001f ? 1f :
-                MathF.Pow(2f, -10f * t) * MathF.Sin((t * 10f - 0.75f) * (2f * MathF.PI / 3f)) + 1f,
-            SteppingFunction.ElasticInOut => Math.Abs(t) < 0.001f ? 0f :
-                Math.Abs(t - 1f) < 0.001f ? 1f :
-                t < 0.5f ? -(MathF.Pow(2f, 20f * t - 10f) * MathF.Sin((20f * t - 11.125f) * (2f * MathF.PI / 4.5f))) /
+            SteppingFunction.Linear => progress,
+            SteppingFunction.Exponential => progress >= 1f ? 1f : 1f - MathF.Exp(-7.5f * progress),
+            SteppingFunction.SineIn => 1f - MathF.Cos(progress * MathF.PI / 2f),
+            SteppingFunction.SineOut => MathF.Sin(progress * MathF.PI / 2f),
+            SteppingFunction.SineInOut => -(MathF.Cos(MathF.PI * progress) - 1f) / 2f,
+            SteppingFunction.QuadIn => progress * progress,
+            SteppingFunction.QuadOut => 1f - (1f - progress) * (1f - progress),
+            SteppingFunction.QuadInOut => progress < 0.5f ? 2f * progress * progress : 1f - MathF.Pow(-2f * progress + 2f, 2f) / 2f,
+            SteppingFunction.CubicIn => progress * progress * progress,
+            SteppingFunction.CubicOut => 1f - MathF.Pow(1f - progress, 3f),
+            SteppingFunction.CubicInOut => progress < 0.5f ? 4f * progress * progress * progress : 1f - MathF.Pow(-2f * progress + 2f, 3f) / 2f,
+            SteppingFunction.QuartIn => progress * progress * progress * progress,
+            SteppingFunction.QuartOut => 1f - MathF.Pow(1f - progress, 4f),
+            SteppingFunction.QuartInOut => progress < 0.5f ? 8f * progress * progress * progress * progress : 1f - MathF.Pow(-2f * progress + 2f, 4f) / 2f,
+            SteppingFunction.QuintIn => progress * progress * progress * progress * progress,
+            SteppingFunction.QuintOut => 1f - MathF.Pow(1f - progress, 5f),
+            SteppingFunction.QuintInOut => progress < 0.5f ? 16f * progress * progress * progress * progress * progress : 1f - MathF.Pow(-2f * progress + 2f, 5f) / 2f,
+            SteppingFunction.ExpoIn => Math.Abs(progress) < 0.001f ? 0f : MathF.Pow(2f, 10f * progress - 10f),
+            SteppingFunction.ExpoOut => Math.Abs(progress - 1f) < 0.001f ? 1f : 1f - MathF.Pow(2f, -10f * progress),
+            SteppingFunction.ExpoInOut => Math.Abs(progress) < 0.001f ? 0f :
+                Math.Abs(progress - 1f) < 0.001f ? 1f :
+                progress < 0.5f ? MathF.Pow(2f, 20f * progress - 10f) / 2f : (2f - MathF.Pow(2f, -20f * progress + 10f)) / 2f,
+            SteppingFunction.CircIn => 1f - MathF.Sqrt(1f - MathF.Pow(progress, 2f)),
+            SteppingFunction.CircOut => MathF.Sqrt(1f - MathF.Pow(progress - 1f, 2f)),
+            SteppingFunction.CircInOut => progress < 0.5f
+                ? (1f - MathF.Sqrt(1f - MathF.Pow(2f * progress, 2f))) / 2f
+                : (MathF.Sqrt(1f - MathF.Pow(-2f * progress + 2f, 2f)) + 1f) / 2f,
+            SteppingFunction.BackIn => 2.70158f * progress * progress * progress - 1.70158f * progress * progress,
+            SteppingFunction.BackOut => 1f + 2.70158f * MathF.Pow(progress - 1f, 3f) + 1.70158f * MathF.Pow(progress - 1f, 2f),
+            SteppingFunction.BackInOut => progress < 0.5f
+                ? MathF.Pow(2f * progress, 2f) * ((2.59491f + 1f) * 2f * progress - 2.59491f) / 2f
+                : (MathF.Pow(2f * progress - 2f, 2f) * ((2.59491f + 1f) * (progress * 2f - 2f) + 2.59491f) + 2f) / 2f,
+            SteppingFunction.ElasticIn => Math.Abs(progress) < 0.001f ? 0f :
+                Math.Abs(progress - 1f) < 0.001f ? 1f :
+                -MathF.Pow(2f, 10f * progress - 10f) * MathF.Sin((progress * 10f - 10.75f) * (2f * MathF.PI / 3f)),
+            SteppingFunction.ElasticOut => Math.Abs(progress) < 0.001f ? 0f :
+                Math.Abs(progress - 1f) < 0.001f ? 1f :
+                MathF.Pow(2f, -10f * progress) * MathF.Sin((progress * 10f - 0.75f) * (2f * MathF.PI / 3f)) + 1f,
+            SteppingFunction.ElasticInOut => Math.Abs(progress) < 0.001f ? 0f :
+                Math.Abs(progress - 1f) < 0.001f ? 1f :
+                progress < 0.5f ? -(MathF.Pow(2f, 20f * progress - 10f) * MathF.Sin((20f * progress - 11.125f) * (2f * MathF.PI / 4.5f))) /
                            2f :
-                MathF.Pow(2f, -20f * t + 10f) * MathF.Sin((20f * t - 11.125f) * (2f * MathF.PI / 4.5f)) / 2f + 1f,
-            SteppingFunction.BounceIn => 1f - BounceOut(1f - t),
-            SteppingFunction.BounceOut => BounceOut(t),
-            SteppingFunction.BounceInOut => t < 0.5f
-                ? (1f - BounceOut(1f - 2f * t)) / 2f
-                : (1f + BounceOut(2f * t - 1f)) / 2f,
-            _ => t
+                MathF.Pow(2f, -20f * progress + 10f) * MathF.Sin((20f * progress - 11.125f) * (2f * MathF.PI / 4.5f)) / 2f + 1f,
+            SteppingFunction.BounceIn => 1f - BounceOut(1f - progress),
+            SteppingFunction.BounceOut => BounceOut(progress),
+            SteppingFunction.BounceInOut => progress < 0.5f
+                ? (1f - BounceOut(1f - 2f * progress)) / 2f
+                : (1f + BounceOut(2f * progress - 1f)) / 2f,
+            _ => progress
         };
     }
 
@@ -137,17 +137,17 @@ public static class SteppingFunctions
         };
     }
 
-    private static float BounceOut(float t)
+    private static float BounceOut(float progress)
     {
-        const float n1 = 7.5625f;
-        const float d1 = 2.75f;
+        const float bounce = 7.5625f;
+        const float period = 2.75f;
 
-        return t switch
+        return progress switch
         {
-            < 1f / d1 => n1 * t * t,
-            < 2f / d1 => n1 * (t -= 1.5f / d1) * t + 0.75f,
-            < 2.5f / d1 => n1 * (t -= 2.25f / d1) * t + 0.9375f,
-            _ => n1 * (t -= 2.625f / d1) * t + 0.984375f
+            < 1f / period => bounce * progress * progress,
+            < 2f / period => bounce * (progress -= 1.5f / period) * progress + 0.75f,
+            < 2.5f / period => bounce * (progress -= 2.25f / period) * progress + 0.9375f,
+            _ => bounce * (progress -= 2.625f / period) * progress + 0.984375f
         };
     }
 }

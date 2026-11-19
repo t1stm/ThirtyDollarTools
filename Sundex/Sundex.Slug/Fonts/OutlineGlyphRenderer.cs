@@ -90,18 +90,18 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
 
     public void QuadraticBezierTo(Vector2 secondControlPoint, Vector2 point)
     {
-        var c = Transform(secondControlPoint);
+        var control = Transform(secondControlPoint);
         var next = Transform(point);
-        Emit(EdgeSegment.Quadratic(_current, c, next));
+        Emit(EdgeSegment.Quadratic(_current, control, next));
         _current = next;
     }
 
     public void CubicBezierTo(Vector2 secondControlPoint, Vector2 thirdControlPoint, Vector2 point)
     {
-        var c1 = Transform(secondControlPoint);
-        var c2 = Transform(thirdControlPoint);
+        var control1 = Transform(secondControlPoint);
+        var control2 = Transform(thirdControlPoint);
         var next = Transform(point);
-        Emit(EdgeSegment.Cubic(_current, c1, c2, next));
+        Emit(EdgeSegment.Cubic(_current, control1, control2, next));
         _current = next;
     }
 
@@ -127,12 +127,12 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
     private void Emit(EdgeSegment edge)
     {
         // An edge that ends where it starts adds no winding, so it is dropped rather than packed.
-        if (edge.P0 == edge.EndPoint) return;
+        if (edge.Point0 == edge.EndPoint) return;
         shape.AddEdge(edge);
     }
 
-    private Vector2d Transform(Vector2 p)
+    private Vector2d Transform(Vector2 point)
     {
-        return new Vector2d(p.X / _unitsPerEm, -p.Y / _unitsPerEm);
+        return new Vector2d(point.X / _unitsPerEm, -point.Y / _unitsPerEm);
     }
 }

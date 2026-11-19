@@ -58,7 +58,7 @@ public class FileSelectionTests
         var context = new TestUIContext();
         var selection = new FileSelection(context);
         FileSelection? notified = null;
-        selection.OnSelectFile = s => notified = s;
+        selection.OnSelectFile = picked => notified = picked;
 
         selection.SelectFile("/tmp/song.tdwproj");
 
@@ -233,7 +233,7 @@ public class FileSelectionTests
         var folder = Directory.CreateTempSubdirectory().FullName;
         try
         {
-            for (var i = 0; i < 30; i++) Directory.CreateDirectory(Path.Combine(folder, $"d{i:00}"));
+            for (var index = 0; index < 30; index++) Directory.CreateDirectory(Path.Combine(folder, $"d{index:00}"));
             var selection = new FileSelection(new TestUIContext(), directory: folder) { Width = 640, Height = 472 };
             selection.Layout();
             var list = Descendants(selection).OfType<ScrollView>().Single();
@@ -318,5 +318,20 @@ public class FileSelectionTests
         foreach (var child in panel.Children)
         foreach (var descendant in Descendants(child))
             yield return descendant;
+    }
+
+    [Fact]
+    public void StylesItselfAndTakesTheKeyboardWhenShown()
+    {
+        // Bugs 2.9 and 2.11: its rules lived in the Visualizer's sheets, and nothing focused it.
+        var context = new TestUIContext();
+        var root = new Panel(context) { Width = 800, Height = 600 };
+        var fileSelection = new FileSelection(context);
+        root.AddChild(fileSelection);
+
+        root.Layout();
+
+        Assert.Equal(640, fileSelection.Computed.Width);
+        Assert.Same(fileSelection, context.FocusedElement);
     }
 }

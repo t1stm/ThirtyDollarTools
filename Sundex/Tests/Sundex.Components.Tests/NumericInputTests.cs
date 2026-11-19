@@ -27,7 +27,7 @@ public class NumericInputTests
 
     private static void Type(TestUIContext ctx, string text)
     {
-        foreach (var c in text) ctx.DispatchTextInput(new TextInputEventArgs(c));
+        foreach (var character in text) ctx.DispatchTextInput(new TextInputEventArgs(character));
     }
 
     private static void Key(TestUIContext ctx, Keys key, KeyModifiers modifiers = 0)
@@ -104,7 +104,7 @@ public class NumericInputTests
         Key(ctx, Keys.Up); // clamps at Max
         Assert.Equal(7, input.Value);
 
-        for (var i = 0; i < 6; i++) Key(ctx, Keys.Down);
+        for (var press = 0; press < 6; press++) Key(ctx, Keys.Down);
         Assert.Equal(3, input.Value);
     }
 

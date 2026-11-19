@@ -44,9 +44,9 @@ public abstract class Scene(Game game)
     /// <summary>
     ///     Method called when the window is resized.
     /// </summary>
-    /// <param name="w">The width of the resized window.</param>
-    /// <param name="h">The height of the resized window.</param>
-    public abstract void Resize(int w, int h);
+    /// <param name="width">The width of the resized window.</param>
+    /// <param name="height">The height of the resized window.</param>
+    public abstract void Resize(int width, int height);
 
     /// <summary>
     ///     Method that should be called when releasing scene resources.
@@ -100,8 +100,8 @@ public abstract class Scene(Game game)
     ///     Event triggered when the window receives a unicode text input.
     ///     Virtual so scenes without text entry can ignore it.
     /// </summary>
-    /// <param name="e">The text input event, carrying the unicode codepoint.</param>
-    public virtual void TextInput(TextInputEventArgs e)
+    /// <param name="args">The text input event, carrying the unicode codepoint.</param>
+    public virtual void TextInput(TextInputEventArgs args)
     {
     }
 
@@ -109,8 +109,8 @@ public abstract class Scene(Game game)
     ///     Event triggered when a key is pressed (including OS key repeats).
     ///     Virtual so scenes using only the polled <see cref="Keyboard" /> path can ignore it.
     /// </summary>
-    /// <param name="e">The key event, including <see cref="KeyboardKeyEventArgs.IsRepeat" />.</param>
-    public virtual void KeyDown(KeyboardKeyEventArgs e)
+    /// <param name="args">The key event, including <see cref="KeyboardKeyEventArgs.IsRepeat" />.</param>
+    public virtual void KeyDown(KeyboardKeyEventArgs args)
     {
     }
 }

@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
@@ -14,7 +14,7 @@ public class LayoutPaddingTests
     public void UIElement_DrawTo_ShouldEnsureLayoutBeforeQueuing()
     {
         // Arrange
-        var context = new TestContext { Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080)) };
+        var context = new TestContext { Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080)) };
         var parent = new Panel(context)
         {
             Width = 100,
@@ -52,7 +52,7 @@ public class LayoutPaddingTests
     public void StackPanel_Vertical_ChildWith100PercentWidth_ShouldRespectPadding()
     {
         // Arrange
-        var context = new TestContext { Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080)) };
+        var context = new TestContext { Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080)) };
         var parent = new StackPanel(context)
         {
             Width = 100,
@@ -84,7 +84,7 @@ public class LayoutPaddingTests
     public void Panel_AbsoluteCoordinates_ShouldRespectParentPadding()
     {
         // Arrange
-        var context = new TestContext { Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080)) };
+        var context = new TestContext { Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080)) };
         var parent = new StackPanel(context)
         {
             Width = 100,
@@ -115,7 +115,7 @@ public class LayoutPaddingTests
     public void FlexPanel_Horizontal_ChildWith100PercentWidth_ShouldRespectPadding()
     {
         // Arrange
-        var context = new TestContext { Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080)) };
+        var context = new TestContext { Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080)) };
         var parent = new FlexPanel(context)
         {
             Width = 100,
@@ -145,7 +145,7 @@ public class LayoutPaddingTests
     public void UIElement_NestedLayout_ShouldUpdateWhenParentMoves()
     {
         // Arrange
-        var context = new TestContext { Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080)) };
+        var context = new TestContext { Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080)) };
         var root = new Panel(context)
         {
             Width = 1000,
@@ -193,7 +193,7 @@ public class LayoutPaddingTests
     public void UIElement_RootlessLayout_ShouldUpdateWhenAddedToParent()
     {
         // Arrange
-        var context = new TestContext { Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080)) };
+        var context = new TestContext { Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080)) };
         var child = new Panel(context)
         {
             X = 50,
@@ -228,7 +228,7 @@ public class LayoutPaddingTests
 
         public TestContext()
         {
-            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+            Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         }
 
         public new void QueueRender(IRenderable renderable, int renderIndex, int queueIndex = -1)

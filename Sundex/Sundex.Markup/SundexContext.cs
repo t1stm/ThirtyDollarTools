@@ -159,13 +159,13 @@ public class SundexContext(UIContext context) : ISundexContext
 
             component.RunLogic?.Invoke(target ?? this);
 
-            for (var i = 0; i < objectGetters.Length; i++)
+            for (var index = 0; index < objectGetters.Length; index++)
             {
-                var oldObj = previousValues[i];
-                var newObj = objectGetters[i].Invoke();
+                var oldObj = previousValues[index];
+                var newObj = objectGetters[index].Invoke();
                 if (newObj is null && oldObj is not null)
                     throw new Exception(
-                        $"Object getter {objectGetters[i]} returned null but was expecting a non-null value.");
+                        $"Object getter {objectGetters[index]} returned null but was expecting a non-null value.");
             }
 
             if (target == null) return;

@@ -1,3 +1,4 @@
+using System.Globalization;
 using OpenTK.Mathematics;
 using Sundex.Core.Animations;
 using Sundex.Style.DSL.Abstract;
@@ -28,17 +29,17 @@ public class StyleSheet(StyleSheetHolder holder)
 
             var globalSteppingFunction = SteppingFunction.Linear;
             if (values.TryGetValue("timing-function", out var steppingFunctionValue) &&
-                steppingFunctionValue is StringValue sv)
-                globalSteppingFunction = SteppingFunctions.ParseSteppingFunction(sv.Value);
+                steppingFunctionValue is StringValue stringValue)
+                globalSteppingFunction = SteppingFunctions.ParseSteppingFunction(stringValue.Value);
 
             var globalLength = 0;
-            if (values.TryGetValue("duration", out var lengthValue) && lengthValue is NumberValue lv)
-                globalLength = lv.Unit switch
+            if (values.TryGetValue("duration", out var lengthValue) && lengthValue is NumberValue numberValue)
+                globalLength = numberValue.Unit switch
                 {
-                    "ms" => (int)lv.Value,
-                    "s" => (int)(lv.Value * 1000),
-                    "m" => (int)(lv.Value * 60000),
-                    _ => throw new ArgumentException($"Invalid length unit {lv.Unit}")
+                    "ms" => (int)numberValue.Value,
+                    "s" => (int)(numberValue.Value * 1000),
+                    "m" => (int)(numberValue.Value * 60000),
+                    _ => throw new ArgumentException($"Invalid length unit {numberValue.Unit}")
                 };
 
             if (globalLength < 1)
@@ -164,14 +165,86 @@ public class StyleSheet(StyleSheetHolder holder)
 
         if (ids.TryGetValue(name, out var idProps) && idProps.GetAlternateLookup<ReadOnlySpan<char>>()
                 .TryGetValue(readonlyKeySpan, out var idState) &&
-            idState is BlockValue idBlock) return idBlock.Properties;
+            Block(idState) is { } idBlock) return idBlock.Properties;
         if (classes.TryGetValue(name, out var classProps) && classProps.GetAlternateLookup<ReadOnlySpan<char>>()
                 .TryGetValue(readonlyKeySpan, out var classState) &&
-            classState is BlockValue classBlock) return classBlock.Properties;
+            Block(classState) is { } classBlock) return classBlock.Properties;
         if (components.TryGetValue(name, out var componentProps) &&
             componentProps.GetAlternateLookup<ReadOnlySpan<char>>()
                 .TryGetValue(readonlyKeySpan, out var componentState) &&
-            componentState is BlockValue componentBlock) return componentBlock.Properties;
+            Block(componentState) is { } componentBlock) return componentBlock.Properties;
         return null;
+    }
+
+    /// <summary>A state or media block, written plain or as <c>!override { … }</c>, which once went unread.</summary>
+    private static BlockValue? Block(IStyleValue value) => value switch
+    {
+        BlockValue block => block,
+        OverrideValue { Value: BlockValue block } => block,
+        _ => null
+    };
+
+    private readonly Dictionary<string, MediaRule[]> _media = new(StringComparer.Ordinal);
+
+    /// <summary>
+    ///     The <c>media[…]</c> blocks of a tag, class or id, in the order written. Empty when it has none,
+    ///     which is most of them, so this is cached per name.
+    /// </summary>
+    public MediaRule[] GetMediaRulesForTag(string name)
+    {
+        if (_media.TryGetValue(name, out var rules)) return rules;
+        var found = new List<MediaRule>();
+        foreach (var source in new[] { Components, Classes, IDTags })
+            if (source.TryGetValue(name, out var properties))
+                foreach (var (key, value) in properties)
+                    if (key.StartsWith("media[", StringComparison.Ordinal) && Block(value) is { } block)
+                        found.Add(new MediaRule(MediaCondition.Parse(key[6..^1]), block.Properties));
+        return _media[name] = [.. found];
+    }
+}
+
+/// <summary>A <c>media[…]</c> block: when its condition holds for the viewport, its properties apply.</summary>
+public sealed record MediaRule(MediaCondition Condition, Dictionary<string, IStyleValue> Properties);
+
+/// <summary>
+///     <c>min-width = 640px, max-height = 320px</c>: every part must hold. Sizes are in UI units, the
+///     viewport the UI is laid out in.
+/// </summary>
+public sealed class MediaCondition
+{
+    private readonly List<(string Feature, float Value)> _parts = [];
+
+    public static MediaCondition Parse(string text)
+    {
+        var condition = new MediaCondition();
+        foreach (var part in text.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pieces = part.Split('=', 2, StringSplitOptions.TrimEntries);
+            if (pieces.Length != 2) throw new FormatException($"'{part}' isn't a media feature: write min-width = 640px.");
+            var number = pieces[1].EndsWith("px", StringComparison.OrdinalIgnoreCase) ? pieces[1][..^2] : pieces[1];
+            var feature = pieces[0];
+            if (feature is not ("min-width" or "max-width" or "min-height" or "max-height"))
+                throw new FormatException($"Unknown media feature '{feature}': use min-width, max-width, min-height or max-height.");
+            condition._parts.Add((feature, float.Parse(number, NumberStyles.Float, CultureInfo.InvariantCulture)));
+        }
+
+        return condition;
+    }
+
+    public bool Holds(float width, float height)
+    {
+        foreach (var (feature, value) in _parts)
+        {
+            var holds = feature switch
+            {
+                "min-width" => width >= value,
+                "max-width" => width <= value,
+                "min-height" => height >= value,
+                _ => height <= value
+            };
+            if (!holds) return false;
+        }
+
+        return true;
     }
 }

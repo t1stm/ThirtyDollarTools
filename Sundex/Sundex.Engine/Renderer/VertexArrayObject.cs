@@ -53,7 +53,8 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
             _buffers.Clear();
         }
 
-        _deleteQueue.Enqueue(DeleteType.VAO, Handle);
+        // A VAO never bound was never made on the GPU, so there is nothing to delete.
+        if (Handle > 0) _deleteQueue.Enqueue(DeleteType.VAO, Handle);
         GC.SuppressFinalize(this);
     }
 
@@ -96,25 +97,25 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
 
         var elements = layout.GetElements();
         var offset = 0;
-        for (var i = 0; i < elements.Count; i++)
+        for (var index = 0; index < elements.Count; index++)
         {
-            var el = elements[i];
-            var vi = (uint)(_vertexIndex + i);
+            var element = elements[index];
+            var vertex = (uint)(_vertexIndex + index);
 
             // Integer attributes reach an `in uint`/`in int` input only through the I variant; the
             // plain one converts them to float.
-            if (!el.Normalized && el.Type is VertexAttribPointerType.UnsignedByte or VertexAttribPointerType.Byte
+            if (!element.Normalized && element.Type is VertexAttribPointerType.UnsignedByte or VertexAttribPointerType.Byte
                     or VertexAttribPointerType.UnsignedShort or VertexAttribPointerType.Short
                     or VertexAttribPointerType.UnsignedInt or VertexAttribPointerType.Int)
-                GL.VertexAttribIPointer(vi, el.Count, (VertexAttribIType)el.Type, layout.GetStride(),
+                GL.VertexAttribIPointer(vertex, element.Count, (VertexAttribIType)element.Type, layout.GetStride(),
                     new IntPtr(offset));
             else
-                GL.VertexAttribPointer(vi, el.Count, el.Type, el.Normalized, layout.GetStride(), new IntPtr(offset));
-            GL.EnableVertexAttribArray(vi);
+                GL.VertexAttribPointer(vertex, element.Count, element.Type, element.Normalized, layout.GetStride(), new IntPtr(offset));
+            GL.EnableVertexAttribArray(vertex);
 
-            offset += el.Count * el.Type.GetSize();
-            if (el.Divisor != 0)
-                GL.VertexAttribDivisor(vi, (uint)el.Divisor);
+            offset += element.Count * element.Type.GetSize();
+            if (element.Divisor != 0)
+                GL.VertexAttribDivisor(vertex, (uint)element.Divisor);
 
             RenderMarker.Debug("Uploaded Buffer to VAO: ", $"({Handle}), Params: [{vbo}, {layout}]");
         }

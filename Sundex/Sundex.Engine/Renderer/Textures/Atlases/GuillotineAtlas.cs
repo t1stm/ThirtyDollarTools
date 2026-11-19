@@ -42,7 +42,7 @@ public sealed class GuillotineAtlas : IAtlas
         if (width <= 0 || height <= 0) return false;
         var paddedW = width + Padding * 2;
         var paddedH = height + Padding * 2;
-        return _freeRects.Any(r => Fits(r, paddedW, paddedH) || (_allowRotation && Fits(r, paddedH, paddedW)));
+        return _freeRects.Any(free => Fits(free, paddedW, paddedH) || (_allowRotation && Fits(free, paddedH, paddedW)));
     }
 
     public bool IsFull()
@@ -52,7 +52,7 @@ public sealed class GuillotineAtlas : IAtlas
 
     public int GetRemainingArea()
     {
-        var total = _freeRects.Sum(r => (long)r.Width * r.Height);
+        var total = _freeRects.Sum(free => (long)free.Width * free.Height);
 
         // Cap to int bounds (atlas sizes are expected to be reasonable).
         return total > int.MaxValue ? int.MaxValue : (int)total;
@@ -138,63 +138,63 @@ public sealed class GuillotineAtlas : IAtlas
 
     // Placement
 
-    private (int index, int placedW, int placedH, bool rotated) ChoosePlacement(int w, int h)
+    private (int index, int placedW, int placedH, bool rotated) ChoosePlacement(int width, int height)
     {
         var bestIndex = -1;
         var bestRotated = false;
         int bestW = 0, bestH = 0;
         var bestScore = new PlacementScore(int.MaxValue, int.MaxValue);
 
-        for (var i = 0; i < _freeRects.Count; i++)
+        for (var index = 0; index < _freeRects.Count; index++)
         {
-            var r = _freeRects[i];
+            var rectangle = _freeRects[index];
 
             // Try normal orientation
             PlacementScore score;
 
-            if (Fits(r, w, h))
+            if (Fits(rectangle, width, height))
             {
-                score = ScorePlacement(r, w, h);
+                score = ScorePlacement(rectangle, width, height);
                 if (IsBetter(score, bestScore))
                 {
                     bestScore = score;
-                    bestIndex = i;
+                    bestIndex = index;
                     bestRotated = false;
-                    bestW = w;
-                    bestH = h;
+                    bestW = width;
+                    bestH = height;
                 }
             }
 
             // Try rotated if allowed
-            if (!_allowRotation || !Fits(r, h, w)) continue;
-            score = ScorePlacement(r, h, w);
+            if (!_allowRotation || !Fits(rectangle, height, width)) continue;
+            score = ScorePlacement(rectangle, height, width);
             if (!IsBetter(score, bestScore)) continue;
             bestScore = score;
-            bestIndex = i;
+            bestIndex = index;
             bestRotated = true;
-            bestW = h;
-            bestH = w;
+            bestW = height;
+            bestH = width;
         }
 
         return (bestIndex, bestW, bestH, bestRotated);
     }
 
-    private static PlacementScore ScorePlacement(Rectangle host, int w, int h)
+    private static PlacementScore ScorePlacement(Rectangle host, int width, int height)
     {
-        var areaWaste = host.Width * host.Height - w * h;
-        var maxSideLeftover = Math.Max(host.Width - w, host.Height - h);
+        var areaWaste = host.Width * host.Height - width * height;
+        var maxSideLeftover = Math.Max(host.Width - width, host.Height - height);
         return new PlacementScore(areaWaste, maxSideLeftover);
     }
 
-    private static bool IsBetter(PlacementScore a, PlacementScore b)
+    private static bool IsBetter(PlacementScore first, PlacementScore second)
     {
-        if (a.AreaWaste != b.AreaWaste) return a.AreaWaste < b.AreaWaste;
-        return a.MaxSideLeftover < b.MaxSideLeftover;
+        if (first.AreaWaste != second.AreaWaste) return first.AreaWaste < second.AreaWaste;
+        return first.MaxSideLeftover < second.MaxSideLeftover;
     }
 
-    private static bool Fits(Rectangle r, int w, int h)
+    private static bool Fits(Rectangle rectangle, int width, int height)
     {
-        return w <= r.Width && h <= r.Height;
+        return width <= rectangle.Width && height <= rectangle.Height;
     }
 
     // Splitting and free-space maintenance
@@ -253,10 +253,10 @@ public sealed class GuillotineAtlas : IAtlas
         MergeAndPruneFreeRects();
     }
 
-    private void AddFreeRect(in Rectangle r)
+    private void AddFreeRect(in Rectangle rectangle)
     {
-        if (r.Width <= 0 || r.Height <= 0) return;
-        _freeRects.Add(r);
+        if (rectangle.Width <= 0 || rectangle.Height <= 0) return;
+        _freeRects.Add(rectangle);
     }
 
     private void MergeAndPruneFreeRects()
@@ -278,22 +278,22 @@ public sealed class GuillotineAtlas : IAtlas
     private void PruneContained()
     {
         // Remove any rectangle fully contained in another
-        for (var i = 0; i < _freeRects.Count; i++)
+        for (var index = 0; index < _freeRects.Count; index++)
         {
-            var a = _freeRects[i];
-            for (var j = _freeRects.Count - 1; j >= 0; j--)
+            var candidate = _freeRects[index];
+            for (var otherIndex = _freeRects.Count - 1; otherIndex >= 0; otherIndex--)
             {
-                if (i == j) continue;
-                var b = _freeRects[j];
-                if (Contains(a, b))
+                if (index == otherIndex) continue;
+                var other = _freeRects[otherIndex];
+                if (Contains(candidate, other))
                 {
-                    _freeRects.RemoveAt(j);
-                    if (j < i) i--; // adjust i if needed
+                    _freeRects.RemoveAt(otherIndex);
+                    if (otherIndex < index) index--; // adjust i if needed
                 }
-                else if (Contains(b, a))
+                else if (Contains(other, candidate))
                 {
-                    _freeRects.RemoveAt(i);
-                    i--;
+                    _freeRects.RemoveAt(index);
+                    index--;
                     break;
                 }
             }
@@ -302,47 +302,47 @@ public sealed class GuillotineAtlas : IAtlas
 
     private bool TryMergeOnce()
     {
-        for (var i = 0; i < _freeRects.Count; i++)
-        for (var j = i + 1; j < _freeRects.Count; j++)
+        for (var index = 0; index < _freeRects.Count; index++)
+        for (var otherIndex = index + 1; otherIndex < _freeRects.Count; otherIndex++)
         {
-            var a = _freeRects[i];
-            var b = _freeRects[j];
+            var candidate = _freeRects[index];
+            var other = _freeRects[otherIndex];
 
             // Horizontal merge (same Y and Height, touching in X)
             Rectangle merged;
-            if (a.Y == b.Y && a.Height == b.Height)
+            if (candidate.Y == other.Y && candidate.Height == other.Height)
             {
-                if (a.X + a.Width == b.X)
+                if (candidate.X + candidate.Width == other.X)
                 {
-                    merged = new Rectangle(a.X, a.Y, a.Width + b.Width, a.Height);
-                    _freeRects[i] = merged;
-                    _freeRects.RemoveAt(j);
+                    merged = new Rectangle(candidate.X, candidate.Y, candidate.Width + other.Width, candidate.Height);
+                    _freeRects[index] = merged;
+                    _freeRects.RemoveAt(otherIndex);
                     return true;
                 }
 
-                if (b.X + b.Width == a.X)
+                if (other.X + other.Width == candidate.X)
                 {
-                    merged = new Rectangle(b.X, b.Y, b.Width + a.Width, b.Height);
-                    _freeRects[i] = merged;
-                    _freeRects.RemoveAt(j);
+                    merged = new Rectangle(other.X, other.Y, other.Width + candidate.Width, other.Height);
+                    _freeRects[index] = merged;
+                    _freeRects.RemoveAt(otherIndex);
                     return true;
                 }
             }
 
             // Vertical merge (same X and Width, touching in Y)
-            if (a.X != b.X || a.Width != b.Width) continue;
-            if (a.Y + a.Height == b.Y)
+            if (candidate.X != other.X || candidate.Width != other.Width) continue;
+            if (candidate.Y + candidate.Height == other.Y)
             {
-                merged = new Rectangle(a.X, a.Y, a.Width, a.Height + b.Height);
-                _freeRects[i] = merged;
-                _freeRects.RemoveAt(j);
+                merged = new Rectangle(candidate.X, candidate.Y, candidate.Width, candidate.Height + other.Height);
+                _freeRects[index] = merged;
+                _freeRects.RemoveAt(otherIndex);
                 return true;
             }
 
-            if (b.Y + b.Height != a.Y) continue;
-            merged = new Rectangle(b.X, b.Y, b.Width, b.Height + a.Height);
-            _freeRects[i] = merged;
-            _freeRects.RemoveAt(j);
+            if (other.Y + other.Height != candidate.Y) continue;
+            merged = new Rectangle(other.X, other.Y, other.Width, other.Height + candidate.Height);
+            _freeRects[index] = merged;
+            _freeRects.RemoveAt(otherIndex);
             return true;
         }
 

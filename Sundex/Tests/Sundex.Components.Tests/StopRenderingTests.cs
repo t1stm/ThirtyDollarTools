@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTK.Mathematics;
 using Serilog;
-using Shared;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -77,7 +77,7 @@ public class StopRenderingTests
         root.AddChild(dialog);
 
         var queue = context.GetRenderQueue();
-        Assert.Equal(1, queue.Sum(layer => layer.Count(r => ReferenceEquals(r, inner.Background))));
+        Assert.Equal(1, queue.Sum(layer => layer.Count(renderable => ReferenceEquals(renderable, inner.Background))));
         Assert.Contains(inner.Background, queue[inner.Index]);
 
         // Removing the subtree must leave no ghost in any layer.
@@ -186,7 +186,7 @@ public class StopRenderingTests
                 new AssetProvider(logger, [Assembly.GetExecutingAssembly()], new GLInfo()),
                 new MockFontProvider(),
                 new MockTextProvider());
-            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(800, 600));
+            Camera = new UICamera(Vector3.Zero, new Vector2i(800, 600));
         }
 
         public List<List<IRenderable>> GetRenderQueue()

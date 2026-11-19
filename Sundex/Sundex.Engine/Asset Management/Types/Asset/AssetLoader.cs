@@ -172,7 +172,7 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
 
         if (assetStream is null)
         {
-            var available = assetAssemblies.SelectMany(a => a.GetManifestResourceNames()).ToList();
+            var available = assetAssemblies.SelectMany(assembly => assembly.GetManifestResourceNames()).ToList();
             throw new FileNotFoundException(
                 $"Assembly file: \'{createInfo.Location}\' not found. \nAvailable assembly files: {string.Join(", ", available)}");
         }
@@ -181,15 +181,51 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
         return new AssetStream { Stream = assetStream, Info = createInfo };
     }
 
+    /// <summary>
+    ///     Downloaded bytes by URL, shared by every load: a cover shown in five lists is one request,
+    ///     and concurrent loads of a URL wait on the same download. A failure isn't kept.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<byte[]>> Downloads = new();
+
+    private static long _downloadedBytes;
+
+    /// <summary>How many bytes of downloads <see cref="Downloads" /> keeps before it starts over.</summary>
+    public static long DownloadCacheLimit { get; set; } = 128L * 1024 * 1024;
+
     private static AssetStream CreateFromNetwork(AssetInfo createInfo)
     {
-        var httpClient = HttpClient.Value;
-        var connection = httpClient.GetAsync(createInfo.Location).GetAwaiter().GetResult();
+        var location = createInfo.Location;
+        var download = Downloads.GetOrAdd(location, url => new Lazy<byte[]>(() => Download(url)));
+        byte[] bytes;
+        try
+        {
+            bytes = download.Value;
+        }
+        catch
+        {
+            Downloads.TryRemove(new KeyValuePair<string, Lazy<byte[]>>(location, download));
+            throw;
+        }
+
+        createInfo.Storage = StorageLocation.Network;
+        return new AssetStream { Stream = new MemoryStream(bytes, false), Info = createInfo };
+    }
+
+    private static byte[] Download(string url)
+    {
+        using var connection = HttpClient.Value.GetAsync(url).GetAwaiter().GetResult();
         // Or a 404 page reaches the image decoder as if it were the image.
         connection.EnsureSuccessStatusCode();
-        createInfo.Storage = StorageLocation.Network;
+        var bytes = connection.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
 
-        return new AssetStream
-            { Stream = connection.Content.ReadAsStreamAsync().GetAwaiter().GetResult(), Info = createInfo };
+        // ponytail: drops everything at the ceiling rather than the least used. What's on screen
+        // already has its texture, so it only pays again on its next load.
+        if (Interlocked.Add(ref _downloadedBytes, bytes.Length) > DownloadCacheLimit)
+        {
+            Downloads.Clear();
+            Interlocked.Exchange(ref _downloadedBytes, bytes.Length);
+        }
+
+        return bytes;
     }
 }

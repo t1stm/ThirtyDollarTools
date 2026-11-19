@@ -13,7 +13,7 @@ using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Abstractions;
 
-public abstract class UIElement
+public abstract partial class UIElement
 {
     /// <summary>
     ///     Cache of every [NamedSetting] property on a type, so stylesheet lookups skip
@@ -93,14 +93,14 @@ public abstract class UIElement
     public virtual LiteralOrComputable X
     {
         get;
-        set => UpdateSetDirty(ref field, value);
+        set => UpdateSetPosition(ref field, value);
     }
 
     [NamedSetting("y")]
     public virtual LiteralOrComputable Y
     {
         get;
-        set => UpdateSetDirty(ref field, value);
+        set => UpdateSetPosition(ref field, value);
     }
 
     [NamedSetting("width")]
@@ -124,17 +124,17 @@ public abstract class UIElement
     ///     resolution rather than being replaced by the resolved pixels. Null outside a
     ///     flex parent's layout.
     /// </summary>
-    internal float? ParentAssignedWidth
+    protected internal float? ParentAssignedWidth
     {
         get;
-        set => UpdateSetDirty(ref field, value);
+        set => UpdateSetPosition(ref field, value);
     }
 
     /// <inheritdoc cref="ParentAssignedWidth" />
-    internal float? ParentAssignedHeight
+    protected internal float? ParentAssignedHeight
     {
         get;
-        set => UpdateSetDirty(ref field, value);
+        set => UpdateSetPosition(ref field, value);
     }
 
     [NamedSetting("index")] public virtual int Index { get; internal set; }
@@ -163,6 +163,8 @@ public abstract class UIElement
         {
             if (field == value) return;
             field = value;
+            // Showing or hiding changes what the parent's content measures.
+            Parent?.InvalidateMeasure();
             InvalidateLayout();
 
             // The render queue is retained: only DrawTo queues and only StopRendering
@@ -207,10 +209,32 @@ public abstract class UIElement
         private set
         {
             if (field == value) return;
+            var hovered = field is UIState.Hovered or UIState.Pressed;
+            field = value;
+            InvalidateStyle();
+            if (hovered != value is UIState.Hovered or UIState.Pressed) HoverChanged(!hovered);
+        }
+    } = UIState.None;
+
+    /// <summary>
+    ///     True while an ancestor marked <c>group = true</c> is hovered: the element then applies its
+    ///     <c>state[group-hovered]</c> block over its own state (CSS <c>.group:hover .child</c>).
+    /// </summary>
+    public bool GroupHovered
+    {
+        get;
+        internal set
+        {
+            if (field == value) return;
             field = value;
             InvalidateStyle();
         }
-    } = UIState.None;
+    }
+
+    /// <summary>Called when the pointer starts or stops being on this element (pressing counts as on it).</summary>
+    protected virtual void HoverChanged(bool hovered)
+    {
+    }
 
     public virtual UIElement? Parent
     {
@@ -219,7 +243,8 @@ public abstract class UIElement
         {
             if (field == value) return;
             field = value;
-            Index = field?.Index + 1 ?? 0;
+            Index = (field?.Index + 1 ?? 0) + ZIndex;
+            UpdateEffectiveOpacity();
             InvalidateCoordinates();
             InvalidateLayout();
         }
@@ -232,6 +257,9 @@ public abstract class UIElement
     }
 
     public Action<UIElement>? OnClick { get; set; }
+
+    /// <summary>A right click on this element or anything in it: the context menu's way in.</summary>
+    public Action<UIElement>? OnRightClick { get; set; }
 
     /// <summary>
     ///     While true the element takes no clicks, shows no hover or press, and is styled by its
@@ -273,17 +301,29 @@ public abstract class UIElement
     /// <summary>Whether clicking this element gives it keyboard focus.</summary>
     public bool Focusable { get; set; }
 
+    /// <summary>
+    ///     Takes keyboard focus the first time it is laid out while visible, as HTML's
+    ///     <c>autofocus</c> does: a name field that appears when a branch opens. Posting a focus
+    ///     from logic runs before the frame's flush builds the branch, so the field isn't there yet.
+    ///     Once per element: shown again after hiding, it doesn't take the focus back.
+    /// </summary>
+    public bool Autofocus { get; set; }
+
+    private bool _autofocused;
+
     public bool IsFocused => ReferenceEquals(Context.FocusedElement, this);
 
     internal void NotifyFocusGained()
     {
         FocusGained();
+        SyncPointerState();
         OnFocus?.Invoke(this);
     }
 
     internal void NotifyFocusLost()
     {
         FocusLost();
+        SyncPointerState();
         OnBlur?.Invoke(this);
     }
 
@@ -298,7 +338,7 @@ public abstract class UIElement
     }
 
     /// <summary>Receives unicode text input while focused.</summary>
-    public virtual void HandleTextInput(TextInputEventArgs e)
+    public virtual void HandleTextInput(TextInputEventArgs args)
     {
     }
 
@@ -306,7 +346,7 @@ public abstract class UIElement
     ///     Receives key events (including repeats) while focused.
     /// </summary>
     /// <returns>True when the key was consumed; unhandled Escape blurs the element.</returns>
-    public virtual bool HandleKeyDown(KeyboardKeyEventArgs e)
+    public virtual bool HandleKeyDown(KeyboardKeyEventArgs args)
     {
         return false;
     }
@@ -334,6 +374,15 @@ public abstract class UIElement
     /// <summary>Receives pointer movement while this element holds the capture.</summary>
     public virtual void HandlePointerDrag(float x, float y)
     {
+    }
+
+    /// <summary>
+    ///     Receives the release that ends this element's capture, before any click. Return true to
+    ///     say the press was a gesture of its own (a drag), so no click follows it.
+    /// </summary>
+    public virtual bool HandlePointerRelease(float x, float y)
+    {
+        return false;
     }
 
     /// <summary>
@@ -377,10 +426,10 @@ public abstract class UIElement
     /// <summary>Intersects a clip rect with an optional outer clip rect.</summary>
     protected static Vector4i IntersectClip(Vector4i rect, Vector4i? outer)
     {
-        if (outer is not { } o) return rect;
+        if (outer is not { } outerClip) return rect;
         return new Vector4i(
-            Math.Max(rect.X, o.X), Math.Max(rect.Y, o.Y),
-            Math.Min(rect.Z, o.Z), Math.Min(rect.W, o.W));
+            Math.Max(rect.X, outerClip.X), Math.Max(rect.Y, outerClip.Y),
+            Math.Min(rect.Z, outerClip.Z), Math.Min(rect.W, outerClip.W));
     }
 
     public void AddAnimation(Animation animation)
@@ -404,11 +453,12 @@ public abstract class UIElement
         else Context.RegisterUpdate(this);
     }
 
+    /// <summary>Sets a property that can change what this element measures.</summary>
     protected void UpdateSetDirty<T>(ref T field, T value)
     {
         if (EqualityComparer<T>.Default.Equals(field, value)) return;
         field = value;
-        InvalidateLayout();
+        InvalidateMeasure();
     }
 
     /// <summary>Returns the X pixel offset introduced by the <see cref="AnchorX" /> setting.</summary>
@@ -484,6 +534,7 @@ public abstract class UIElement
             : Errored ? UIState.Errored
             : IsPressed ? UIState.Pressed
             : IsHovered ? UIState.Hovered
+            : IsFocused ? UIState.Focused
             : UIState.None;
     }
 
@@ -508,7 +559,10 @@ public abstract class UIElement
     /// </summary>
     public virtual void InvalidateLayout()
     {
-        if (NeedsLayout) return;
+        // Mid-layout, this element is about to lay out whatever asked anyway. Anything still
+        // marked once the pass is over is caught by ChildrenNeedLayout and passed up then: marked
+        // under a clean parent instead, it would be out of reach of every later pass.
+        if (_laying || NeedsLayout) return;
         NeedsLayout = true;
         Parent?.InvalidateLayout();
     }
@@ -518,12 +572,7 @@ public abstract class UIElement
     ///     Notifies the parent (like <see cref="InvalidateLayout" />) so the dirty element
     ///     is reachable from the root's next Layout() pass.
     /// </summary>
-    public virtual void InvalidateCoordinates()
-    {
-        if (NeedsLayout) return;
-        NeedsLayout = true;
-        Parent?.InvalidateLayout();
-    }
+    public virtual void InvalidateCoordinates() => InvalidateLayout();
 
     /// <summary>
     ///     Performs layout calculations if needed.
@@ -531,11 +580,30 @@ public abstract class UIElement
     public virtual void Layout()
     {
         if (!NeedsLayout) return;
-        Computed.UpdateAbsoluteBasedOnParent(this, Parent);
-        DoLayout();
-        NeedsLayout = false;
+        _laying = true;
+        try
+        {
+            Computed.UpdateAbsoluteBasedOnParent(this, Parent);
+            DoLayout();
+        }
+        finally
+        {
+            _laying = false;
+            NeedsLayout = false;
+        }
+
+        if (Autofocus && !_autofocused && Visible)
+        {
+            _autofocused = true;
+            Context.Focus(this);
+        }
+
+        // Something under here was invalidated after its turn in this pass: take another.
+        if (ChildrenNeedLayout()) InvalidateLayout();
     }
 
+    /// <summary>Whether a visible child is still marked for layout once this element's pass is over.</summary>
+    protected virtual bool ChildrenNeedLayout() => false;
     /// <summary>
     ///     Measures the desired size of this element given the available parent size.
     ///     Default implementation resolves literal/percentage sizes against parent size.
@@ -546,9 +614,9 @@ public abstract class UIElement
     /// <returns>Tuple of desired (width, height).</returns>
     public virtual (float width, float height) Measure(float parentWidth, float parentHeight)
     {
-        var w = Width.Resolve(parentWidth);
-        var h = Height.Resolve(parentHeight);
-        return (w, h);
+        var width = Width.Resolve(parentWidth);
+        var height = Height.Resolve(parentHeight);
+        return (width, height);
     }
 
     /// <summary>
@@ -592,6 +660,10 @@ public abstract class UIElement
     /// <param name="context">The UI context to render into.</param>
     protected abstract void DrawSelf(UIContext context);
 
+    /// <summary>Settings that set several others: applied before the ones they cover.</summary>
+    private static readonly HashSet<string> Shorthands =
+        ["margin", "padding", "gap", "spacing", "border-width", "overflow"];
+
     /// <summary>Returns the [NamedSetting] properties of an element type, computed once per type.</summary>
     private static (PropertyInfo Property, NamedSettingAttribute Setting)[] GetNamedSettings(Type type)
     {
@@ -605,6 +677,9 @@ public abstract class UIElement
                 .Select(property => (Property: property, Setting: property.GetCustomAttribute<NamedSettingAttribute>()))
                 .Where(pair => pair.Setting is not null)
                 .Select(pair => (pair.Property, Setting: pair.Setting!))
+                // Shorthands first, as in CSS: `margin = 8px; margin-top = 0px;` keeps the top at 0
+                // whatever order reflection lists the properties in.
+                .OrderBy(pair => Shorthands.Contains(pair.Setting.Name) ? 0 : 1)
                 .ToArray();
 
             NamedSettings[type] = settings;
@@ -644,63 +719,134 @@ public abstract class UIElement
             return false;
         }
 
-        if (StoredStyleSheet is not { } sheet) return true;
-        ApplyOwnStyle(sheet);
-        // The base pass overwrites whatever the current hover/press override had put on
-        // top, so reapply it from the snapshot ApplyOwnStyle has just retaken.
-        InvalidateStyle();
+        Restyle();
         return true;
     }
 
-    /// <summary>The <c>state[...]</c> blocks a sheet can give an element, one per non-idle <see cref="UIState" />.</summary>
-    private static readonly string[] StateNames = ["hovered", "pressed", "disabled", "errored"];
-
-    private void ApplyOwnStyle(StyleSheet styleSheet)
+    /// <summary>
+    ///     Styles this element again from the sheet it was last given, as its classes, state and the
+    ///     viewport now select: a property no rule sets any more goes back to what it was before the
+    ///     sheet touched it, and one that code changed since the last pass is left as code set it
+    ///     (an inline style beats a sheet, as in CSS). Only this element, not its subtree.
+    /// </summary>
+    public void Restyle()
     {
+        if (StoredStyleSheet is not { } sheet) return;
+        ApplyOwnStyle(sheet, true);
+        // The base pass overwrites whatever the current hover/press override had put on
+        // top, so reapply it from the snapshot ApplyOwnStyle has just retaken.
+        InvalidateStyle();
+    }
+
+    /// <summary>The <c>state[...]</c> blocks a sheet can give an element, one per non-idle <see cref="UIState" />.</summary>
+    private static readonly string[] StateNames = ["hovered", "pressed", "disabled", "errored", "focused", "group-hovered"];
+
+    /// <summary>
+    ///     What the sheet did to each property it set: the value from before its first write, and the
+    ///     value of its last. A current value unlike the last written one was set by code since.
+    /// </summary>
+    private Dictionary<string, (PropertyInfo Property, object? Before, object? Styled)>? _styled;
+
+    private void ApplyOwnStyle(StyleSheet styleSheet, bool restyle = false)
+    {
+        // A state override still on top would be read as the base below and snapshotted as it:
+        // restyled while disabled, an element kept its disabled opacity once enabled again.
+        if (restyle) RestoreBase();
         StoredStyleSheet = styleSheet;
         var properties = GetNamedSettings(GetType());
+        _styled ??= [];
+        _mediaKey = 0;
+        _usesMedia = false;
+        // Up front, not per property: the loop skips settings no rule sets right now, and a media
+        // block that doesn't hold at this size sets nothing yet still has to be watched.
+        WatchesMedia(styleSheet);
+        if (TrackPristineStyles) _pristine ??= [];
 
-        if (!TrackPristineStyles)
+        foreach (var (propertyInfo, attribute) in properties)
         {
-            foreach (var (propertyInfo, attribute) in properties)
-                SetNamedSetting(styleSheet, propertyInfo, attribute);
-        }
-        else
-        {
-            _pristine ??= [];
+            // A byref-like setting (Label's ReadOnlySpan<char> value) cannot be read back through
+            // reflection at all, so it is applied without being recorded.
+            var trackable = propertyInfo is { CanRead: true, CanWrite: true } && !propertyInfo.PropertyType.IsByRefLike;
+            var known = false;
+            (PropertyInfo Property, object? Before, object? Styled) record = default;
+            if (trackable) known = _styled.TryGetValue(propertyInfo.Name, out record);
+            // Nothing to apply and nothing to undo, which is most settings of most elements: skip
+            // the reflection reads below, the bulk of styling's cost.
+            if (!known && !AnyRuleSets(styleSheet, attribute.Name)) continue;
 
-            foreach (var (propertyInfo, attribute) in properties)
+            object? current = null;
+            if (trackable)
             {
-                // A byref-like setting (Label's ReadOnlySpan<char> value) cannot be read
-                // back through reflection at all, so it is applied without being recorded -
-                // deleting a rule that sets one leaves it until a full rebuild.
-                var trackable = propertyInfo is { CanRead: true, CanWrite: true } &&
-                                !propertyInfo.PropertyType.IsByRefLike &&
-                                !_pristine.ContainsKey(propertyInfo.Name);
+                current = propertyInfo.GetValue(this);
+                // Set by code since the sheet last wrote it: code wins.
+                if (known && !Equals(current, record.Styled)) continue;
+            }
 
-                // Read before applying, and only the first time: an element inside an
-                // imported component is styled by that component's sheet and then again by
-                // its host's, and what has to be remembered is the value from before either
-                // of them ran.
-                var before = trackable ? propertyInfo.GetValue(this) : null;
-                if (SetNamedSetting(styleSheet, propertyInfo, attribute) && trackable)
-                    _pristine[propertyInfo.Name] = (propertyInfo, before);
+            // Read before applying, and only the first time: an element inside an imported
+            // component is styled by that component's sheet and then again by its host's, and
+            // what has to be remembered is the value from before either of them ran.
+            var pristine = TrackPristineStyles && trackable && !_pristine!.ContainsKey(propertyInfo.Name);
+            var matched = SetNamedSetting(styleSheet, propertyInfo, attribute);
+            if (pristine && matched) _pristine![propertyInfo.Name] = (propertyInfo, current);
+            if (!trackable) continue;
+
+            if (matched)
+            {
+                _styled[propertyInfo.Name] = (propertyInfo, known ? record.Before : current, propertyInfo.GetValue(this));
+            }
+            else if (known && restyle)
+            {
+                // No rule sets it any more: back to what it was before the sheet.
+                propertyInfo.SetValue(this, record.Before);
+                HandleRenderableSwap(current, record.Before, propertyInfo.Name);
+                _styled.Remove(propertyInfo.Name);
             }
         }
 
+        if (_usesMedia) Context.WatchMedia(this);
+
         // Snapshot the post-base-style values for any property that has at least one state override,
         // so we can restore them without re-running ApplyStyleSheet (which would recreate renderables).
+        // The state blocks are looked up once per element, not once per property.
         _baseSnapshot.Clear();
-        foreach (var (propertyInfo, attribute) in properties)
+        List<Dictionary<string, IStyleValue>>? overrides = null;
+        foreach (var state in StateNames)
         {
-            var hasOverride = StateNames.Any(state =>
-                styleSheet.GetStateOverrideForTag(ID, state)?.ContainsKey(attribute.Name) == true ||
-                Classes.Any(cls => styleSheet.GetStateOverrideForTag(cls, state)?.ContainsKey(attribute.Name) == true) ||
-                styleSheet.GetStateOverrideForTag(Tag, state)?.ContainsKey(attribute.Name) == true);
-
-            if (hasOverride)
-                _baseSnapshot[attribute.Name] = (propertyInfo, propertyInfo.GetValue(this));
+            AddOverride(ref overrides, styleSheet.GetStateOverrideForTag(ID, state));
+            foreach (var cls in Classes) AddOverride(ref overrides, styleSheet.GetStateOverrideForTag(cls, state));
+            AddOverride(ref overrides, styleSheet.GetStateOverrideForTag(Tag, state));
         }
+
+        if (overrides == null) return;
+        foreach (var (propertyInfo, attribute) in properties)
+        foreach (var block in overrides)
+        {
+            if (!block.ContainsKey(attribute.Name)) continue;
+            _baseSnapshot[attribute.Name] = (propertyInfo, propertyInfo.GetValue(this));
+            break;
+        }
+    }
+
+    private static void AddOverride(ref List<Dictionary<string, IStyleValue>>? overrides,
+        Dictionary<string, IStyleValue>? block)
+    {
+        if (block != null) (overrides ??= []).Add(block);
+    }
+
+    /// <summary>Whether a rule of the sheet sets the setting here: a tag, class or id rule, or a media block that holds.</summary>
+    private bool AnyRuleSets(StyleSheet styleSheet, string setting)
+    {
+        if (styleSheet.GetStyleValueForTag(Tag, setting) is not null) return true;
+        foreach (var cls in Classes)
+            if (styleSheet.GetStyleValueForTag(cls, setting) is not null)
+                return true;
+        if (styleSheet.GetStyleValueForTag(ID, setting) is not null) return true;
+
+        if (MediaSets(styleSheet, Tag, setting) || MediaSets(styleSheet, ID, setting)) return true;
+        foreach (var cls in Classes)
+            if (MediaSets(styleSheet, cls, setting))
+                return true;
+        return false;
     }
 
     /// <summary>
@@ -710,12 +856,7 @@ public abstract class UIElement
     public virtual void InvalidateStyle()
     {
         if (StoredStyleSheet is null) return;
-        foreach (var (prop, value) in _baseSnapshot.Values)
-        {
-            var oldValue = prop.GetValue(this);
-            prop.SetValue(this, value);
-            HandleRenderableSwap(oldValue, value, prop.Name);
-        }
+        RestoreBase();
 
         var stateName = CurrentState switch
         {
@@ -723,13 +864,28 @@ public abstract class UIElement
             UIState.Pressed => "pressed",
             UIState.Disabled => "disabled",
             UIState.Errored => "errored",
+            UIState.Focused => "focused",
             _ => null
         };
 
         if (stateName is not null)
             ApplyStateOverride(StoredStyleSheet, stateName);
+        if (GroupHovered)
+            ApplyStateOverride(StoredStyleSheet, "group-hovered");
 
         InvalidateLayout();
+    }
+
+    /// <summary>Takes the state overrides off again: each overridden property back to its base value.</summary>
+    private void RestoreBase()
+    {
+        foreach (var (prop, value) in _baseSnapshot.Values)
+        {
+            var oldValue = prop.GetValue(this);
+            prop.SetValue(this, value);
+            HandleRenderableSwap(oldValue, value, prop.Name);
+            Restyled(prop);
+        }
     }
 
     /// <summary>
@@ -740,18 +896,29 @@ public abstract class UIElement
     {
         foreach (var (propertyInfo, attribute) in GetNamedSettings(GetType()))
         {
-            // Check ID, then classes, then tag - same priority as base styles
+            // ID, then classes, then tag - the base styles' priority, and as there the last
+            // class that sets the property wins
             var overrideValue = styleSheet.GetStateOverrideForTag(ID, state)
                                     ?.GetValueOrDefault(attribute.Name)
                                 ?? Classes.Select(cls => styleSheet.GetStateOverrideForTag(cls, state)
                                         ?.GetValueOrDefault(attribute.Name))
-                                    .FirstOrDefault(v => v is not null)
+                                    .LastOrDefault(candidate => candidate is not null)
                                 ?? styleSheet.GetStateOverrideForTag(Tag, state)
                                     ?.GetValueOrDefault(attribute.Name);
 
             if (overrideValue is not null)
+            {
                 ApplyStyleValue(styleSheet, overrideValue, propertyInfo);
+                Restyled(propertyInfo);
+            }
         }
+    }
+
+    /// <summary>A write by the style machinery itself (a state override), so not one by code.</summary>
+    private void Restyled(PropertyInfo property)
+    {
+        if (_styled != null && _styled.TryGetValue(property.Name, out var record))
+            _styled[property.Name] = record with { Styled = property.GetValue(this) };
     }
 
     /// <returns>Whether any rule in the sheet addressed this property.</returns>
@@ -774,6 +941,11 @@ public abstract class UIElement
         var idValue = styleSheet.GetStyleValueForTag(ID, namedSettingAttribute.Name);
         matched |= idValue is not null;
         ApplyStyleValue(styleSheet, idValue, propertyInfo);
+
+        // media[…] blocks last, in the same tag, class, id order: a matching one beats the base rule.
+        matched |= ApplyMedia(styleSheet, Tag, propertyInfo, namedSettingAttribute.Name);
+        foreach (var cls in Classes) matched |= ApplyMedia(styleSheet, cls, propertyInfo, namedSettingAttribute.Name);
+        matched |= ApplyMedia(styleSheet, ID, propertyInfo, namedSettingAttribute.Name);
 
         return matched;
     }
@@ -802,6 +974,8 @@ public abstract class UIElement
 
         _pristine.Clear();
         _baseSnapshot.Clear();
+        // What the sheet wrote is undone, so nothing it wrote can count as set by code any more.
+        _styled?.Clear();
     }
 
     protected virtual void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)
@@ -814,11 +988,11 @@ public abstract class UIElement
 
         switch (styleValue)
         {
-            case ArrayValue av when propertyInfo.PropertyType == typeof(List<Animation>):
+            case ArrayValue arrayValue when propertyInfo.PropertyType == typeof(List<Animation>):
             {
                 var animations = new List<Animation>();
-                foreach (var value in av.Values)
-                    if (value is StringValue sv && styleSheet.ComputedAnimations.TryGetValue(sv.Value, out var anim))
+                foreach (var value in arrayValue.Values)
+                    if (value is StringValue stringValue && styleSheet.ComputedAnimations.TryGetValue(stringValue.Value, out var anim))
                         // Per element, not the sheet's shared object: an animation owns a
                         // mutable stopwatch, so sharing it syncs every element matching the
                         // rule to one clock.
@@ -828,61 +1002,80 @@ public abstract class UIElement
                 break;
             }
 
-            case ArrayValue av when propertyInfo.PropertyType == typeof(Vector4[]):
+            case ArrayValue arrayValue when propertyInfo.PropertyType == typeof(Vector4[]):
             {
-                propertyInfo.SetValue(this, av.Values.OfType<ColorValue>().Select(color => color.Vector).ToArray());
+                propertyInfo.SetValue(this, arrayValue.Values.OfType<ColorValue>().Select(color => color.Vector).ToArray());
                 break;
             }
 
-            case NumberValue nv when propertyInfo.PropertyType == typeof(LiteralOrComputable):
+            case NumberValue numberValue when propertyInfo.PropertyType == typeof(LiteralOrComputable):
             {
-                var newValue = new LiteralOrComputable(nv.Value, nv.Unit is "%");
+                var newValue = new LiteralOrComputable(numberValue.Value, numberValue.Unit is "%");
                 propertyInfo.SetValue(this, newValue);
                 HandleRenderableSwap(oldValue, newValue, propertyInfo.Name);
                 break;
             }
 
-            case NumberValue nv when propertyInfo.PropertyType == typeof(float):
+            case StringValue stringValue when propertyInfo.PropertyType == typeof(LiteralOrComputable):
             {
-                propertyInfo.SetValue(this, nv.Value);
-                HandleRenderableSwap(oldValue, nv.Value, propertyInfo.Name);
+                // auto, 50%, 12px: a NumberValue can't say auto.
+                propertyInfo.SetValue(this, LiteralOrComputable.Parse(stringValue.Value));
                 break;
             }
 
-            case ColorValue cv when propertyInfo.PropertyType == typeof(Vector4):
+            case NumberValue numberValue when propertyInfo.PropertyType == typeof(int):
             {
-                propertyInfo.SetValue(this, cv.Vector);
-                HandleRenderableSwap(oldValue, cv.Vector, propertyInfo.Name);
+                propertyInfo.SetValue(this, (int)numberValue.Value);
                 break;
             }
 
-            case VectorValue vv when propertyInfo.PropertyType == typeof(Vector3):
+            case NumberValue numberValue when propertyInfo.PropertyType == typeof(double):
             {
-                propertyInfo.SetValue(this, new Vector3((float)vv.X, (float)vv.Y, (float)(vv.Z ?? 0)));
+                propertyInfo.SetValue(this, (double)numberValue.Value);
+                break;
+            }
+
+            case NumberValue numberValue when propertyInfo.PropertyType == typeof(float):
+            {
+                propertyInfo.SetValue(this, numberValue.Value);
+                HandleRenderableSwap(oldValue, numberValue.Value, propertyInfo.Name);
+                break;
+            }
+
+            case ColorValue colorValue when propertyInfo.PropertyType == typeof(Vector4):
+            {
+                propertyInfo.SetValue(this, colorValue.Vector);
+                HandleRenderableSwap(oldValue, colorValue.Vector, propertyInfo.Name);
+                break;
+            }
+
+            case VectorValue vectorValue when propertyInfo.PropertyType == typeof(Vector3):
+            {
+                propertyInfo.SetValue(this, new Vector3((float)vectorValue.X, (float)vectorValue.Y, (float)(vectorValue.Z ?? 0)));
                 HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
                 break;
             }
 
-            case StringValue sv when propertyInfo.PropertyType == typeof(string) ||
+            case StringValue stringValue when propertyInfo.PropertyType == typeof(string) ||
                                      propertyInfo.PropertyType == typeof(ReadOnlySpan<char>):
             {
-                propertyInfo.SetValue(this, sv.Value);
-                HandleRenderableSwap(oldValue, sv.Value, propertyInfo.Name);
+                propertyInfo.SetValue(this, stringValue.Value);
+                HandleRenderableSwap(oldValue, stringValue.Value, propertyInfo.Name);
                 break;
             }
 
-            case StringValue sv when propertyInfo.PropertyType == typeof(bool):
+            case StringValue stringValue when propertyInfo.PropertyType == typeof(bool):
             {
-                propertyInfo.SetValue(this, sv.Value == "true");
+                propertyInfo.SetValue(this, stringValue.Value == "true");
                 HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
                 break;
             }
 
             // Covers every enum-typed setting: the value is parsed as a member name,
             // case-insensitively.
-            case StringValue sv when propertyInfo.PropertyType.IsEnum:
+            case StringValue stringValue when propertyInfo.PropertyType.IsEnum:
             {
-                if (Enum.TryParse(propertyInfo.PropertyType, sv.Value, true, out var parsed))
+                if (Enum.TryParse(propertyInfo.PropertyType, stringValue.Value, true, out var parsed))
                     propertyInfo.SetValue(this, parsed);
                 break;
             }

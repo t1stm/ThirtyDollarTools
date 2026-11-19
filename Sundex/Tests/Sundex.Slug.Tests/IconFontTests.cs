@@ -60,23 +60,23 @@ public class IconFontTests(ITestOutputHelper output)
         var lato = TestFonts.Shared(TestFonts.LatoBold);
         var pad = SlugFontData.QuadPadding;
 
-        var m = lato.Metrics;
+        var latoMetrics = lato.Metrics;
         var xHeight = lato.SlugData.GetGlyph("x").EmRect.W - pad;
-        output.WriteLine($"Lato Bold: ascender {m.AscenderY / m.EmSize:F3}, descender {m.DescenderY / m.EmSize:F3}, " +
+        output.WriteLine($"Lato Bold: ascender {latoMetrics.AscenderY / latoMetrics.EmSize:F3}, descender {latoMetrics.DescenderY / latoMetrics.EmSize:F3}, " +
                          $"x-height {xHeight:F3}, cap height {lato.SlugData.GetGlyph("H").EmRect.W - pad:F3} em");
-        var lm = lucide.Metrics;
-        output.WriteLine($"Lucide: ascender {lm.AscenderY / lm.EmSize:F3}, descender {lm.DescenderY / lm.EmSize:F3}, " +
-                         $"line height {lm.LineHeight / lm.EmSize:F3} em");
+        var lucideMetrics = lucide.Metrics;
+        output.WriteLine($"Lucide: ascender {lucideMetrics.AscenderY / lucideMetrics.EmSize:F3}, descender {lucideMetrics.DescenderY / lucideMetrics.EmSize:F3}, " +
+                         $"line height {lucideMetrics.LineHeight / lucideMetrics.EmSize:F3} em");
 
         foreach (var (name, glyph) in Icons.All)
         {
-            var g = lucide.SlugData.GetGlyph(glyph);
-            output.WriteLine($"{name}: advance {g.Advance:F3}, ink x {g.EmRect.X + pad:F3}..{g.EmRect.Z - pad:F3}, " +
-                             $"y {g.EmRect.Y + pad:F3}..{g.EmRect.W - pad:F3} em");
+            var slugGlyph = lucide.SlugData.GetGlyph(glyph);
+            output.WriteLine($"{name}: advance {slugGlyph.Advance:F3}, ink x {slugGlyph.EmRect.X + pad:F3}..{slugGlyph.EmRect.Z - pad:F3}, " +
+                             $"y {slugGlyph.EmRect.Y + pad:F3}..{slugGlyph.EmRect.W - pad:F3} em");
         }
 
         var path = Path.Combine(AppContext.BaseDirectory, "lucide-contact-sheet.png");
-        ContactSheet(lucide.SlugData, Icons.All.Select(i => i.Glyph).ToArray(), 48).SaveAsPng(path);
+        ContactSheet(lucide.SlugData, Icons.All.Select(icon => icon.Glyph).ToArray(), 48).SaveAsPng(path);
         output.WriteLine($"Contact sheet: {path}");
     }
 
@@ -86,23 +86,23 @@ public class IconFontTests(ITestOutputHelper output)
         var cell = pixelsPerEm + 16;
         var image = new Image<L8>(cell * glyphs.Length, cell, new L8(255));
 
-        for (var i = 0; i < glyphs.Length; i++)
+        for (var index = 0; index < glyphs.Length; index++)
         {
-            var glyph = data.GetGlyph(glyphs[i]);
+            var glyph = data.GetGlyph(glyphs[index]);
             var centre = new Vector2((glyph.EmRect.X + glyph.EmRect.Z) / 2, (glyph.EmRect.Y + glyph.EmRect.W) / 2);
 
-            for (var py = 0; py < cell; py++)
-            for (var px = 0; px < cell; px++)
+            for (var pixelY = 0; pixelY < cell; pixelY++)
+            for (var pixelX = 0; pixelX < cell; pixelX++)
             {
                 // Y-up em space, centred on the glyph's ink box.
-                var em = centre + new Vector2(px + 0.5f - cell / 2f, cell / 2f - py - 0.5f) / pixelsPerEm;
+                var emPoint = centre + new Vector2(pixelX + 0.5f - cell / 2f, cell / 2f - pixelY - 0.5f) / pixelsPerEm;
 
                 // The GPU only samples inside the glyph's quad.
-                if (em.X < glyph.EmRect.X || em.X > glyph.EmRect.Z || em.Y < glyph.EmRect.Y || em.Y > glyph.EmRect.W)
+                if (emPoint.X < glyph.EmRect.X || emPoint.X > glyph.EmRect.Z || emPoint.Y < glyph.EmRect.Y || emPoint.Y > glyph.EmRect.W)
                     continue;
 
-                var coverage = SlugReference.SlugRender(data, glyph, em, new Vector2(pixelsPerEm));
-                image[i * cell + px, py] = new L8((byte)(255 - coverage * 255));
+                var coverage = SlugReference.SlugRender(data, glyph, emPoint, new Vector2(pixelsPerEm));
+                image[index * cell + pixelX, pixelY] = new L8((byte)(255 - coverage * 255));
             }
         }
 

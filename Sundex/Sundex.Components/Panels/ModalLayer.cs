@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 
@@ -14,6 +14,7 @@ namespace Sundex.Components.Panels;
 ///     (RemoveChild fully un-renders the subtree via the StopRendering cascade).
 ///     <see cref="UIElement.OnClick" /> is used internally - don't overwrite it.
 /// </summary>
+[Sundex.Components.Attributes.MarkupTag("modal")]
 public class ModalLayer : FlexPanel
 {
     /// <summary>Hit-test/render index pinned above everything a scene normally produces.</summary>
@@ -21,6 +22,8 @@ public class ModalLayer : FlexPanel
 
     public ModalLayer(UIContext context) : base(context)
     {
+        Width = LiteralOrComputable.Percent(100);
+        Height = LiteralOrComputable.Percent(100);
         HorizontalAlign = Align.Center;
         VerticalAlign = Align.Center;
         Background = new ColoredPlane { Color = new Vector4(0, 0, 0, 0.6f) };
@@ -36,8 +39,6 @@ public class ModalLayer : FlexPanel
 
     public override string Tag => "modal";
 
-    public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.Percent(100);
-    public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.Percent(100);
 
     /// <summary>Pinned to the top layer regardless of where the modal is parented.</summary>
     public override int Index
@@ -69,11 +70,11 @@ public class ModalLayer : FlexPanel
     ///     Hands its content a key that no focused field took, so a dialog can answer the
     ///     keyboard without holding focus. The modal is never focused itself: the owner calls this.
     /// </summary>
-    public override bool HandleKeyDown(KeyboardKeyEventArgs e)
+    public override bool HandleKeyDown(KeyboardKeyEventArgs args)
     {
-        if (OnKeyRequested?.Invoke(e) == true) return true;
+        if (OnKeyRequested?.Invoke(args) == true) return true;
         foreach (var child in Children)
-            if (child.HandleKeyDown(e))
+            if (child.HandleKeyDown(args))
                 return true;
         return false;
     }
@@ -81,5 +82,36 @@ public class ModalLayer : FlexPanel
     public override bool HandleScroll(Vector2 scrollDelta)
     {
         return true; // consume so nothing beneath scrolls
+    }
+
+    private bool _contentFocused;
+
+    /// <summary>Focuses the first control when shown. Hosts with their own dialog shortcuts can opt out.</summary>
+    public bool AutoFocusContent { get; set; } = true;
+
+    /// <summary>
+    ///     The first time it is laid out, the modal hands the focus to its first focusable content,
+    ///     as a browser's showModal() does, unless the focus is already inside it (bug 2.11).
+    /// </summary>
+    protected override void DoLayout()
+    {
+        base.DoLayout();
+        if (_contentFocused || !AutoFocusContent) return;
+        _contentFocused = true;
+
+        for (var at = Context.FocusedElement; at != null; at = at.Parent)
+            if (ReferenceEquals(at, this)) return;
+        if (FirstFocusable(this) is { } first) Context.Focus(first);
+    }
+
+    private static UIElement? FirstFocusable(UIElement element)
+    {
+        if (!element.Visible || element.Disabled) return null;
+        if (element.Focusable && element is not ModalLayer) return element;
+        if (element is not Panel panel) return null;
+        foreach (var child in panel.Children)
+            if (FirstFocusable(child) is { } found)
+                return found;
+        return null;
     }
 }

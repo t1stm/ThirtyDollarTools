@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTK.Mathematics;
 using Serilog;
-using Shared;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
@@ -28,7 +28,7 @@ public class TestUIContext : UIContext
             new AssetProvider(logger, [Assembly.GetExecutingAssembly(), ComponentsAssembly.Assembly], new GLInfo()),
             new MockFontProvider(),
             new MockTextProvider());
-        Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
     }
 
     /// <summary>Everything currently queued to draw, flattened across depth layers.</summary>

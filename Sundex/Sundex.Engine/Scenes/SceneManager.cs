@@ -169,19 +169,19 @@ public class SceneManager(ILogger logger)
         }
     }
 
-    public void TextInput(TextInputEventArgs e)
+    public void TextInput(TextInputEventArgs args)
     {
         lock (ActiveScenes)
         {
-            foreach (var scene in ActiveScenes) scene.TextInput(e);
+            foreach (var scene in ActiveScenes) scene.TextInput(args);
         }
     }
 
-    public void KeyDown(KeyboardKeyEventArgs e)
+    public void KeyDown(KeyboardKeyEventArgs args)
     {
         lock (ActiveScenes)
         {
-            foreach (var scene in ActiveScenes) scene.KeyDown(e);
+            foreach (var scene in ActiveScenes) scene.KeyDown(args);
         }
     }
 

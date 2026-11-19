@@ -22,52 +22,52 @@ internal static class SlugReference
         if (x is < 0 or >= SlugFontData.TextureWidth)
             throw new IndexOutOfRangeException($"Texel ({x}, {y}) is off the end of its row.");
 
-        var i = (y * SlugFontData.TextureWidth + x) * 4;
-        return new Vector4(texture[i], texture[i + 1], texture[i + 2], texture[i + 3]);
+        var offset = (y * SlugFontData.TextureWidth + x) * 4;
+        return new Vector4(texture[offset], texture[offset + 1], texture[offset + 2], texture[offset + 3]);
     }
 
     private static uint CalcRootCode(float y1, float y2, float y3)
     {
-        var i1 = BitConverter.SingleToUInt32Bits(y1) >> 31;
-        var i2 = BitConverter.SingleToUInt32Bits(y2) >> 30;
-        var i3 = BitConverter.SingleToUInt32Bits(y3) >> 29;
+        var sign1 = BitConverter.SingleToUInt32Bits(y1) >> 31;
+        var sign2 = BitConverter.SingleToUInt32Bits(y2) >> 30;
+        var sign3 = BitConverter.SingleToUInt32Bits(y3) >> 29;
 
-        var shift = (i2 & 2U) | (i1 & ~2U);
-        shift = (i3 & 4U) | (shift & ~4U);
+        var shift = (sign2 & 2U) | (sign1 & ~2U);
+        shift = (sign3 & 4U) | (shift & ~4U);
 
         return (0x2E74U >> (int)shift) & 0x0101U;
     }
 
-    private static Vector2 SolveHorizPoly(Vector4 p12, Vector2 p3)
+    private static Vector2 SolveHorizPoly(Vector4 point12, Vector2 point3)
     {
-        var a = new Vector2(p12.X, p12.Y) - new Vector2(p12.Z, p12.W) * 2f + p3;
-        var b = new Vector2(p12.X, p12.Y) - new Vector2(p12.Z, p12.W);
-        var ra = 1f / a.Y;
-        var rb = 0.5f / b.Y;
+        var quadratic = new Vector2(point12.X, point12.Y) - new Vector2(point12.Z, point12.W) * 2f + point3;
+        var linear = new Vector2(point12.X, point12.Y) - new Vector2(point12.Z, point12.W);
+        var quadraticReciprocal = 1f / quadratic.Y;
+        var linearReciprocal = 0.5f / linear.Y;
 
-        var d = MathF.Sqrt(MathF.Max(b.Y * b.Y - a.Y * p12.Y, 0f));
-        var t1 = (b.Y - d) * ra;
-        var t2 = (b.Y + d) * ra;
+        var discriminant = MathF.Sqrt(MathF.Max(linear.Y * linear.Y - quadratic.Y * point12.Y, 0f));
+        var root1 = (linear.Y - discriminant) * quadraticReciprocal;
+        var root2 = (linear.Y + discriminant) * quadraticReciprocal;
 
-        if (MathF.Abs(a.Y) < 1f / 65536f) t1 = t2 = p12.Y * rb;
+        if (MathF.Abs(quadratic.Y) < 1f / 65536f) root1 = root2 = point12.Y * linearReciprocal;
 
-        return new Vector2((a.X * t1 - b.X * 2f) * t1 + p12.X, (a.X * t2 - b.X * 2f) * t2 + p12.X);
+        return new Vector2((quadratic.X * root1 - linear.X * 2f) * root1 + point12.X, (quadratic.X * root2 - linear.X * 2f) * root2 + point12.X);
     }
 
-    private static Vector2 SolveVertPoly(Vector4 p12, Vector2 p3)
+    private static Vector2 SolveVertPoly(Vector4 point12, Vector2 point3)
     {
-        var a = new Vector2(p12.X, p12.Y) - new Vector2(p12.Z, p12.W) * 2f + p3;
-        var b = new Vector2(p12.X, p12.Y) - new Vector2(p12.Z, p12.W);
-        var ra = 1f / a.X;
-        var rb = 0.5f / b.X;
+        var quadratic = new Vector2(point12.X, point12.Y) - new Vector2(point12.Z, point12.W) * 2f + point3;
+        var linear = new Vector2(point12.X, point12.Y) - new Vector2(point12.Z, point12.W);
+        var quadraticReciprocal = 1f / quadratic.X;
+        var linearReciprocal = 0.5f / linear.X;
 
-        var d = MathF.Sqrt(MathF.Max(b.X * b.X - a.X * p12.X, 0f));
-        var t1 = (b.X - d) * ra;
-        var t2 = (b.X + d) * ra;
+        var discriminant = MathF.Sqrt(MathF.Max(linear.X * linear.X - quadratic.X * point12.X, 0f));
+        var root1 = (linear.X - discriminant) * quadraticReciprocal;
+        var root2 = (linear.X + discriminant) * quadraticReciprocal;
 
-        if (MathF.Abs(a.X) < 1f / 65536f) t1 = t2 = p12.X * rb;
+        if (MathF.Abs(quadratic.X) < 1f / 65536f) root1 = root2 = point12.X * linearReciprocal;
 
-        return new Vector2((a.Y * t1 - b.Y * 2f) * t1 + p12.Y, (a.Y * t2 - b.Y * 2f) * t2 + p12.Y);
+        return new Vector2((quadratic.Y * root1 - linear.Y * 2f) * root1 + point12.Y, (quadratic.Y * root2 - linear.Y * 2f) * root2 + point12.Y);
     }
 
     private static (int X, int Y) CalcBandLoc(int glyphLocX, int glyphLocY, uint offset)
@@ -116,27 +116,27 @@ internal static class SlugReference
             var curveTexel = TexelLoad2D(bandData, hbandLoc.X + curveIndex, hbandLoc.Y);
             int curveLocX = (int)curveTexel.X, curveLocY = (int)curveTexel.Y;
 
-            var p12 = TexelLoad2D(curveData, curveLocX, curveLocY) -
+            var point12 = TexelLoad2D(curveData, curveLocX, curveLocY) -
                       new Vector4(renderCoord.X, renderCoord.Y, renderCoord.X, renderCoord.Y);
-            var p3 = Xy(TexelLoad2D(curveData, curveLocX + 1, curveLocY)) - renderCoord;
+            var point3 = Xy(TexelLoad2D(curveData, curveLocX + 1, curveLocY)) - renderCoord;
 
-            if (MathF.Max(MathF.Max(p12.X, p12.Z), p3.X) * pixelsPerEm.X < -0.5f) break;
+            if (MathF.Max(MathF.Max(point12.X, point12.Z), point3.X) * pixelsPerEm.X < -0.5f) break;
 
-            var code = CalcRootCode(p12.Y, p12.W, p3.Y);
+            var code = CalcRootCode(point12.Y, point12.W, point3.Y);
             if (code != 0U)
             {
-                var r = SolveHorizPoly(p12, p3) * pixelsPerEm.X;
+                var roots = SolveHorizPoly(point12, point3) * pixelsPerEm.X;
 
                 if ((code & 1U) != 0U)
                 {
-                    xcov += Saturate(r.X + 0.5f);
-                    xwgt = MathF.Max(xwgt, Saturate(1f - MathF.Abs(r.X) * 2f));
+                    xcov += Saturate(roots.X + 0.5f);
+                    xwgt = MathF.Max(xwgt, Saturate(1f - MathF.Abs(roots.X) * 2f));
                 }
 
                 if (code > 1U)
                 {
-                    xcov -= Saturate(r.Y + 0.5f);
-                    xwgt = MathF.Max(xwgt, Saturate(1f - MathF.Abs(r.Y) * 2f));
+                    xcov -= Saturate(roots.Y + 0.5f);
+                    xwgt = MathF.Max(xwgt, Saturate(1f - MathF.Abs(roots.Y) * 2f));
                 }
             }
         }
@@ -152,27 +152,27 @@ internal static class SlugReference
             var curveTexel = TexelLoad2D(bandData, vbandLoc.X + curveIndex, vbandLoc.Y);
             int curveLocX = (int)curveTexel.X, curveLocY = (int)curveTexel.Y;
 
-            var p12 = TexelLoad2D(curveData, curveLocX, curveLocY) -
+            var point12 = TexelLoad2D(curveData, curveLocX, curveLocY) -
                       new Vector4(renderCoord.X, renderCoord.Y, renderCoord.X, renderCoord.Y);
-            var p3 = Xy(TexelLoad2D(curveData, curveLocX + 1, curveLocY)) - renderCoord;
+            var point3 = Xy(TexelLoad2D(curveData, curveLocX + 1, curveLocY)) - renderCoord;
 
-            if (MathF.Max(MathF.Max(p12.Y, p12.W), p3.Y) * pixelsPerEm.Y < -0.5f) break;
+            if (MathF.Max(MathF.Max(point12.Y, point12.W), point3.Y) * pixelsPerEm.Y < -0.5f) break;
 
-            var code = CalcRootCode(p12.X, p12.Z, p3.X);
+            var code = CalcRootCode(point12.X, point12.Z, point3.X);
             if (code != 0U)
             {
-                var r = SolveVertPoly(p12, p3) * pixelsPerEm.Y;
+                var roots = SolveVertPoly(point12, point3) * pixelsPerEm.Y;
 
                 if ((code & 1U) != 0U)
                 {
-                    ycov -= Saturate(r.X + 0.5f);
-                    ywgt = MathF.Max(ywgt, Saturate(1f - MathF.Abs(r.X) * 2f));
+                    ycov -= Saturate(roots.X + 0.5f);
+                    ywgt = MathF.Max(ywgt, Saturate(1f - MathF.Abs(roots.X) * 2f));
                 }
 
                 if (code > 1U)
                 {
-                    ycov += Saturate(r.Y + 0.5f);
-                    ywgt = MathF.Max(ywgt, Saturate(1f - MathF.Abs(r.Y) * 2f));
+                    ycov += Saturate(roots.Y + 0.5f);
+                    ywgt = MathF.Max(ywgt, Saturate(1f - MathF.Abs(roots.Y) * 2f));
                 }
             }
         }
@@ -180,5 +180,5 @@ internal static class SlugReference
         return CalcCoverage(xcov, ycov, xwgt, ywgt);
     }
 
-    private static Vector2 Xy(Vector4 v) => new(v.X, v.Y);
+    private static Vector2 Xy(Vector4 vector) => new(vector.X, vector.Y);
 }

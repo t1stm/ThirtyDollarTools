@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 
 namespace Sundex.Components.Labels;
@@ -12,11 +12,17 @@ namespace Sundex.Components.Labels;
 ///     registered scheme (mailto:, steam://, ...) in whatever claims it. Underlined while hovered.
 ///     Without a URL it is a plain label: no pointer, no underline, a click does nothing.
 /// </summary>
+[Sundex.Components.Attributes.MarkupTag("link")]
 public class Link : Label
 {
     private readonly ColoredPlane _underline = new() { Scale = Vector3.Zero };
     private Vector3 _underlinePosition;
     private Vector3 _underlineScale;
+
+    /// <summary>An empty link, for markup: <c>&lt;link value="…" url="…"/&gt;</c>.</summary>
+    public Link(UIContext context) : this(context, ReadOnlySpan<char>.Empty, "")
+    {
+    }
 
     public Link(UIContext context, ReadOnlySpan<char> text, string url, string? font = null) : base(context, text,
         font)

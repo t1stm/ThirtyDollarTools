@@ -18,7 +18,7 @@ public sealed class GpuTimer : IDisposable
 
     public GpuTimer()
     {
-        for (var i = 0; i < _queries.Length; i++) _queries[i] = GL.GenQuery();
+        for (var index = 0; index < _queries.Length; index++) _queries[index] = GL.GenQuery();
     }
 
     /// <summary>GPU time of each measured frame in milliseconds, in the order they came back.</summary>
@@ -46,16 +46,16 @@ public sealed class GpuTimer : IDisposable
     /// <summary>Moves every finished query's result into <see cref="Samples" />.</summary>
     public void Collect()
     {
-        for (var i = 0; i < _queries.Length; i++)
+        for (var index = 0; index < _queries.Length; index++)
         {
-            if (!_pending[i]) continue;
+            if (!_pending[index]) continue;
 
-            GL.GetQueryObjecti(_queries[i], QueryObjectParameterName.QueryResultAvailable, out var available);
+            GL.GetQueryObjecti(_queries[index], QueryObjectParameterName.QueryResultAvailable, out var available);
             if (available == 0) continue;
 
-            GL.GetQueryObjecti64(_queries[i], QueryObjectParameterName.QueryResult, out var nanoseconds);
+            GL.GetQueryObjecti64(_queries[index], QueryObjectParameterName.QueryResult, out var nanoseconds);
             Samples.Add(nanoseconds / 1_000_000.0);
-            _pending[i] = false;
+            _pending[index] = false;
         }
     }
 

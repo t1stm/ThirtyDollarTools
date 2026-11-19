@@ -148,13 +148,13 @@ public class TextBuffer : IRenderable, IClippable, IDisposable
         lock (_freeRanges)
         {
             if (_freeRanges.Count <= 0) return null;
-            for (var i = 0; i < _freeRanges.Count; i++)
+            for (var index = 0; index < _freeRanges.Count; index++)
             {
-                var freeRange = _freeRanges[i];
+                var freeRange = _freeRanges[index];
                 var (offset, length) = freeRange.GetOffsetAndLength(charactersCapacity);
                 if (length < capacity) continue;
 
-                _freeRanges.RemoveAt(i);
+                _freeRanges.RemoveAt(index);
 
                 if (length <= capacity) return new Range(offset, offset + capacity);
                 var remainingRange = new Range(offset + capacity, offset + length);
@@ -198,7 +198,7 @@ public class TextBuffer : IRenderable, IClippable, IDisposable
         if (!_disposing)
         {
             var (offset, length) = range.GetOffsetAndLength(Characters.Capacity);
-            for (var i = offset; i < offset + length; i++) Characters[i] = new TextCharacter();
+            for (var index = offset; index < offset + length; index++) Characters[index] = new TextCharacter();
         }
 
         lock (_usedRanges)

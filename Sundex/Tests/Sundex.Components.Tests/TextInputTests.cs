@@ -40,7 +40,7 @@ public class TextInputTests
 
     private static void Type(TestUIContext ctx, string text)
     {
-        foreach (var c in text) ctx.DispatchTextInput(new TextInputEventArgs(c));
+        foreach (var character in text) ctx.DispatchTextInput(new TextInputEventArgs(character));
     }
 
     private static void Key(TestUIContext ctx, Keys key, KeyModifiers modifiers = 0)
@@ -170,7 +170,7 @@ public class TextInputTests
     {
         var (ctx, _, input) = NewInput();
         string? committed = null;
-        input.OnCommit = i => committed = i.Value;
+        input.OnCommit = source => committed = source.Value;
 
         ctx.Focus(input);
         Type(ctx, "42");

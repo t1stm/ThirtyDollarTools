@@ -13,29 +13,29 @@ internal static class EquationSolver
     private const double TooLargeRatio = 1e12;
 
     /// <summary>Solves ax² + bx + c = 0. Returns the root count, or -1 for "any x" (0 == 0).</summary>
-    public static int SolveQuadratic(Span<double> x, double a, double b, double c)
+    public static int SolveQuadratic(Span<double> x, double quadratic, double linear, double constant)
     {
         // a == 0 -> linear equation
-        if (a == 0 || Math.Abs(b) + Math.Abs(c) > TooLargeRatio * Math.Abs(a))
+        if (quadratic == 0 || Math.Abs(linear) + Math.Abs(constant) > TooLargeRatio * Math.Abs(quadratic))
         {
             // a == 0, b == 0 -> no solution
-            if (b == 0 || Math.Abs(c) > TooLargeRatio * Math.Abs(b))
-                return c == 0 ? -1 : 0;
+            if (linear == 0 || Math.Abs(constant) > TooLargeRatio * Math.Abs(linear))
+                return constant == 0 ? -1 : 0;
 
-            x[0] = -c / b;
+            x[0] = -constant / linear;
             return 1;
         }
 
-        var dscr = b * b - 4 * a * c;
+        var dscr = linear * linear - 4 * quadratic * constant;
         switch (dscr)
         {
             case > 0:
                 dscr = Math.Sqrt(dscr);
-                x[0] = (-b + dscr) / (2 * a);
-                x[1] = (-b - dscr) / (2 * a);
+                x[0] = (-linear + dscr) / (2 * quadratic);
+                x[1] = (-linear - dscr) / (2 * quadratic);
                 return 2;
             case 0:
-                x[0] = -b / (2 * a);
+                x[0] = -linear / (2 * quadratic);
                 return 1;
             default:
                 return 0;

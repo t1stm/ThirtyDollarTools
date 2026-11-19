@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
 using Sundex.Engine.Asset_Management.Types.Asset;
@@ -19,7 +19,10 @@ public enum TextureFit
     Stretch,
 
     /// <summary>Scale down to fit inside the box, keeping the aspect ratio and centering the result.</summary>
-    Fit
+    Fit,
+
+    /// <summary>Fill the box, keeping the aspect ratio and cropping what overflows, centred (CSS <c>object-fit: cover</c>).</summary>
+    Cover
 }
 
 /// <summary>
@@ -35,6 +38,7 @@ public enum TextureFit
 ///         state override, or be assigned at runtime, and any of those may change at any time.
 ///     </para>
 /// </summary>
+[Sundex.Components.Attributes.MarkupTag("image")]
 public class Image : Panel
 {
     /// <summary>Lucide's image-off, embedded in this assembly.</summary>
@@ -59,6 +63,9 @@ public class Image : Panel
     private bool _deferLoad;
 
     private bool _loadDeferred;
+
+    // A blurred image's load, waiting for the box whose pixels the blur is measured in.
+    private bool _blurAwaitsBox;
 
     /// <summary>A worker's failure, waiting to be handled on the update thread. Same hand-off as <see cref="_pending" />.</summary>
     private LoadFailure? _failure;
@@ -148,6 +155,14 @@ public class Image : Panel
     ///     large image shown small otherwise costs its full size in memory, twice.
     /// </summary>
     public int DecodeWidth { get; set; }
+
+    /// <summary>
+    ///     Blurs the picture, as a Gaussian sigma in the element's own pixels (CSS <c>filter: blur()</c>);
+    ///     0 for none. Set before <see cref="Src" />. A blurred image waits for its first layout to
+    ///     load, since the blur on the decoded pixels depends on the size they are shown at.
+    /// </summary>
+    [NamedSetting("blur")]
+    public float Blur { get; set; }
 
     /// <summary>
     ///     Called on the update thread when a load fails, once per failed load: <see cref="Src" />,
@@ -318,6 +333,21 @@ public class Image : Panel
     {
         // Lays the plane out over the whole box, which is exactly Stretch.
         base.DoLayout();
+        if (_blurAwaitsBox && Computed is { Width: > 0, Height: > 0 }) StartLoad();
+        _plane.UvRect = new Vector4(0, 0, 1, 1);
+
+        // Cover keeps the plane on the box, rounded corners included, and draws a centred part of
+        // the texture with the box's own aspect.
+        if (TextureFit == TextureFit.Cover && !ShowsPlaceholder &&
+            _texture is { Width: > 0, Height: > 0 } cover && Computed is { Width: > 0, Height: > 0 })
+        {
+            var box = Computed.Width / Computed.Height;
+            var picture = (float)cover.Width / cover.Height;
+            _plane.UvRect = picture > box
+                ? new Vector4((1 - box / picture) / 2, 0, box / picture, 1)
+                : new Vector4(0, (1 - picture / box) / 2, 1, picture / box);
+            return;
+        }
 
         if ((TextureFit != TextureFit.Fit && !ShowsPlaceholder) ||
             _texture is not { Width: > 0, Height: > 0 } texture) return;
@@ -369,6 +399,8 @@ public class Image : Panel
     private void StartLoad()
     {
         _loadDeferred = false;
+        _blurAwaitsBox = Blur > 0 && !string.IsNullOrEmpty(Src) && (Computed.Width <= 0 || Computed.Height <= 0);
+        if (_blurAwaitsBox) return;
 
         var src = Src;
         var storage = Storage;
@@ -394,6 +426,7 @@ public class Image : Panel
 
     private void Fetch(string src, StorageLocation storage, int maxWidth, int generation)
     {
+        var (boxWidth, boxHeight) = (Computed.Width, Computed.Height);
         LoadTask = Context.AssetProvider.ThreadRunner.RunTask(() =>
         {
             try
@@ -401,6 +434,9 @@ public class Image : Panel
                 var holder = Context.AssetProvider.Load<TextureHolder, TextureInfo>(new TextureInfo
                 {
                     MaxWidth = maxWidth,
+                    Blur = Blur,
+                    BlurBoxWidth = boxWidth,
+                    BlurBoxHeight = boxHeight,
                     AssetInfo = new AssetInfo
                     {
                         Location = src,
@@ -417,9 +453,9 @@ public class Image : Panel
                 // Superseding a decode that hasn't been picked up yet - drop it, not this one.
                 Interlocked.Exchange(ref _pending, holder.Texture)?.Dispose();
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Interlocked.Exchange(ref _failure, new LoadFailure(e, generation));
+                Interlocked.Exchange(ref _failure, new LoadFailure(exception, generation));
             }
         });
     }
@@ -453,6 +489,19 @@ public class Image : Panel
 
         _loadingPlaceholder = true;
         Fetch(PlaceholderLocation, StorageLocation.Assembly, 0, Interlocked.Increment(ref _generation));
+    }
+
+    /// <summary>The picture fades with its element and its ancestors, as a panel's fill does.</summary>
+    protected override void OnOpacityChanged()
+    {
+        base.OnOpacityChanged();
+        _plane.Color = new OpenTK.Mathematics.Vector4(1, 1, 1, EffectiveOpacity);
+    }
+
+    protected override void OnDispose()
+    {
+        base.OnDispose();
+        ReleaseTexture();
     }
 
     private void ReleaseTexture()

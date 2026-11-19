@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
-using Shared;
-using Shared.Renderer.Planes;
+using Sundex.Components;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
 using Sundex.Components.Panels;
@@ -16,7 +16,7 @@ public class ProgressBarTests
     public void ProgressBar_ApplyStyleValue_ShouldQueuePanelBackground()
     {
         // Arrange
-        var camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        var camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         var context = new TestContext { Camera = camera };
         var progressBar = new ProgressBar(context);
         progressBar.DrawTo(context); // only a rendering element queues a swapped-in renderable
@@ -45,7 +45,7 @@ public class ProgressBarTests
     public void ProgressBar_DrawTo_ShouldReQueueRenderablesAfterClear()
     {
         // Arrange
-        var camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        var camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         var context = new TestContext { Camera = camera };
         var progressBar = new ProgressBar(context, new ColoredPlane { Color = Vector4.One },
             new ColoredPlane { Color = Vector4.UnitX });
@@ -64,18 +64,18 @@ public class ProgressBarTests
         var bgPos = -1;
         var fgPos = -1;
 
-        for (var i = 0; i < queue.Count; i++)
-        for (var j = 0; j < queue[i].Count; j++)
+        for (var layer = 0; layer < queue.Count; layer++)
+        for (var index = 0; index < queue[layer].Count; index++)
         {
-            if (queue[i][j] == progressBar.BackgroundPanel.Background)
+            if (queue[layer][index] == progressBar.BackgroundPanel.Background)
             {
-                bgLayer = i;
-                bgPos = j;
+                bgLayer = layer;
+                bgPos = index;
             }
 
-            if (queue[i][j] != progressBar.ForegroundPanel.Background) continue;
-            fgLayer = i;
-            fgPos = j;
+            if (queue[layer][index] != progressBar.ForegroundPanel.Background) continue;
+            fgLayer = layer;
+            fgPos = index;
         }
 
         Assert.True(bgLayer != -1, "Background should be re-queued after Clear()");
@@ -98,7 +98,7 @@ public class ProgressBarTests
     public void ProgressBar_ShouldSetPanelHeights()
     {
         // Arrange
-        var camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        var camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         var context = new TestContext { Camera = camera };
         var progressBar = new ProgressBar(context);
 
@@ -175,7 +175,7 @@ public class ProgressBarTests
     {
         public TestContext()
         {
-            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+            Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         }
 
         public List<List<IRenderable>> GetRenderQueue()

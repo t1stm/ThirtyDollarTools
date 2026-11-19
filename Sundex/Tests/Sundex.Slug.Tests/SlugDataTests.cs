@@ -22,7 +22,7 @@ public class SlugDataTests(ITestOutputHelper output)
         foreach (var (label, glyph, data) in AllGlyphs(fontName))
         {
             var decoded = Decode(data, glyph);
-            Assert.True(decoded.LocX + decoded.Nh + decoded.Nv <= Width, $"{label}: header run crosses a row");
+            Assert.True(decoded.LocX + decoded.HorizontalBands + decoded.VerticalBands <= Width, $"{label}: header run crosses a row");
 
             foreach (var band in decoded.Bands)
             {
@@ -40,9 +40,9 @@ public class SlugDataTests(ITestOutputHelper output)
         foreach (var (label, glyph, data) in AllGlyphs(fontName))
         foreach (var band in Decode(data, glyph).Bands)
         {
-            var keys = band.Curves.Select(c => band.Vertical ? c.MaxY : c.MaxX).ToArray();
-            for (var i = 1; i < keys.Length; i++)
-                Assert.True(keys[i] <= keys[i - 1], $"{label}: band list out of order at {i}");
+            var keys = band.Curves.Select(curve => band.Vertical ? curve.MaxY : curve.MaxX).ToArray();
+            for (var index = 1; index < keys.Length; index++)
+                Assert.True(keys[index] <= keys[index - 1], $"{label}: band list out of order at {index}");
         }
     }
 
@@ -75,28 +75,28 @@ public class SlugDataTests(ITestOutputHelper output)
         foreach (var (label, glyph, data) in AllGlyphs(fontName))
         {
             var decoded = Decode(data, glyph);
-            var curves = decoded.Bands.SelectMany(b => b.Curves).Distinct().ToList();
+            var curves = decoded.Bands.SelectMany(band => band.Curves).Distinct().ToList();
 
             foreach (var curve in curves)
             foreach (var vertical in (bool[])[false, true])
             {
                 if (vertical ? curve.IsVerticalLine : curve.IsHorizontalLine) continue;
 
-                var n = vertical ? decoded.Nv : decoded.Nh;
+                var bandCount = vertical ? decoded.VerticalBands : decoded.HorizontalBands;
                 double scale = vertical ? glyph.Banding.X : glyph.Banding.Y;
                 double offset = vertical ? glyph.Banding.Z : glyph.Banding.W;
-                double lo = (vertical ? curve.MinX : curve.MinY) - epsilon;
-                double hi = (vertical ? curve.MaxX : curve.MaxY) + epsilon;
+                double low = (vertical ? curve.MinX : curve.MinY) - epsilon;
+                double high = (vertical ? curve.MaxX : curve.MaxY) + epsilon;
 
-                for (var i = 0; i < n; i++)
+                for (var index = 0; index < bandCount; index++)
                 {
-                    var bandLo = i == 0 || scale == 0 ? double.NegativeInfinity : (i - offset) / scale;
-                    var bandHi = i == n - 1 || scale == 0 ? double.PositiveInfinity : (i + 1 - offset) / scale;
-                    if (!(lo < bandHi - slack && hi > bandLo + slack)) continue;
+                    var bandLo = index == 0 || scale == 0 ? double.NegativeInfinity : (index - offset) / scale;
+                    var bandHi = index == bandCount - 1 || scale == 0 ? double.PositiveInfinity : (index + 1 - offset) / scale;
+                    if (!(low < bandHi - slack && high > bandLo + slack)) continue;
 
-                    var band = decoded.Bands.Single(b => b.Vertical == vertical && b.Index == i);
+                    var band = decoded.Bands.Single(candidate => candidate.Vertical == vertical && candidate.Index == index);
                     Assert.True(band.Curves.Contains(curve),
-                        $"{label}: curve ({curve.X}, {curve.Y}) missing from {(vertical ? "vertical" : "horizontal")} band {i}");
+                        $"{label}: curve ({curve.X}, {curve.Y}) missing from {(vertical ? "vertical" : "horizontal")} band {index}");
                 }
             }
         }
@@ -124,25 +124,25 @@ public class SlugDataTests(ITestOutputHelper output)
         var random = new Random(7);
         for (var length = 0; length < 23; length++)
         {
-            var lo = Enumerable.Range(0, length).Select(_ => random.NextDouble() * 1.2 - 0.1).ToArray();
-            var hi = lo.Select(v => v + random.NextDouble() * 0.5).ToArray();
+            var low = Enumerable.Range(0, length).Select(_ => random.NextDouble() * 1.2 - 0.1).ToArray();
+            var high = low.Select(start => start + random.NextDouble() * 0.5).ToArray();
             var first = new double[length];
             var last = new double[length];
 
-            for (var n = 1; n <= SlugFontData.MaxBands; n++)
+            for (var bandCount = 1; bandCount <= SlugFontData.MaxBands; bandCount++)
             {
-                double scale = n;
-                SlugFontData.Builder.BandIndices(lo, scale, n, first);
-                SlugFontData.Builder.BandIndices(hi, scale, n, last);
+                double scale = bandCount;
+                SlugFontData.Builder.BandIndices(low, scale, bandCount, first);
+                SlugFontData.Builder.BandIndices(high, scale, bandCount, last);
 
-                for (var i = 0; i < length; i++)
+                for (var index = 0; index < length; index++)
                 {
-                    Assert.Equal(Math.Clamp((int)Math.Floor(lo[i] * scale), 0, n - 1), first[i]);
-                    Assert.Equal(Math.Clamp((int)Math.Floor(hi[i] * scale), 0, n - 1), last[i]);
+                    Assert.Equal(Math.Clamp((int)Math.Floor(low[index] * scale), 0, bandCount - 1), first[index]);
+                    Assert.Equal(Math.Clamp((int)Math.Floor(high[index] * scale), 0, bandCount - 1), last[index]);
                 }
 
-                for (var band = 0; band < n; band++)
-                    Assert.Equal(Enumerable.Range(0, length).Count(i => first[i] <= band && band <= last[i]),
+                for (var band = 0; band < bandCount; band++)
+                    Assert.Equal(Enumerable.Range(0, length).Count(index => first[index] <= band && band <= last[index]),
                         SlugFontData.Builder.CountInBand(first, last, band));
             }
         }
@@ -187,41 +187,41 @@ public class SlugDataTests(ITestOutputHelper output)
         return new Vector4(data.Glyphs[start], data.Glyphs[start + 1], data.Glyphs[start + 2], data.Glyphs[start + 3]);
     }
 
-    internal record struct DecodedCurve(int X, int Y, Vector2 P1, Vector2 P2, Vector2 P3)
+    internal record struct DecodedCurve(int X, int Y, Vector2 Point1, Vector2 Point2, Vector2 Point3)
     {
-        public float MinX => MathF.Min(MathF.Min(P1.X, P2.X), P3.X);
-        public float MaxX => MathF.Max(MathF.Max(P1.X, P2.X), P3.X);
-        public float MinY => MathF.Min(MathF.Min(P1.Y, P2.Y), P3.Y);
-        public float MaxY => MathF.Max(MathF.Max(P1.Y, P2.Y), P3.Y);
-        public bool IsHorizontalLine => P1.Y == P2.Y && P2.Y == P3.Y;
-        public bool IsVerticalLine => P1.X == P2.X && P2.X == P3.X;
+        public float MinX => MathF.Min(MathF.Min(Point1.X, Point2.X), Point3.X);
+        public float MaxX => MathF.Max(MathF.Max(Point1.X, Point2.X), Point3.X);
+        public float MinY => MathF.Min(MathF.Min(Point1.Y, Point2.Y), Point3.Y);
+        public float MaxY => MathF.Max(MathF.Max(Point1.Y, Point2.Y), Point3.Y);
+        public bool IsHorizontalLine => Point1.Y == Point2.Y && Point2.Y == Point3.Y;
+        public bool IsVerticalLine => Point1.X == Point2.X && Point2.X == Point3.X;
     }
 
     internal record DecodedBand(bool Vertical, int Index, int StartX, int Count, List<DecodedCurve> Curves);
 
-    internal record DecodedGlyph(int LocX, int LocY, int Nh, int Nv, List<DecodedBand> Bands)
+    internal record DecodedGlyph(int LocX, int LocY, int HorizontalBands, int VerticalBands, List<DecodedBand> Bands)
     {
-        public int CurveCount => Bands.SelectMany(b => b.Curves).Distinct().Count();
+        public int CurveCount => Bands.SelectMany(band => band.Curves).Distinct().Count();
     }
 
     /// <summary>Reads a glyph's bands and curves back out of the textures, the way the shader addresses them.</summary>
     internal static DecodedGlyph Decode(SlugFontData data, SlugGlyph glyph)
     {
         int locX = (int)glyph.GlyphData.X, locY = (int)glyph.GlyphData.Y;
-        int nv = (int)glyph.GlyphData.Z + 1, nh = (int)glyph.GlyphData.W + 1;
+        int verticalBands = (int)glyph.GlyphData.Z + 1, horizontalBands = (int)glyph.GlyphData.W + 1;
 
         var bands = new List<DecodedBand>();
-        for (var h = 0; h < nh + nv; h++)
+        for (var band = 0; band < horizontalBands + verticalBands; band++)
         {
-            var header = Texel(data.Bands, locX + h, locY);
+            var header = Texel(data.Bands, locX + band, locY);
             var count = (int)header.X;
             var linear = locY * Width + locX + (int)header.Y;
             int startX = linear % Width, startY = linear / Width;
 
             var curves = new List<DecodedCurve>();
-            for (var i = 0; i < count && startX + i < Width; i++)
+            for (var index = 0; index < count && startX + index < Width; index++)
             {
-                var entry = Texel(data.Bands, startX + i, startY);
+                var entry = Texel(data.Bands, startX + index, startY);
                 int x = (int)entry.X, y = (int)entry.Y;
                 var first = Texel(data.Curves, x, y);
                 var second = x + 1 < Width ? Texel(data.Curves, x + 1, y) : Vector4.Zero;
@@ -230,16 +230,16 @@ public class SlugDataTests(ITestOutputHelper output)
                     new Vector2(second.X, second.Y)));
             }
 
-            var vertical = h >= nh;
-            bands.Add(new DecodedBand(vertical, vertical ? h - nh : h, startX, count, curves));
+            var vertical = band >= horizontalBands;
+            bands.Add(new DecodedBand(vertical, vertical ? band - horizontalBands : band, startX, count, curves));
         }
 
-        return new DecodedGlyph(locX, locY, nh, nv, bands);
+        return new DecodedGlyph(locX, locY, horizontalBands, verticalBands, bands);
     }
 
     private static Vector4 Texel(float[] texture, int x, int y)
     {
-        var i = (y * Width + x) * 4;
-        return new Vector4(texture[i], texture[i + 1], texture[i + 2], texture[i + 3]);
+        var offset = (y * Width + x) * 4;
+        return new Vector4(texture[offset], texture[offset + 1], texture[offset + 2], texture[offset + 3]);
     }
 }

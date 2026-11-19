@@ -291,7 +291,7 @@ public sealed class FaithfulSequence : ScrollView
         if (_state.OpenedFaithfulTrack is not { } track) return;
         if (ItemAt(fromEvent) is not { } from || ItemAt(toEvent) is not { } to || from == to) return;
 
-        _state.MoveItems(track, Group(from), track.Items.IndexOf(to) - track.Items.IndexOf(from));
+        _state.MoveItems(track, GestureTargets(from), track.Items.IndexOf(to) - track.Items.IndexOf(from));
     }
 
     /// <summary>
@@ -299,7 +299,7 @@ public sealed class FaithfulSequence : ScrollView
     ///     it, else the slot alone. Dragging or retuning one slot of a multi-selection does it
     ///     to all of them - the piano roll's own rule for a selected note.
     /// </summary>
-    private IReadOnlyList<FaithfulItem> Group(FaithfulItem item)
+    private IReadOnlyList<FaithfulItem> GestureTargets(FaithfulItem item)
     {
         return Selecting && _state.SelectedItems.Contains(item) ? _state.SelectedItems : [item];
     }
@@ -535,7 +535,7 @@ public sealed class FaithfulSequence : ScrollView
         var slot = Array.IndexOf(_itemByEvent, item);
         if (_lastPlayheadMinutes >= 0 && slot >= 0 && _canvas.IsBouncing(slot)) return;
 
-        var group = Group(item);
+        var group = GestureTargets(item);
         _state.AdjustItems(group, target => AdjustOne(target, notches));
 
         // The one under the pointer, not every slot of a group - a selection auditioning

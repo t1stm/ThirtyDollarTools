@@ -59,15 +59,15 @@ internal sealed class Shape
     /// <summary>True when every contour is a closed chain — each edge starting where the last one ended.</summary>
     public bool Validate()
     {
-        for (var c = 0; c < ContourCount; c++)
+        for (var contour = 0; contour < ContourCount; contour++)
         {
-            var edges = ContourEdges(c);
+            var edges = ContourEdges(contour);
             if (edges.Length == 0) continue;
 
             var corner = edges[^1].EndPoint;
             foreach (ref var edge in edges)
             {
-                if (edge.P0 != corner) return false;
+                if (edge.Point0 != corner) return false;
                 corner = edge.EndPoint;
             }
         }
@@ -83,22 +83,22 @@ internal sealed class Shape
 
         foreach (ref var edge in Edges)
         {
-            edge.P0 += offset;
-            edge.P1 += offset;
-            edge.P2 += offset;
-            edge.P3 += offset;
+            edge.Point0 += offset;
+            edge.Point1 += offset;
+            edge.Point2 += offset;
+            edge.Point3 += offset;
         }
     }
 
-    public void Bound(ref double l, ref double b, ref double r, ref double t)
+    public void Bound(ref double left, ref double bottom, ref double right, ref double top)
     {
-        foreach (ref var edge in Edges) edge.Bound(ref l, ref b, ref r, ref t);
+        foreach (ref var edge in Edges) edge.Bound(ref left, ref bottom, ref right, ref top);
     }
 
     public Bounds GetBounds()
     {
         var bounds = Bounds.Empty;
-        Bound(ref bounds.L, ref bounds.B, ref bounds.R, ref bounds.T);
+        Bound(ref bounds.Left, ref bounds.Bottom, ref bounds.Right, ref bounds.Top);
         return bounds;
     }
 
@@ -113,9 +113,9 @@ internal sealed class Shape
 
         foreach (ref var edge in edges)
         {
-            var a = edge.P0;
-            var b = edge.EndPoint;
-            total += Vector2d.Cross(a, b);
+            var start = edge.Point0;
+            var end = edge.EndPoint;
+            total += Vector2d.Cross(start, end);
         }
 
         return 0.5 * total;
@@ -124,19 +124,19 @@ internal sealed class Shape
 
 internal struct Bounds
 {
-    public double L;
-    public double B;
-    public double R;
-    public double T;
+    public double Left;
+    public double Bottom;
+    public double Right;
+    public double Top;
 
     /// <summary>
     ///     An inverted box, seeded so that the first real coordinate wins every comparison. The
     ///     ±1e240 sentinels leave room to keep arithmetic on them finite.
     /// </summary>
-    public static Bounds Empty => new() { L = 1e240, B = 1e240, R = -1e240, T = -1e240 };
+    public static Bounds Empty => new() { Left = 1e240, Bottom = 1e240, Right = -1e240, Top = -1e240 };
 
     public readonly override string ToString()
     {
-        return $"L={L:R} B={B:R} R={R:R} T={T:R}";
+        return $"L={Left:R} B={Bottom:R} R={Right:R} T={Top:R}";
     }
 }

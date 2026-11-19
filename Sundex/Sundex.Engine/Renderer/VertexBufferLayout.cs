@@ -57,9 +57,9 @@ public class VertexBufferLayout
         ArgumentOutOfRangeException.ThrowIfGreaterThan(x, 4);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(y, 4);
 
-        for (var j = 0; j < count; j++)
+        for (var matrix = 0; matrix < count; matrix++)
         {
-            for (var i = 0; i < y; i++)
+            for (var row = 0; row < y; row++)
                 _elements.Add(new VertexBufferElement
                 {
                     Type = VertexAttribPointerType.Float,

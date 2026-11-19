@@ -2,6 +2,7 @@ using EditorScene.Scenes;
 using EditorScene.Scenes.Dialogs;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Components.File_Selector;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -42,11 +43,16 @@ public class DialogHostTests
     public void Confirm_TakesEnterAsConfirm_AndEscAsCancel()
     {
         var ctx = new EditorTestContext();
-        var host = new DialogHost(ctx, new Panel(ctx));
+        var root = new Panel(ctx) { Width = 1080, Height = 720 };
+        var host = new DialogHost(ctx, root);
         var confirmed = 0;
         var cancelled = 0;
 
         host.Confirm("Delete this?", "It goes for good.", () => confirmed++, () => cancelled++);
+        root.Layout();
+        var enter = new KeyboardKeyEventArgs(Keys.Enter, 0, default, false);
+        Assert.False(ctx.DispatchKeyDown(enter));
+        Assert.False(host.TryKeyTop(enter));
         Assert.True(host.TryConfirmTop());
         Assert.Equal((1, 0), (confirmed, cancelled));
         Assert.False(host.HasOpenModal);
@@ -54,6 +60,34 @@ public class DialogHostTests
         host.Confirm("Delete this?", "It goes for good.", () => confirmed++, () => cancelled++);
         Assert.True(host.TryCloseTop());
         Assert.Equal((1, 1), (confirmed, cancelled));
+        Assert.False(host.HasOpenModal);
+    }
+
+    [Fact]
+    public void FileDialog_UsesTheEditorFrameAndActionStyles()
+    {
+        var ctx = new EditorTestContext();
+        var root = new Panel(ctx);
+        var host = new DialogHost(ctx, root, EditorTestContext.Styles);
+
+        host.ShowFileDialog("Save project", "Song", ".tdwproj", _ => { });
+
+        var fileDialog = Assert.Single(Descendants(root).OfType<FileSelection>());
+        Assert.NotNull(fileDialog.Background);
+        Assert.NotNull(fileDialog.ConfirmButton.Background);
+    }
+
+    [Fact]
+    public void FileDialog_EscapeCancelsWhenTheFileListHasFocus()
+    {
+        var ctx = new EditorTestContext();
+        var root = new Panel(ctx) { Width = 1080, Height = 720 };
+        var host = new DialogHost(ctx, root, EditorTestContext.Styles);
+        host.ShowFileDialog("Open project", null, ".tdwproj", _ => { });
+        root.Layout();
+
+        Assert.IsType<FileSelection>(ctx.FocusedElement);
+        Assert.True(ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Escape, 0, default, false)));
         Assert.False(host.HasOpenModal);
     }
 

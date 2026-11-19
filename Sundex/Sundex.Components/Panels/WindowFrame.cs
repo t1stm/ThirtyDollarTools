@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
@@ -90,26 +90,26 @@ public class WindowFrame : Panel
 
     protected void ComputeResize(MouseState mouse)
     {
-        const float rt = 10; // px
+        const float resizeMargin = 10; // px
 
-        var mx = mouse.X;
-        var my = mouse.Y;
+        var mouseX = mouse.X;
+        var mouseY = mouse.Y;
 
         var x = Computed.AbsoluteX;
         var y = Computed.AbsoluteY;
-        var xw = x + Computed.Width;
-        var yh = y + Computed.Height;
+        var right = x + Computed.Width;
+        var bottom = y + Computed.Height;
 
-        var x_negative = mx > x - rt && mx <= x + rt;
-        var x_positive = mx >= xw - rt && mx < xw + rt;
+        var x_negative = mouseX > x - resizeMargin && mouseX <= x + resizeMargin;
+        var x_positive = mouseX >= right - resizeMargin && mouseX < right + resizeMargin;
 
-        var y_negative = my > y && my <= y + rt;
-        var y_positive = my >= yh - rt && my < yh + rt;
+        var y_negative = mouseY > y && mouseY <= y + resizeMargin;
+        var y_positive = mouseY >= bottom - resizeMargin && mouseY < bottom + resizeMargin;
 
-        var xr = x_positive || x_negative;
-        var yr = y_positive || y_negative;
+        var resizesX = x_positive || x_negative;
+        var resizesY = y_positive || y_negative;
 
-        if (!xr && !yr)
+        if (!resizesX && !resizesY)
             return;
 
         if (!mouse.IsButtonDown(MouseButton.Left)) return;

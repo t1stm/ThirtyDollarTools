@@ -28,4 +28,17 @@ public class TextureInfo : ILoaderInfo
     ///     ever shrinks, keeping the aspect ratio: an image already narrower stays as it is.
     /// </summary>
     public int MaxWidth { get; init; }
+
+    /// <summary>
+    ///     A Gaussian blur, as a sigma in pixels; 0 for none. In the pixels of the box the image is
+    ///     shown in when <see cref="BlurBoxWidth" /> and <see cref="BlurBoxHeight" /> are set (CSS
+    ///     <c>filter: blur()</c>), else in the decoded pixels.
+    /// </summary>
+    public float Blur { get; init; }
+
+    /// <summary>The width of the box the blurred image fills, in pixels; 0 if unknown.</summary>
+    public float BlurBoxWidth { get; init; }
+
+    /// <summary>The height of the box the blurred image fills, in pixels; 0 if unknown.</summary>
+    public float BlurBoxHeight { get; init; }
 }

@@ -12,7 +12,7 @@ public class GpuTimerPercentileTests
     [Fact]
     public void NearestRankOverOneToHundred()
     {
-        var samples = Enumerable.Range(1, 100).Select(i => (double)i).Reverse().ToList();
+        var samples = Enumerable.Range(1, 100).Select(index => (double)index).Reverse().ToList();
 
         Assert.Equal(50, GpuTimer.Percentile(samples, 50));
         Assert.Equal(95, GpuTimer.Percentile(samples, 95));
@@ -24,7 +24,7 @@ public class GpuTimerPercentileTests
     [Fact]
     public void P95OfSixHundredIsThe570thSmallest()
     {
-        var samples = Enumerable.Range(1, 600).Select(i => i / 10.0).ToList();
+        var samples = Enumerable.Range(1, 600).Select(index => index / 10.0).ToList();
 
         Assert.Equal(57.0, GpuTimer.Percentile(samples, 95));
     }

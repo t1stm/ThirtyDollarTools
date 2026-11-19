@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -103,5 +103,54 @@ public class ButtonTests
         var background = button.Background as IBorderRadius;
         Assert.NotNull(background);
         Assert.Equal(15, background.BorderRadius);
+    }
+
+    [Fact]
+    public void AStateOverrideTakesTheLastClassThatSetsIt()
+    {
+        // Bug 2.7: base styles let the last class win, state overrides took the first.
+        var context = new TestUIContext();
+        var button = new Button(context, "Import") { Width = 100, Height = 30 };
+        button.Classes.Add("base");
+        button.Classes.Add("modifier");
+
+        static BlockValue Disabled(string cursor) =>
+            new(new Dictionary<string, IStyleValue> { ["cursor"] = new StringValue(cursor) });
+
+        var holder = new StyleSheetHolder();
+        holder.Classes["base"] = new Dictionary<string, IStyleValue> { ["state[disabled]"] = Disabled("Default") };
+        holder.Classes["modifier"] = new Dictionary<string, IStyleValue> { ["state[disabled]"] = Disabled("Text") };
+        button.ApplyStyleSheet(new StyleSheet(holder));
+
+        button.Disabled = true;
+        Assert.Equal(CursorType.Text, button.Cursor);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ADisabledOpacityLeavesWithTheDisabledState(bool hovered, bool restyled)
+    {
+        // The studio's Lead vocal: enabled again, it stayed at its disabled 0.4.
+        var context = new TestUIContext();
+        var root = new Panel(context) { Width = 400, Height = 300 };
+        var button = new Button(context, "Lead vocal") { X = 10, Y = 10, Width = 100, Height = 30 };
+        root.Children = [button];
+        root.Layout();
+
+        var holder = new StyleSheetHolder();
+        holder.Components[button.Tag] = new Dictionary<string, IStyleValue>
+        {
+            ["state[disabled]"] = new BlockValue(new Dictionary<string, IStyleValue> { ["opacity"] = new NumberValue(0.4f, "") })
+        };
+        button.ApplyStyleSheet(new StyleSheet(holder));
+        if (hovered) context.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero);
+
+        button.Disabled = true;
+        Assert.Equal(0.4f, button.Opacity, 3);
+        if (restyled) button.SetClass("stem", true);
+        button.Disabled = false;
+        Assert.Equal(1f, button.Opacity, 3);
     }
 }

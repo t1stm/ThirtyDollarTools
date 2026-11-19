@@ -78,4 +78,50 @@ public class SliderTests
         slider.Value = 0.33;
         Assert.Equal(0.3, slider.Value);
     }
+
+    [Fact]
+    public void OnInput_FiresForThePointerAndWheel_NotForCode()
+    {
+        var (ctx, root, slider) = NewSlider();
+        slider.WheelStep = 5;
+        var input = 0;
+        slider.OnInput = _ => input++;
+
+        slider.Value = 30; // following a playback position: no input
+        Assert.Equal(0, input);
+
+        ctx.UpdatePointer(root, 110, 14, true, true, false, Vector2.Zero);
+        Assert.Equal(1, input);
+        ctx.UpdatePointer(root, 110, 14, false, false, true, Vector2.Zero);
+
+        ctx.UpdatePointer(root, 110, 14, false, false, false, new Vector2(0, 1));
+        Assert.Equal(55, slider.Value);
+        Assert.Equal(2, input);
+    }
+
+    [Fact]
+    public void HitSlop_TakesPressesJustOffTheBar()
+    {
+        var (ctx, root, slider) = NewSlider();
+        Assert.Null(slider.HitTest(110, 22));
+
+        slider.HitSlop = 6;
+        ctx.UpdatePointer(root, 110, 22, true, true, false, Vector2.Zero);
+        Assert.Equal(50, slider.Value);
+    }
+
+    [Fact]
+    public void Thumb_FollowsThePointer_AndTheSecondaryFillItsProgress()
+    {
+        var (ctx, root, slider) = NewSlider();
+        slider.ThumbSize = 12;
+        slider.SecondaryProgress = 0.25f;
+        root.Layout();
+        Assert.Equal(50, slider.SecondaryPanel.Computed.Width, 1);
+
+        ctx.UpdatePointer(root, 60, 14, false, false, false, Vector2.Zero);
+        root.Layout();
+        // Centred on the pointer: 50 in from the bar's left edge, less half the dot.
+        Assert.Equal(10 + 50 - 6, slider.ThumbPanel.Computed.AbsoluteX, 1);
+    }
 }

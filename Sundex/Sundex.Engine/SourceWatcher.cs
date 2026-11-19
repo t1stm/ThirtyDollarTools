@@ -70,12 +70,12 @@ public sealed class SourceWatcher : IDisposable
         }
     }
 
-    private void OnChanged(object sender, FileSystemEventArgs e)
+    private void OnChanged(object sender, FileSystemEventArgs args)
     {
         // A stylesheet alone can be applied to the tree that is already up; markup and
         // logic cannot. When a batch mixes the two the wider scope wins, so saving a
         // layout and its sheet together still rebuilds once.
-        var scope = e.Name?.EndsWith(".snx.ss", StringComparison.OrdinalIgnoreCase) == true
+        var scope = args.Name?.EndsWith(".snx.ss", StringComparison.OrdinalIgnoreCase) == true
             ? ReloadScope.Styles
             : ReloadScope.Full;
 

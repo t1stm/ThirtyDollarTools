@@ -18,6 +18,7 @@ namespace Sundex.Components.Markdown;
 ///         the OS shell, where a path can launch a program.
 ///     </para>
 /// </summary>
+[Sundex.Components.Attributes.MarkupTag("markdown")]
 public class MarkdownView(UIContext context) : ScrollView(context)
 {
     /// <summary>The body text's font. Headings, bold and the rest of the interface are in Lato Bold.</summary>
@@ -59,11 +60,10 @@ public class MarkdownView(UIContext context) : ScrollView(context)
         base.DoLayout();
     }
 
-    // ponytail: the old labels' GL buffers wait for the GC; nothing replaces its text yet. Dispose
-    // their TextBuffers here if a host ever re-renders Markdown often.
     private void Rebuild()
     {
-        foreach (var child in Children.ToArray()) RemoveChild(child);
+        // Disposed, not only removed: the old labels' text buffers are freed now, not by the GC.
+        foreach (var child in Children.ToArray()) child.Dispose();
         _reflows.Clear();
         _reflowedWidth = 0;
 
@@ -104,7 +104,7 @@ public class MarkdownView(UIContext context) : ScrollView(context)
     {
         var marker = new Label(Context, item.Marker, BodyFont) { Classes = ["md-li-marker"] };
         var row = new FlexPanel(Context) { Classes = ["md-li"], Children = [marker] };
-        row.AddChild(BuildText(item.Inlines, "md-p", BodyFont, () => marker.Width.Value + row.Spacing));
+        row.AddChild(BuildText(item.Inlines, "md-p", BodyFont, () => marker.Measure(float.MaxValue, float.MaxValue).width + row.Spacing));
         return row;
     }
 
@@ -217,15 +217,15 @@ public class MarkdownView(UIContext context) : ScrollView(context)
         foreach (var inline in inlines)
         {
             var parts = inline.Text.Split('\n');
-            for (var i = 0; i < parts.Length; i++)
+            for (var index = 0; index < parts.Length; index++)
             {
-                if (i > 0)
+                if (index > 0)
                 {
                     yield return line;
                     line = [];
                 }
 
-                if (parts[i].Length > 0) line.Add(inline with { Text = parts[i] });
+                if (parts[index].Length > 0) line.Add(inline with { Text = parts[index] });
             }
         }
 
@@ -236,11 +236,11 @@ public class MarkdownView(UIContext context) : ScrollView(context)
     private static IEnumerable<string> Words(string text)
     {
         var start = 0;
-        for (var i = 0; i < text.Length; i++)
+        for (var index = 0; index < text.Length; index++)
         {
-            if (text[i] != ' ' || (i + 1 < text.Length && text[i + 1] == ' ')) continue;
-            yield return text[start..(i + 1)];
-            start = i + 1;
+            if (text[index] != ' ' || (index + 1 < text.Length && text[index + 1] == ' ')) continue;
+            yield return text[start..(index + 1)];
+            start = index + 1;
         }
 
         if (start < text.Length) yield return text[start..];

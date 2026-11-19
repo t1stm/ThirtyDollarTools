@@ -266,13 +266,13 @@ public class StyleParserVariableTests
     public void Parse_VariablesSnxsExample_ParsesWithoutErrors()
     {
         var projectRoot = AppContext.BaseDirectory;
-        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")))
+        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")) && !File.Exists(Path.Combine(projectRoot, "Experimental.slnx")))
             projectRoot = Path.GetDirectoryName(projectRoot);
 
         var styleDslRoot = Path.Combine(projectRoot!, "Sundex");
         var dsl = File.ReadAllText(Path.Combine(styleDslRoot, "Sundex.Style.DSL/Examples/variables.snx.ss"));
 
-        var sheet = StyleParser.Parse(dsl, p => File.ReadAllText(Path.Combine(styleDslRoot, p)));
+        var sheet = StyleParser.Parse(dsl, path => File.ReadAllText(Path.Combine(styleDslRoot, path)));
         var card = sheet.Classes["card"];
 
         using (Assert.EnterMultipleScope())

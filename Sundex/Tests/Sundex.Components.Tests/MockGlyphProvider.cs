@@ -7,14 +7,14 @@ namespace Sundex.Components.Tests;
 
 public class MockGlyphProvider : IGlyphProvider
 {
-    private const float P = SlugFontData.QuadPadding;
+    private const float Padding = SlugFontData.QuadPadding;
 
     /// <summary>
     ///     What every character comes back as. The 0.6 em advance is load-bearing:
     ///     TextInputTests depends on 0.6 × 16 px = 9.6 px per character.
     /// </summary>
     public SlugGlyph Glyph { get; set; } = new(0.6f,
-        new Vector4(0.05f - P, -0.1f - P, 0.55f + P, 0.7f + P),
+        new Vector4(0.05f - Padding, -0.1f - Padding, 0.55f + Padding, 0.7f + Padding),
         new Vector4(2, 3, -0.2f, 0.4f),
         new Vector4(7, 1, 1, 2));
 

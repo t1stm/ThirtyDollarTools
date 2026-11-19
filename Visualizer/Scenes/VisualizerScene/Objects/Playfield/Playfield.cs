@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 using Shared;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Core.Animations;
 using ThirtyDollarConverter.Parser;
 using VisualizerScene.Objects.Playfield.Batch;

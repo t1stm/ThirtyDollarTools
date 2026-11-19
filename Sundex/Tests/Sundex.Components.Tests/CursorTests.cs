@@ -1,3 +1,6 @@
+using OpenTK.Mathematics;
+using Sundex.Components.Labels;
+using Sundex.Components.Panels;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Style.DSL;
@@ -68,7 +71,7 @@ public class CursorTests
         var requestedCursor = CursorType.Default;
         var context = new TestUIContext
         {
-            RequestCursor = c => requestedCursor = c
+            RequestCursor = cursor => requestedCursor = cursor
         };
 
         var element = new TestElement(context)
@@ -92,7 +95,7 @@ public class CursorTests
         var requestedCursor = CursorType.Default;
         var context = new TestUIContext
         {
-            RequestCursor = c => requestedCursor = c
+            RequestCursor = cursor => requestedCursor = cursor
         };
 
         var input = new NumericInput(context, 1) { IsHovered = true };
@@ -103,6 +106,30 @@ public class CursorTests
         input.Children[^1].IsHovered = true;
         input.Update(context);
         Assert.Equal(CursorType.Pointer, requestedCursor);
+    }
+
+    /// <summary>
+    ///     Nothing runs Update on a hovered button, so the scene reads the cursor off the hover
+    ///     chain: over a button's label it is the button's pointer, and a disabled button's default.
+    /// </summary>
+    [Fact]
+    public void TestCursor_AtPointerIsTheDeepestHoveredElementsCursor()
+    {
+        var context = new TestUIContext();
+        var root = new Panel(context) { Width = 400, Height = 300 };
+        var button = new Button(context, "Play") { X = 10, Y = 10, Width = 100, Height = 30 };
+        root.Children = [button];
+        root.Layout();
+
+        context.UpdatePointer(root, 300, 200, false, false, false, Vector2.Zero);
+        Assert.Equal(CursorType.Default, context.CursorAtPointer);
+
+        context.UpdatePointer(root, 60, 25, false, false, false, Vector2.Zero);
+        Assert.NotSame(button, context.HoverTarget);
+        Assert.Equal(CursorType.Pointer, context.CursorAtPointer);
+
+        button.Disabled = true;
+        Assert.Equal(CursorType.Default, context.CursorAtPointer);
     }
 
     private class TestElement : UIElement

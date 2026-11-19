@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTK.Mathematics;
 using Serilog;
-using Shared;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
@@ -113,24 +113,24 @@ public class RenderQueueTests
         var context = new TestUIContext();
         var element = new TestElement(context);
 
-        var r1 = new MockRenderable();
-        var r2 = new MockRenderable();
-        var r3 = new MockRenderable();
+        var first = new MockRenderable();
+        var second = new MockRenderable();
+        var third = new MockRenderable();
 
-        context.QueueRender(r1, element.GetIndex());
-        context.QueueRender(r2, element.GetIndex());
-        context.QueueRender(r3, element.GetIndex());
+        context.QueueRender(first, element.GetIndex());
+        context.QueueRender(second, element.GetIndex());
+        context.QueueRender(third, element.GetIndex());
 
         var r2New = new MockRenderable();
 
         // Swap r2 with r2New
-        element.TestHandleRenderableSwap(r2, r2New);
+        element.TestHandleRenderableSwap(second, r2New);
 
         var queue = context.GetRenderQueue()[element.GetIndex()];
         Assert.Equal(3, queue.Count);
-        Assert.Same(r1, queue[0]);
+        Assert.Same(first, queue[0]);
         Assert.Same(r2New, queue[1]);
-        Assert.Same(r3, queue[2]);
+        Assert.Same(third, queue[2]);
     }
 
     [Fact]
@@ -164,14 +164,14 @@ public class RenderQueueTests
         var element = new TestElement(context);
         element.DrawTo(context); // only a rendering element queues a swapped-in renderable
 
-        var r1 = new MockRenderable();
+        var first = new MockRenderable();
 
         // oldValue is null, newValue is IRenderable. Should append.
-        element.TestHandleRenderableSwap(null, r1);
+        element.TestHandleRenderableSwap(null, first);
 
         var queue = context.GetRenderQueue()[element.GetIndex()];
         Assert.Single(queue);
-        Assert.Same(r1, queue[0]);
+        Assert.Same(first, queue[0]);
     }
 
     [Fact]
@@ -476,7 +476,7 @@ public class RenderQueueTests
                 new AssetProvider(logger, [Assembly.GetExecutingAssembly()], new GLInfo()),
                 new MockFontProvider(),
                 new MockTextProvider());
-            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(800, 600));
+            Camera = new UICamera(Vector3.Zero, new Vector2i(800, 600));
         }
 
         public List<List<IRenderable>> GetRenderQueue()

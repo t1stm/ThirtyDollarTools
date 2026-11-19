@@ -42,21 +42,21 @@ public class KeyframedAnimation : Animation
         var invertMs = 0f;
 
         var currentMs = 0f;
-        for (var i = 0; i < Keyframes.Count; i++)
+        for (var index = 0; index < Keyframes.Count; index++)
         {
-            if (Keyframes[i].LoopingMode == AnimationLoopingMode.LoopStart)
+            if (Keyframes[index].LoopingMode == AnimationLoopingMode.LoopStart)
             {
-                loopStartIndex = i;
+                loopStartIndex = index;
                 loopStartMs = currentMs;
             }
 
-            if (Keyframes[i].LoopingMode == AnimationLoopingMode.Invert)
+            if (Keyframes[index].LoopingMode == AnimationLoopingMode.Invert)
             {
-                invertIndex = i;
+                invertIndex = index;
                 invertMs = currentMs;
             }
 
-            currentMs += Keyframes[i].LengthMs;
+            currentMs += Keyframes[index].LengthMs;
         }
 
         if (loopStartIndex != -1 && invertIndex != -1 && invertIndex > loopStartIndex)
@@ -113,14 +113,14 @@ public class KeyframedAnimation : Animation
 
         var currentStart = 0f;
 
-        for (var i = 0; i < Keyframes.Count; i++)
+        for (var index = 0; index < Keyframes.Count; index++)
         {
-            var data = Keyframes[i];
+            var data = Keyframes[index];
             if (elapsed < currentStart + data.LengthMs)
             {
                 var progress = (elapsed - currentStart) / data.LengthMs;
                 progress = SteppingFunctions.Apply(data.SteppingFunction, progress);
-                return (data, i + 1 < Keyframes.Count ? Keyframes[i + 1] : null, progress);
+                return (data, index + 1 < Keyframes.Count ? Keyframes[index + 1] : null, progress);
             }
 
             currentStart += data.LengthMs;
@@ -147,16 +147,16 @@ public class KeyframedAnimation : Animation
             CalculateQuadraticBezier(current.Position, current.BezierP1.Value, next.Value.Position, progress);
     }
 
-    private static Vector3 CalculateQuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
+    private static Vector3 CalculateQuadraticBezier(Vector3 start, Vector3 control, Vector3 end, float progress)
     {
-        var u = 1 - t;
-        return u * u * p0 + 2 * u * t * p1 + t * t * p2;
+        var inverse = 1 - progress;
+        return inverse * inverse * start + 2 * inverse * progress * control + progress * progress * end;
     }
 
-    private static Vector3 CalculateCubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+    private static Vector3 CalculateCubicBezier(Vector3 start, Vector3 control1, Vector3 control2, Vector3 end, float progress)
     {
-        var u = 1 - t;
-        return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+        var inverse = 1 - progress;
+        return inverse * inverse * inverse * start + 3 * inverse * inverse * progress * control1 + 3 * inverse * progress * progress * control2 + progress * progress * progress * end;
     }
 
     public override Vector3 GetScale_Multiply(Renderable renderable)

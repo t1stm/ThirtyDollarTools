@@ -6,5 +6,8 @@ public enum UIState
     Hovered,
     Pressed,
     Disabled,
-    Errored
+    Errored,
+
+    /// <summary>Holds keyboard focus, and the pointer isn't on it.</summary>
+    Focused
 }

@@ -12,6 +12,7 @@ namespace Sundex.Components.Scroll;
 ///     The bar overlays the content's right edge and hides while the content fits. Its gutter
 ///     stays reserved either way, so rows don't reflow when it comes and goes.
 /// </summary>
+[Sundex.Components.Attributes.MarkupTag("scroll-view")]
 public class ScrollView : Panel
 {
     // Breathing room on both sides: between the rightmost content and the bar
@@ -53,9 +54,9 @@ public class ScrollView : Panel
         get => _scrollY;
         set
         {
-            var v = Math.Clamp(value, 0, MaxScroll);
-            if (Math.Abs(_scrollY - v) < 0.0001f) return;
-            _scrollY = v;
+            var clamped = Math.Clamp(value, 0, MaxScroll);
+            if (Math.Abs(_scrollY - clamped) < 0.0001f) return;
+            _scrollY = clamped;
             InvalidateLayout();
         }
     }
@@ -88,10 +89,10 @@ public class ScrollView : Panel
             _heightsCache = new float[Children.Count];
         var heights = _heightsCache;
         ContentHeight = 0;
-        for (var i = 0; i < Children.Count; i++)
+        for (var index = 0; index < Children.Count; index++)
         {
-            heights[i] = Children[i].Measure(innerWidth, innerHeight).height;
-            ContentHeight += heights[i] + (i > 0 ? Spacing : 0);
+            heights[index] = Children[index].Measure(innerWidth, innerHeight).height;
+            ContentHeight += heights[index] + (index > 0 ? Spacing : 0);
         }
 
         MaxScroll = Math.Max(0, ContentHeight - innerHeight);
@@ -102,7 +103,7 @@ public class ScrollView : Panel
         {
             var index = Children.IndexOf(_reveal);
             var top = 0f;
-            for (var i = 0; i < index; i++) top += heights[i] + Spacing;
+            for (var row = 0; row < index; row++) top += heights[row] + Spacing;
             if (index >= 0 && top < _scrollY) _scrollY = top;
             else if (index >= 0 && top + heights[index] > _scrollY + innerHeight)
                 _scrollY = Math.Min(top + heights[index] - innerHeight, MaxScroll);
@@ -110,16 +111,16 @@ public class ScrollView : Panel
         }
 
         var offset = -_scrollY;
-        for (var i = 0; i < Children.Count; i++)
+        for (var index = 0; index < Children.Count; index++)
         {
-            var child = Children[i];
+            var child = Children[index];
             child.X = ScrollBarGutter;
             child.Y = offset;
             // Percent-width rows fill this reserved (bar-inset) width instead of the
             // full box, so they don't render underneath the bar. Fixed-width children
             // (e.g. a centered dialog element) are left to their own declared width.
             child.ParentAssignedWidth = child.Width.IsPercentage ? innerWidth : null;
-            offset += heights[i] + Spacing;
+            offset += heights[index] + Spacing;
         }
 
         base.DoLayout(); // background + children layout

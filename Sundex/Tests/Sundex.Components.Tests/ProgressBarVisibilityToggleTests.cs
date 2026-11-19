@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using OpenTK.Mathematics;
-using Shared;
-using Shared.Renderer.Planes;
+using Sundex.Components;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
@@ -66,16 +66,16 @@ public class ProgressBarVisibilityToggleTests
         [SetsRequiredMembers]
         public TestContext()
         {
-            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+            Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         }
 
-        public List<List<IRenderable>> Q => LayeredRenderQueue;
+        public List<List<IRenderable>> Queue => LayeredRenderQueue;
 
-        public int LayerOf(IRenderable r)
+        public int LayerOf(IRenderable renderable)
         {
-            for (var i = 0; i < Q.Count; i++)
-                if (Q[i].Any(x => ReferenceEquals(x, r)))
-                    return i;
+            for (var layer = 0; layer < Queue.Count; layer++)
+                if (Queue[layer].Any(x => ReferenceEquals(x, renderable)))
+                    return layer;
             return -1;
         }
     }

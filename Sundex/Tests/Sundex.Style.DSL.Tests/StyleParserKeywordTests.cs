@@ -9,7 +9,7 @@ public class StyleParserKeywordTests
     {
         var basePath = AppContext.BaseDirectory;
         var projectRoot = basePath;
-        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")))
+        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")) && !File.Exists(Path.Combine(projectRoot, "Experimental.slnx")))
             projectRoot = Path.GetDirectoryName(projectRoot);
 
         return projectRoot!;
@@ -24,15 +24,15 @@ public class StyleParserKeywordTests
         var sheet = StyleParser.Parse(dsl);
 
         var anim = sheet.Animations["fade-in"];
-        var kf = (KeyframesValue)anim["keyframes"];
+        var keyframesValue = (KeyframesValue)anim["keyframes"];
 
-        Assert.That(kf.Keyframes, Has.Count.EqualTo(2));
+        Assert.That(keyframesValue.Keyframes, Has.Count.EqualTo(2));
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(kf.Keyframes[0].Percentage, Is.EqualTo(0));
-            Assert.That(kf.Keyframes[1].Percentage, Is.EqualTo(1));
-            Assert.That(kf.Keyframes[0].Properties.ContainsKey("opacity"), Is.True);
-            Assert.That(kf.Keyframes[1].Properties.ContainsKey("opacity"), Is.True);
+            Assert.That(keyframesValue.Keyframes[0].Percentage, Is.EqualTo(0));
+            Assert.That(keyframesValue.Keyframes[1].Percentage, Is.EqualTo(1));
+            Assert.That(keyframesValue.Keyframes[0].Properties.ContainsKey("opacity"), Is.True);
+            Assert.That(keyframesValue.Keyframes[1].Properties.ContainsKey("opacity"), Is.True);
         }
     }
 
@@ -108,9 +108,9 @@ public class StyleParserKeywordTests
         var sheet = StyleParser.Parse(dsl);
 
         var button = sheet.Components["button"];
-        var ov = (OverrideValue)button["state[pressed]"];
+        var overrideValue = (OverrideValue)button["state[pressed]"];
 
-        Assert.That(ov.Properties.Properties, Is.Not.Empty);
-        Assert.That(ov.Properties.Properties.ContainsKey("background"), Is.True);
+        Assert.That(overrideValue.Properties.Properties, Is.Not.Empty);
+        Assert.That(overrideValue.Properties.Properties.ContainsKey("background"), Is.True);
     }
 }

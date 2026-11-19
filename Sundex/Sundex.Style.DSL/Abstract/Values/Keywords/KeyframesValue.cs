@@ -30,11 +30,11 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
             }
             case ArrayValue arr:
             {
-                var n = arr.Values.Count;
-                for (var i = 0; i < n; i++)
+                var count = arr.Values.Count;
+                for (var index = 0; index < count; index++)
                 {
-                    var v = arr.Values[i];
-                    if (v is not BlockValue block)
+                    var entry = arr.Values[index];
+                    if (entry is not BlockValue block)
                         throw new ArgumentException("Keyframe array items must be blocks");
                     list.Add(new KeyframeStep(0, new Dictionary<string, IStyleValue>(block.Properties)));
                 }
@@ -45,9 +45,9 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
 
         if (value is not ArrayValue || list.Count <= 0) return list;
         var explicitPoints = new List<(int index, double pct)>();
-        for (var i = 0; i < list.Count; i++)
-            if (TryGetExplicitPercentage(list[i].Properties, out var pct))
-                explicitPoints.Add((i, pct));
+        for (var index = 0; index < list.Count; index++)
+            if (TryGetExplicitPercentage(list[index].Properties, out var pct))
+                explicitPoints.Add((index, pct));
 
         if (explicitPoints.Count == 0 || explicitPoints[0].index != 0)
         {
@@ -63,10 +63,10 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
         else if (Math.Abs(explicitPoints[^1].pct - 1.0) > double.Epsilon)
             explicitPoints[^1] = (explicitPoints[^1].index, 1.0);
 
-        for (var p = 0; p < explicitPoints.Count - 1; p++)
+        for (var segment = 0; segment < explicitPoints.Count - 1; segment++)
         {
-            var (startIdx, startPct) = explicitPoints[p];
-            var (endIdx, endPct) = explicitPoints[p + 1];
+            var (startIdx, startPct) = explicitPoints[segment];
+            var (endIdx, endPct) = explicitPoints[segment + 1];
             var length = endIdx - startIdx;
             if (length <= 0) continue;
 
@@ -74,11 +74,11 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
             list[endIdx] = list[endIdx] with { Percentage = endPct };
 
             var delta = (endPct - startPct) / length;
-            for (var i = startIdx + 1; i < endIdx; i++)
+            for (var index = startIdx + 1; index < endIdx; index++)
             {
-                var t = i - startIdx;
-                var pct = startPct + delta * t;
-                list[i] = list[i] with { Percentage = pct };
+                var step = index - startIdx;
+                var pct = startPct + delta * step;
+                list[index] = list[index] with { Percentage = pct };
             }
         }
 
@@ -89,13 +89,13 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
     {
         // Common property names that may carry an explicit percentage for keyframes
         // Prefer exact match if available
-        if (props.TryGetValue("%", out var v) ||
-            props.TryGetValue("percent", out v) ||
-            props.TryGetValue("percentage", out v))
-            switch (v)
+        if (props.TryGetValue("%", out var value) ||
+            props.TryGetValue("percent", out value) ||
+            props.TryGetValue("percentage", out value))
+            switch (value)
             {
-                case NumberValue { Unit: "%" } nv:
-                    pct = nv.Value / 100.0;
+                case NumberValue { Unit: "%" } numberValue:
+                    pct = numberValue.Value / 100.0;
                     return true;
                 case NumberValue nv2 when string.IsNullOrEmpty(nv2.Unit):
                     pct = nv2.Value;

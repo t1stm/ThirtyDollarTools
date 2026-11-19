@@ -120,7 +120,7 @@ public sealed class InstrumentSelector : FlexPanel
     /// <param name="marked">The row to highlight: the active instrument, or the one the notes being changed share.</param>
     /// <param name="sounds">Sounds by ID and emoji, for the rows' icons. Null draws none.</param>
     /// <param name="reassigning">How many notes picking changes; null when picking sets the active instrument.</param>
-    public void Fill(IReadOnlyList<Instrument> instruments, Instrument? marked = null,
+    public new void Fill(IReadOnlyList<Instrument> instruments, Instrument? marked = null,
         IReadOnlyDictionary<string, Sound>? sounds = null, int? reassigning = null)
     {
         _title.SetTextContents(reassigning == null ? "Instruments" : "Change instrument");

@@ -6,6 +6,7 @@ using Sundex.Components.File_Selector;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
+using Sundex.Style.DSL;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -13,7 +14,7 @@ namespace EditorScene.Scenes.Dialogs;
 ///     Mounts and removes the editor's modals on the root panel. Popups here are always a
 ///     ModalLayer, never a DropDownLabel.
 /// </summary>
-public sealed class DialogHost(UIContext context, Panel root)
+public sealed class DialogHost(UIContext context, Panel root, StyleSheet? fileDialogStyle = null)
 {
     /// <summary>
     ///     The panel modals mount on, for components that own a hand-built ModalLayer they
@@ -33,6 +34,7 @@ public sealed class DialogHost(UIContext context, Panel root)
 
         var modal = new ModalLayer(context)
         {
+            AutoFocusContent = false,
             OnDismissRequested = Close,
             OnConfirmRequested = onConfirm == null ? null : _ => onConfirm(),
             OnKeyRequested = onKey
@@ -116,6 +118,7 @@ public sealed class DialogHost(UIContext context, Panel root)
         selection.ConfirmButton.Classes = ["dialog-button-primary"];
         KeyChip.Add(selection.CancelButton, "Esc");
         KeyChip.Add(selection.ConfirmButton, "Enter");
+        if (fileDialogStyle != null) selection.ApplyHostStyleSheet(fileDialogStyle);
         var modal = Show(selection, selection.Confirm);
         selection.OnSelect = _ =>
         {
@@ -266,7 +269,7 @@ public sealed class DialogHost(UIContext context, Panel root)
         // Styled by the box's sheet only once it is mounted, so the wrap is measured here.
         text.WrapWidth = AlertDetailsWrapWidth;
         text.FontSizePx = 12;
-        if (text.Height.Value <= AlertDetailsMaxHeight)
+        if (text.Measure(float.MaxValue, float.MaxValue).height <= AlertDetailsMaxHeight)
         {
             box.AddChild(text);
             return box;

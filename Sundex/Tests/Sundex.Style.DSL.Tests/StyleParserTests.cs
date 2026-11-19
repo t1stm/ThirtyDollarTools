@@ -106,7 +106,7 @@ public class StyleParserTests
         var basePath = AppContext.BaseDirectory;
         // Try to find the project root
         var projectRoot = basePath;
-        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")))
+        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")) && !File.Exists(Path.Combine(projectRoot, "Experimental.slnx")))
             projectRoot = Path.GetDirectoryName(projectRoot);
 
         var path = Path.Combine(projectRoot!, "Sundex/Sundex.Style.DSL/Examples/default.snx.ss");
@@ -134,7 +134,7 @@ public class StyleParserTests
     {
         var basePath = AppContext.BaseDirectory;
         var projectRoot = basePath;
-        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")))
+        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")) && !File.Exists(Path.Combine(projectRoot, "Experimental.slnx")))
             projectRoot = Path.GetDirectoryName(projectRoot);
 
         var path = Path.Combine(projectRoot!, "Sundex/Sundex.Style.DSL/Examples/import.snx.ss");
@@ -142,7 +142,7 @@ public class StyleParserTests
 
         // Use the directory of the style DSL project as base path for the examples to work
         var styleDslRoot = Path.Combine(projectRoot!, "Sundex");
-        var sheet = StyleParser.Parse(dsl, p => File.ReadAllText(Path.Combine(styleDslRoot, p)));
+        var sheet = StyleParser.Parse(dsl, relativePath => File.ReadAllText(Path.Combine(styleDslRoot, relativePath)));
 
         Assert.That(sheet.Components, Has.Count.EqualTo(4));
         using (Assert.EnterMultipleScope())

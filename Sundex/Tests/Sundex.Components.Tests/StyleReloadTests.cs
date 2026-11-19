@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using Sundex.Style.DSL;
@@ -42,7 +42,7 @@ public class StyleReloadTests : IDisposable
     private static StyleSheet Sheet(params (string Property, IStyleValue Value)[] properties)
     {
         var holder = new StyleSheetHolder();
-        holder.Classes["card"] = properties.ToDictionary(p => p.Property, p => p.Value);
+        holder.Classes["card"] = properties.ToDictionary(entry => entry.Property, entry => entry.Value);
         return new StyleSheet(holder);
     }
 
@@ -131,7 +131,7 @@ public class StyleReloadTests : IDisposable
     private static StyleSheet InnerSheet(params (string Property, IStyleValue Value)[] properties)
     {
         var holder = new StyleSheetHolder();
-        holder.Classes["inner"] = properties.ToDictionary(p => p.Property, p => p.Value);
+        holder.Classes["inner"] = properties.ToDictionary(entry => entry.Property, entry => entry.Value);
         return new StyleSheet(holder);
     }
 

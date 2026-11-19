@@ -1,0 +1,14 @@
+<sundex version="2.0">
+  <layout>
+    <flex class="list" direction="vertical">
+      <each items="{Context.Items.Value}" as="item" key="{item}" index="index">
+        <item-row name="{item}" position="{index.Value + 1}">
+          <label class="extra" value="!"/>
+        </item-row>
+      </each>
+      <empty>
+        <label class="empty" value="Nothing here"/>
+      </empty>
+    </flex>
+  </layout>
+</sundex>

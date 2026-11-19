@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Panels;
@@ -16,7 +16,7 @@ public class ScrollViewTests
         var ctx = new TestUIContext();
         var root = new Panel(ctx) { Width = 800, Height = 600 };
         var view = new ScrollView(ctx) { X = 10, Y = 10, Width = 200, Height = 100 };
-        for (var i = 0; i < rows; i++) view.Children.Add(NewRow(ctx, rowHeight));
+        for (var index = 0; index < rows; index++) view.Children.Add(NewRow(ctx, rowHeight));
         view.Children = view.Children; // reassign to re-parent
         root.Children = [view];
         root.Layout();
@@ -57,7 +57,7 @@ public class ScrollViewTests
         var root = new Panel(ctx) { Width = 800, Height = 600 };
         var view = new ScrollView(ctx) { X = 10, Y = 10, Width = 200, Height = 100 };
         root.Children = [view];
-        for (var i = 0; i < 10; i++) view.AddChild(NewRow(ctx, 30));
+        for (var index = 0; index < 10; index++) view.AddChild(NewRow(ctx, 30));
 
         view.ScrollIntoView(view.Children[7]); // rows are 30 apart: row 7 spans 210..240
         root.Layout();
@@ -136,7 +136,7 @@ public class ScrollViewTests
         var (ctx, root, view) = NewView(3);
         Assert.IsNotType<ScrollBar>(view.HitTest(206, 50));
 
-        for (var i = 0; i < 7; i++) view.Children.Add(NewRow(ctx, 30));
+        for (var index = 0; index < 7; index++) view.Children.Add(NewRow(ctx, 30));
         view.Children = view.Children;
         root.Layout();
         Assert.IsType<ScrollBar>(view.HitTest(206, 50));
@@ -163,7 +163,7 @@ public class ScrollViewTests
     public void DynamicallyAddedRows_StackAndScroll()
     {
         var (ctx, root, view) = NewView(0);
-        for (var i = 0; i < 100; i++) view.AddChild(NewRow(ctx, 30));
+        for (var index = 0; index < 100; index++) view.AddChild(NewRow(ctx, 30));
         root.Layout();
 
         Assert.Equal(3000, view.ContentHeight);

@@ -1,0 +1,20 @@
+<sundex version="2.0">
+  <logic language="csharp" src="Markup/CardUse.snx.csx"/>
+
+  <layout>
+    <flex class="use" direction="vertical">
+      <test-card title="First" on.picked="{name => picks.Add(name)}" on.closed="{() => closes++}">
+        <label class="body" value="body"/>
+        <label class="action" slot="actions" value="Save"/>
+        <label class="action" slot="actions" value="Cancel"/>
+      </test-card>
+      <test-card title="Second"/>
+      <if condition="{tab.Value == 0}" keep="true">
+        <label class="kept" value="zero"/>
+      </if>
+      <else>
+        <label class="kept" value="one"/>
+      </else>
+    </flex>
+  </layout>
+</sundex>

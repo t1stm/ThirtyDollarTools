@@ -16,10 +16,10 @@ public class FontSelectionTests
     /// <summary>Shaped like Lucide: one-em-wide glyphs, ascender 1, descender 0, and a line gap.</summary>
     private sealed class IconGlyphProvider : IGlyphProvider
     {
-        private const float P = SlugFontData.QuadPadding;
+        private const float Padding = SlugFontData.QuadPadding;
 
         public SlugGlyph GetSlugGlyph(ReadOnlySpan<char> character) =>
-            new(1f, new Vector4(0.1f - P, 0.1f - P, 0.9f + P, 0.9f + P), Vector4.Zero, Vector4.Zero);
+            new(1f, new Vector4(0.1f - Padding, 0.1f - Padding, 0.9f + Padding, 0.9f + Padding), Vector4.Zero, Vector4.Zero);
 
         public SlugFontMetrics GetFontMetrics() => new(1, 1, 0, 1.09, -0.1, 0.05);
     }
@@ -38,6 +38,19 @@ public class FontSelectionTests
             .GetValue(label)!).TextProvider;
 
     [Fact]
+    public void TheFontCanChangeAfterTheLabelIsBuilt()
+    {
+        var (context, icons) = ContextWithIconFont();
+        var label = new Label(context, Icons.Play + Icons.X) { FontSizePx = 16 };
+        Assert.Same(context.TextProvider, ProviderOf(label));
+
+        label.Font = Icons.Font;
+
+        Assert.Same(icons, ProviderOf(label));
+        Assert.Equal(2 * 1f * 16, Size(label).Width, 3);
+    }
+
+    [Fact]
     public void LabelWithAFontDrawsWithThatFontsProvider()
     {
         var (context, icons) = ContextWithIconFont();
@@ -46,7 +59,7 @@ public class FontSelectionTests
 
         Assert.Same(icons, ProviderOf(icon));
         Assert.Same(icons, context.GetTextProvider(Icons.Font));
-        Assert.Equal(2 * 1f * 16, icon.Width.Value, 3); // two glyphs at 1 em each
+        Assert.Equal(2 * 1f * 16, Size(icon).Width, 3); // two glyphs at 1 em each
     }
 
     [Fact]
@@ -79,8 +92,8 @@ public class FontSelectionTests
         var label = new Label(context, "ab") { FontSizePx = 16 };
 
         Assert.Same(context.TextProvider, ProviderOf(label));
-        Assert.Equal(2 * 0.6f * 16, label.Width.Value, 3);
-        Assert.Equal(1.2f * 16, label.Height.Value, 3); // Lato-shaped: no line gap to drop
+        Assert.Equal(2 * 0.6f * 16, Size(label).Width, 3);
+        Assert.Equal(1.2f * 16, Size(label).Height, 3); // Lato-shaped: no line gap to drop
     }
 
     [Fact]
@@ -90,8 +103,8 @@ public class FontSelectionTests
 
         var icon = new Label(context, Icons.Copy, Icons.Font) { FontSizePx = 14 };
 
-        Assert.Equal(14, icon.Width.Value, 3);
-        Assert.Equal(14, icon.Height.Value, 3);
+        Assert.Equal(14, Size(icon).Width, 3);
+        Assert.Equal(14, Size(icon).Height, 3);
     }
 
     [Fact]
@@ -127,4 +140,7 @@ public class FontSelectionTests
 
         Assert.Same(icons, ProviderOf(button.Label));
     }
+
+    /// <summary>A label is content-sized: what it measures to, unconstrained, is its size.</summary>
+    private static (float Width, float Height) Size(Label label) => label.Measure(float.MaxValue, float.MaxValue);
 }

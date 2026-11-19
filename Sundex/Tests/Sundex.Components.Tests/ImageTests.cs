@@ -3,8 +3,8 @@ using System.Net.Sockets;
 using System.Reflection;
 using OpenTK.Mathematics;
 using Serilog;
-using Shared;
-using Shared.Renderer.Planes;
+using Sundex.Components;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
@@ -520,7 +520,7 @@ public class ImageTests
                                     """));
 
         image.Src = Missing;
-        for (var i = 0; i < 5; i++) await Settle(image, context);
+        for (var attempt = 0; attempt < 5; attempt++) await Settle(image, context);
 
         Assert.True(image.ShowsPlaceholder);
         Assert.Equal(2, image.LoadCount);
@@ -533,7 +533,7 @@ public class ImageTests
         var context = new NoPlaceholderContext();
         var image = new Image(context) { Src = Missing };
 
-        for (var i = 0; i < 5; i++) await Settle(image, context);
+        for (var attempt = 0; attempt < 5; attempt++) await Settle(image, context);
 
         Assert.True(image.Errored);
         Assert.Null(image.Texture);
@@ -554,7 +554,7 @@ public class ImageTests
                                     """));
 
         image.Src = Missing;
-        for (var i = 0; i < 3; i++) await Settle(image, context);
+        for (var attempt = 0; attempt < 3; attempt++) await Settle(image, context);
 
         Assert.IsType<ColoredPlane>(image.Background);
         Assert.False(image.ShowsPlaceholder);
@@ -575,7 +575,7 @@ public class ImageTests
                                     }
                                     """));
         image.Src = Missing;
-        for (var i = 0; i < 3; i++) await Settle(image, context);
+        for (var attempt = 0; attempt < 3; attempt++) await Settle(image, context);
         Assert.True(image.ShowsPlaceholder);
 
         image.Src = Wide;
@@ -616,7 +616,7 @@ public class ImageTests
         Exception? failure = null;
         var image = new Image(context)
         {
-            OnError = (_, e) => failure = e,
+            OnError = (_, exception) => failure = exception,
             Src = $"http://127.0.0.1:{((IPEndPoint)server.LocalEndpoint).Port}/shot.png"
         };
 
@@ -712,7 +712,7 @@ public class ImageTests
                     new GLInfo()),
                 new MockFontProvider(),
                 new MockTextProvider());
-            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+            Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         }
     }
 }

@@ -48,9 +48,9 @@ public class ThreadRunner(ILogger logger)
         {
             action();
         }
-        catch (Exception e)
+        catch (Exception exception)
         {
-            exceptionHandler(ExceptionDispatchInfo.Capture(e));
+            exceptionHandler(ExceptionDispatchInfo.Capture(exception));
         }
     }
 }

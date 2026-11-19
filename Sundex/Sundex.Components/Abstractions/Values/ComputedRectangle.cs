@@ -29,7 +29,7 @@ public class ComputedRectangle
         var parentWidth = parent?.Computed.Width ?? current.Context.ViewportWidth;
         var parentHeight = parent?.Computed.Height ?? current.Context.ViewportHeight;
 
-        var parentPadding = parent is IPositioningElement pe ? pe.Padding : 0;
+        var parentPadding = parent is IPositioningElement positioned ? positioned.Padding : 0;
         var innerWidth = Math.Max(0, parentWidth - 2 * parentPadding);
         var innerHeight = Math.Max(0, parentHeight - 2 * parentPadding);
 

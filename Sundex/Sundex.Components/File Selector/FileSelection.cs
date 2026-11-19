@@ -8,6 +8,7 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
+using Sundex.Style.DSL;
 
 namespace Sundex.Components.File_Selector;
 
@@ -47,6 +48,7 @@ public sealed class FileSelection : FlexPanel
     private readonly Label _overwriteLabel;
     private readonly TextInput _pathInput;
     private readonly List<FileRow> _rows = [];
+    private bool _useHostStyle;
 
     /// <summary>The keyboard's row in <see cref="_rows" />; -1 for none.</summary>
     private int _cursor = -1;
@@ -157,7 +159,36 @@ public sealed class FileSelection : FlexPanel
 
         Children = [header, _location, _list, _footer];
         RefreshFiles();
+
+        // Its own rules, so it lays out in any host (see ApplyStyleSheet).
+        Classes.Add("file-dialog");
+        ApplyStyleSheet(OwnStyle.Value);
+        Focusable = true;
     }
+
+    /// <summary>
+    ///     Uses the built-in sheet unless the host explicitly supplies a file-dialog theme.
+    /// </summary>
+    public override void ApplyStyleSheet(StyleSheet styleSheet)
+    {
+        var sheet = _useHostStyle ? styleSheet : OwnStyle.Value;
+        if (ReferenceEquals(StoredStyleSheet, sheet)) return;
+        base.ApplyStyleSheet(sheet);
+    }
+
+    /// <summary>Uses a host theme that defines the file dialog and its parts.</summary>
+    public void ApplyHostStyleSheet(StyleSheet styleSheet)
+    {
+        _useHostStyle = true;
+        ApplyStyleSheet(styleSheet);
+    }
+
+    private static readonly Lazy<StyleSheet> OwnStyle = new(() =>
+    {
+        using var stream = typeof(FileSelection).Assembly.GetManifestResourceStream("Sundex.Components.FileSelection.snx.ss")!;
+        using var reader = new StreamReader(stream);
+        return new StyleSheet(StyleParser.Parse(reader.ReadToEnd()));
+    });
 
     public string CurrentPath { get; private set; }
 
@@ -224,13 +255,16 @@ public sealed class FileSelection : FlexPanel
     ///     Enter opens the folder on the highlighted row or confirms; Backspace or Alt+Up opens
     ///     the folder above; Ctrl+L edits the path.
     /// </summary>
-    public override bool HandleKeyDown(KeyboardKeyEventArgs e)
+    public override bool HandleKeyDown(KeyboardKeyEventArgs args)
     {
         var page = Math.Max(1, (int)(_list.Computed.Height / RowPitch) - 1);
-        switch (e.Key)
+        switch (args.Key)
         {
-            case Keys.Up when e.Alt:
-            case Keys.Backspace when !e.IsRepeat:
+            case Keys.Escape when OnCancel is { } cancel:
+                cancel(this);
+                return true;
+            case Keys.Up when args.Alt:
+            case Keys.Backspace when !args.IsRepeat:
                 NavigateUp();
                 return true;
             case Keys.Up:
@@ -251,11 +285,11 @@ public sealed class FileSelection : FlexPanel
             case Keys.End:
                 MoveCursor(_rows.Count - 1);
                 return true;
-            case Keys.Enter or Keys.KeyPadEnter when !e.IsRepeat:
+            case Keys.Enter or Keys.KeyPadEnter when !args.IsRepeat:
                 if (_cursor >= 0 && _rows[_cursor].IsDirectory) NavigateTo(_rows[_cursor].Path);
                 else Confirm();
                 return true;
-            case Keys.L when e.Control || e.Command:
+            case Keys.L when args.Control || args.Command:
                 EditPath();
                 return true;
             default:
@@ -288,7 +322,7 @@ public sealed class FileSelection : FlexPanel
     private void Highlight(int index)
     {
         _cursor = index;
-        for (var i = 0; i < _rows.Count; i++) _rows[i].Selected = i == index;
+        for (var row = 0; row < _rows.Count; row++) _rows[row].Selected = row == index;
     }
 
     private void NavigateUp()
@@ -370,11 +404,22 @@ public sealed class FileSelection : FlexPanel
         if (!_location.Children.Contains(_pathInput)) return;
         _location.RemoveChild(_pathInput);
         _location.AddChild(_crumbs);
+        // The keys (arrows, Enter, Ctrl+L) are the dialog's again, not nobody's (bug 2.11).
+        Context.Focus(this);
     }
+
+    private bool _tookFocus;
 
     protected override void DoLayout()
     {
         base.DoLayout();
+        // Up for the first time with nothing else holding the keyboard: it takes it.
+        if (!_tookFocus)
+        {
+            _tookFocus = true;
+            if (Context.FocusedElement == null) Context.Focus(this);
+        }
+
         if (_reveal is not { } row) return;
         _reveal = null;
 
@@ -470,12 +515,12 @@ public sealed class FileSelection : FlexPanel
                     });
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             rows.Add(new FlexPanel(Context)
             {
                 Classes = ["file-list-note"],
-                Children = [new Label(Context, $"Can't open this folder: {ex.Message}") { Classes = ["file-list-note-label"] }]
+                Children = [new Label(Context, $"Can't open this folder: {exception.Message}") { Classes = ["file-list-note-label"] }]
             });
         }
 
@@ -567,9 +612,8 @@ public sealed class FileSelection : FlexPanel
         public Action? OnDoublePress { get; init; }
 
         /// <summary>
-        ///     Swaps the idle fill for the selected one. Two classes rather than a modifier: a hover
-        ///     override is taken from the first class that has one, so a modifier listed after
-        ///     file-row-idle could never replace its hover.
+        ///     Swaps the idle fill for the selected one: two classes, from when a hover override was
+        ///     taken from the first class that had one (bug 2.7, since fixed).
         /// </summary>
         public bool Selected
         {
@@ -623,12 +667,12 @@ public sealed class FileSelection : FlexPanel
             if (_folded > 0)
                 crumbs.Add(Crumb("…", _parts[_folded - 1].Path, false, false));
 
-            for (var i = _folded; i < _parts.Count; i++)
+            for (var part = _folded; part < _parts.Count; part++)
             {
                 if (crumbs.Count > 0)
                     crumbs.Add(new Label(Context, Icons.ChevronRight, Icons.Font) { Classes = ["file-crumb-chevron"] });
-                var (label, path, home) = _parts[i];
-                crumbs.Add(Crumb(label, path, home, i == _parts.Count - 1));
+                var (label, path, home) = _parts[part];
+                crumbs.Add(Crumb(label, path, home, part == _parts.Count - 1));
             }
 
             foreach (var child in Children) child.StopRendering();

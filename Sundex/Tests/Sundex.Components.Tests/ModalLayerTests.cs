@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Panels;
 
 namespace Sundex.Components.Tests;
@@ -70,5 +70,59 @@ public class ModalLayerTests
         var (_, _, modal, content) = NewModal();
         Assert.Equal(ModalLayer.TopLayerIndex, modal.Index); // parenting didn't clobber it
         Assert.Equal(ModalLayer.TopLayerIndex + 1, content.Index);
+    }
+
+    [Fact]
+    public void AutofocusFieldTakesFocusOnFirstLayoutOnly()
+    {
+        // A field that appears in an opened branch: no frame later can post the focus in time.
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = 800, Height = 600 };
+        var other = new Inputs.TextInput(ctx) { Width = 200 };
+        var field = new Inputs.TextInput(ctx) { Width = 200, Autofocus = true };
+        root.AddChild(other);
+        root.AddChild(field);
+
+        root.Layout();
+        Assert.Same(field, ctx.FocusedElement);
+
+        ctx.Focus(other);
+        field.InvalidateLayout();
+        root.Layout();
+        Assert.Same(other, ctx.FocusedElement);
+    }
+
+    [Fact]
+    public void AutofocusInsideModalWinsOverFirstFocusable()
+    {
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = 800, Height = 600 };
+        var modal = new ModalLayer(ctx);
+        var first = new Inputs.TextInput(ctx) { Width = 200 };
+        var named = new Inputs.TextInput(ctx) { Width = 200, Autofocus = true };
+        modal.AddChild(first);
+        modal.AddChild(named);
+        root.AddChild(modal);
+
+        root.Layout();
+
+        Assert.Same(named, ctx.FocusedElement);
+    }
+
+    [Fact]
+    public void FocusesItsFirstFocusableContentWhenShown()
+    {
+        // Bug 2.11: nothing focused a modal's content, so its keys went nowhere.
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = 800, Height = 600 };
+        var modal = new ModalLayer(ctx);
+        var field = new Inputs.TextInput(ctx) { Width = 200 };
+        modal.AddChild(new Panel(ctx) { Width = 100, Height = 20 });
+        modal.AddChild(field);
+        root.AddChild(modal);
+
+        root.Layout();
+
+        Assert.Same(field, ctx.FocusedElement);
     }
 }

@@ -114,7 +114,7 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
         ExpandCapacityIfNeeded(Count + 1);
 
         // Shift items to the right
-        for (var i = Count; i > index; i--) Buffer[i] = Buffer[i - 1];
+        for (var slot = Count; slot > index; slot--) Buffer[slot] = Buffer[slot - 1];
 
         // Insert the new item
         Buffer[index] = item;
@@ -134,7 +134,7 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
         if (index < 0 || index >= Count)
             throw new IndexOutOfRangeException();
 
-        for (var i = index; i < Count - 1; i++) Buffer[i] = Buffer[i + 1];
+        for (var slot = index; slot < Count - 1; slot++) Buffer[slot] = Buffer[slot + 1];
 
         Count = Math.Max(0, Count - 1);
         Buffer[Count] = default;
@@ -148,7 +148,7 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
     /// <returns>An enumerator for the buffer list</returns>
     public IEnumerator<TDataType> GetEnumerator()
     {
-        for (var i = 0; i < Count; i++) yield return Buffer[i];
+        for (var index = 0; index < Count; index++) yield return Buffer[index];
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -172,7 +172,7 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
     /// </summary>
     public void Clear()
     {
-        for (var i = 0; i < Count; i++) Buffer[i] = default;
+        for (var index = 0; index < Count; index++) Buffer[index] = default;
 
         Count = 0;
     }
@@ -212,10 +212,10 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
     public void CopyTo(TDataType[] array, int arrayIndex)
     {
         var span = array.AsSpan();
-        for (var i = arrayIndex; i < Count; i++)
+        for (var index = arrayIndex; index < Count; index++)
         {
-            var item = Buffer[i];
-            span[i] = item;
+            var item = Buffer[index];
+            span[index] = item;
         }
     }
 

@@ -28,7 +28,7 @@ public class DummyScene(Game game) : Scene(game)
         var input = new TextInput(_context, "Hello, Sundex!")
         {
             Width = 300,
-            OnValueChanged = ti => valueLabel.Value = ti.Value
+            OnValueChanged = changed => valueLabel.Value = changed.Value
         };
 
         var column = new FlexPanel(_context)
@@ -69,9 +69,9 @@ public class DummyScene(Game game) : Scene(game)
         _root.Layout();
     }
 
-    public override void Resize(int w, int h)
+    public override void Resize(int width, int height)
     {
-        _camera.Viewport = new Vector2i(w, h);
+        _camera.Viewport = new Vector2i(width, height);
         _camera.UpdateMatrix();
         _root.InvalidateCoordinates();
         _root.Layout();
@@ -90,14 +90,14 @@ public class DummyScene(Game game) : Scene(game)
         _root.Test(mouseState, Vector2.One);
     }
 
-    public override void TextInput(TextInputEventArgs e)
+    public override void TextInput(TextInputEventArgs args)
     {
-        _context.DispatchTextInput(e);
+        _context.DispatchTextInput(args);
     }
 
-    public override void KeyDown(KeyboardKeyEventArgs e)
+    public override void KeyDown(KeyboardKeyEventArgs args)
     {
-        _context.DispatchKeyDown(e);
+        _context.DispatchKeyDown(args);
     }
 
     public override void Keyboard(KeyboardState state)

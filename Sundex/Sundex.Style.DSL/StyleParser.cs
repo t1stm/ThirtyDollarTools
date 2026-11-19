@@ -104,6 +104,21 @@ public class StyleParser(
                 var stateValue = ParseValue();
                 properties[$"state[{stateName}]"] = stateValue;
             }
+            else if (allowState && Match("media"))
+            {
+                // media[min-width = 640px] = { … }: the condition is kept as written, read by the sheet.
+                Consume('[');
+                var start = _pos;
+                while (!IsAtEnd() && Peek() != ']') Advance();
+                var condition = dsl[start.._pos].Trim();
+                Consume(']');
+                SkipWhitespaceAndComments();
+                Consume('=');
+                var mediaValue = ParseValue();
+                if (mediaValue is not (BlockValue or OverrideValue { Value: BlockValue }))
+                    throw CreateException("A media block takes { … } of properties");
+                properties[$"media[{condition}]"] = mediaValue;
+            }
             else
             {
                 var key = ReadIdentifier();
@@ -134,9 +149,9 @@ public class StyleParser(
         SkipWhitespaceAndComments();
         if (Check('"'))
         {
-            var s = ReadString();
-            if (s.StartsWith('#')) return new ColorValue(s);
-            return new StringValue(s);
+            var text = ReadString();
+            if (text.StartsWith('#')) return new ColorValue(text);
+            return new StringValue(text);
         }
 
         if (char.IsDigit(Peek()) || Peek() == '-') return ParseNumber();
@@ -300,16 +315,16 @@ public class StyleParser(
         var span = values.AsSpan()[..dimensions];
 
         Consume('(');
-        for (var i = 0; i < dimensions; i++)
+        for (var index = 0; index < dimensions; index++)
         {
             SkipWhitespaceAndComments();
             var parsed = ParseValue();
             if (parsed is not NumberValue number)
-                throw CreateException($"Expected number value for vector dimension {i + 1} but found {parsed}");
+                throw CreateException($"Expected number value for vector dimension {index + 1} but found {parsed}");
 
-            span[i] = number;
+            span[index] = number;
             SkipWhitespaceAndComments();
-            if (i < dimensions - 1)
+            if (index < dimensions - 1)
                 Consume(',');
         }
 
@@ -372,9 +387,9 @@ public class StyleParser(
         var start = _pos;
         while (!IsAtEnd() && Peek() != '"') Advance();
         if (IsAtEnd()) throw CreateException("Unterminated string");
-        var s = dsl[start.._pos];
+        var text = dsl[start.._pos];
         Consume('"');
-        return s;
+        return text;
     }
 
     private void SkipWhitespaceAndComments()
@@ -387,22 +402,22 @@ public class StyleParser(
             else break;
     }
 
-    private bool Match(ReadOnlySpan<char> s)
+    private bool Match(ReadOnlySpan<char> expected)
     {
-        if (_pos + s.Length > dsl.Length) return false;
-        if (!dsl.AsSpan(_pos, s.Length).SequenceEqual(s)) return false;
+        if (_pos + expected.Length > dsl.Length) return false;
+        if (!dsl.AsSpan(_pos, expected.Length).SequenceEqual(expected)) return false;
 
         // Ensure word boundary
-        if (_pos + s.Length < dsl.Length &&
-            (char.IsLetterOrDigit(dsl[_pos + s.Length]) || dsl[_pos + s.Length] is '-' or '_')) return false;
+        if (_pos + expected.Length < dsl.Length &&
+            (char.IsLetterOrDigit(dsl[_pos + expected.Length]) || dsl[_pos + expected.Length] is '-' or '_')) return false;
 
-        _pos += s.Length;
+        _pos += expected.Length;
         return true;
     }
 
-    private bool Check(char c)
+    private bool Check(char expected)
     {
-        return !IsAtEnd() && Peek() == c;
+        return !IsAtEnd() && Peek() == expected;
     }
 
     private char Peek()
@@ -453,10 +468,10 @@ public class StyleParser(
                              stringified);
     }
 
-    private void Consume(char c)
+    private void Consume(char expected)
     {
         var foundChar = IsAtEnd() ? '\0' : Peek();
-        if (foundChar != c) throw CreateException($"Expected '{c}' but found character '{foundChar}'");
+        if (foundChar != expected) throw CreateException($"Expected '{expected}' but found character '{foundChar}'");
         Advance();
     }
 }

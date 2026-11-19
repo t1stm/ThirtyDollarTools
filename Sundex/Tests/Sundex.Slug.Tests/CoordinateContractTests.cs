@@ -30,10 +30,34 @@ public class CoordinateContractTests
         Assert.True(font.TryBuildShape([character], shape, out _));
 
         var bounds = shape.GetBounds();
-        Assert.Equal(expectedBelow, bounds.B < -0.05);
+        Assert.Equal(expectedBelow, bounds.Bottom < -0.05);
     }
 
     /// <summary>The underscore is the one glyph here that lives entirely under the baseline.</summary>
+    /// <summary>
+    ///     Bug 2.2: the ink's top came from <c>vhea</c> ascender minus the <c>vmtx</c> top bearing,
+    ///     which only equals the glyph's own top when those tables are synthesised. Golos ships
+    ///     with real ones and rendered about half an em low.
+    /// </summary>
+    [Fact]
+    public void VerticalLayoutTablesDoNotMoveAGlyphOffItsBaseline()
+    {
+        static Bounds Ink(string font)
+        {
+            using var stream = TestFonts.Open(font);
+            var shape = new Shape();
+            Assert.True(SlugFont.Load(stream).TryBuildShape("H", shape, out _));
+            return shape.GetBounds();
+        }
+
+        var plain = Ink("Golos-NoVertical");
+        var vertical = Ink("Golos-WithVertical");
+
+        Assert.Equal(plain.Top, vertical.Top, 4);
+        Assert.Equal(plain.Bottom, vertical.Bottom, 4);
+        Assert.InRange(plain.Bottom, -0.01, 0.01); // H stands on the baseline
+    }
+
     [Fact]
     public void UnderscoreIsEntirelyBelowTheBaseline()
     {
@@ -43,7 +67,7 @@ public class CoordinateContractTests
         var shape = new Shape();
         Assert.True(font.TryBuildShape("_", shape, out _));
 
-        Assert.True(shape.GetBounds().T < 0, "underscore should not reach the baseline");
+        Assert.True(shape.GetBounds().Top < 0, "underscore should not reach the baseline");
     }
 
     /// <summary>

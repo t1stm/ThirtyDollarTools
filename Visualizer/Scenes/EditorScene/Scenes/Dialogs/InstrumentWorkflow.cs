@@ -88,7 +88,7 @@ public sealed class InstrumentWorkflow
         };
 
         _instrumentEditor = new InstrumentEditor(context, atlasStore);
-        _instrumentEditorModal = new ModalLayer(context);
+        _instrumentEditorModal = new ModalLayer(context) { AutoFocusContent = false };
         _instrumentEditorModal.AddChild(_instrumentEditor);
         _instrumentEditorModal.OnDismissRequested = _ => RequestClose();
         _instrumentEditorModal.OnConfirmRequested = _ => Commit();

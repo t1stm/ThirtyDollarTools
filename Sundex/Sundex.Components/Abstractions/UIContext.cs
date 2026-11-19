@@ -33,6 +33,59 @@ public class UIContext : IGamePreloadable
     public float ViewportWidth => Camera.Width;
     public float ViewportHeight => Camera.Height;
 
+    private readonly HashSet<UIElement> _mediaWatchers = [];
+    private (float Width, float Height) _mediaViewport;
+
+    /// <summary>
+    ///     Tab: moves keyboard focus to the next focusable, visible, enabled element under
+    ///     <paramref name="root" />, in tree order, wrapping at the ends. While a modal is open, only
+    ///     what is in the topmost one takes part: a dialog keeps Tab inside it.
+    /// </summary>
+    public void MoveFocus(UIElement root, bool backwards)
+    {
+        UIElement scope = root;
+        Panels.ModalLayer? modal = null;
+        FindModal(root, ref modal);
+        if (modal != null) scope = modal;
+
+        var order = new List<UIElement>();
+        CollectFocusable(scope, order);
+        if (order.Count == 0) return;
+        var at = FocusedElement == null ? -1 : order.IndexOf(FocusedElement);
+        var next = backwards ? at <= 0 ? order.Count - 1 : at - 1 : (at + 1) % order.Count;
+        Focus(order[next]);
+    }
+
+    private static void FindModal(UIElement element, ref Panels.ModalLayer? found)
+    {
+        if (!element.Visible) return;
+        if (element is Panels.ModalLayer modal) found = modal;
+        if (element is not Panels.Panel panel) return;
+        foreach (var child in panel.Children) FindModal(child, ref found);
+    }
+
+    private static void CollectFocusable(UIElement element, List<UIElement> order)
+    {
+        if (!element.Visible || element.Disabled) return;
+        if (element.Focusable) order.Add(element);
+        if (element is not Panels.Panel panel) return;
+        foreach (var child in panel.Children) CollectFocusable(child, order);
+    }
+
+    /// <summary>Keeps an element whose rules have <c>media[…]</c> blocks re-styled as the viewport changes.</summary>
+    public void WatchMedia(UIElement element) => _mediaWatchers.Add(element);
+
+    public void UnwatchMedia(UIElement element) => _mediaWatchers.Remove(element);
+
+    /// <summary>Re-styles the watched elements whose media blocks the last resize switched on or off.</summary>
+    public void RefreshMedia()
+    {
+        var viewport = (ViewportWidth, ViewportHeight);
+        if (viewport == _mediaViewport) return;
+        _mediaViewport = viewport;
+        foreach (var element in _mediaWatchers.ToArray()) element.RefreshMedia();
+    }
+
     /// <summary>
     ///     Ratio of physical framebuffer pixels to logical UI units (monitor content scale).
     ///     Must be set by the owning scene whenever it divides window size by DPI scale for its Camera.
@@ -105,7 +158,7 @@ public class UIContext : IGamePreloadable
         var queue = LayeredRenderQueue[renderIndex];
 
         // Check for duplicates to prevent same renderable from being queued multiple times in the same layer
-        if (queue.Any(r => ReferenceEquals(r, renderable)))
+        if (queue.Any(queued => ReferenceEquals(queued, renderable)))
             return;
 
         // Move semantics: a subtree re-parented to a new depth re-queues its renderables
@@ -128,12 +181,12 @@ public class UIContext : IGamePreloadable
         {
             var queue = LayeredRenderQueue[index];
 
-            for (var i = 0; i < queue.Count; i++)
+            for (var slot = 0; slot < queue.Count; slot++)
             {
-                if (!ReferenceEquals(queue[i], renderable)) continue;
+                if (!ReferenceEquals(queue[slot], renderable)) continue;
 
-                queue.RemoveAt(i);
-                return i;
+                queue.RemoveAt(slot);
+                return slot;
             }
         }
 
@@ -145,11 +198,11 @@ public class UIContext : IGamePreloadable
     private void RemoveFromAnyLayer(IRenderable renderable)
     {
         foreach (var layer in LayeredRenderQueue)
-            for (var i = 0; i < layer.Count; i++)
+            for (var index = 0; index < layer.Count; index++)
             {
-                if (!ReferenceEquals(layer[i], renderable)) continue;
+                if (!ReferenceEquals(layer[index], renderable)) continue;
 
-                layer.RemoveAt(i);
+                layer.RemoveAt(index);
                 return;
             }
     }
@@ -237,8 +290,31 @@ public class UIContext : IGamePreloadable
     private float _lastPressX;
     private float _lastPressY;
 
+    /// <summary>
+    ///     Where a <see cref="Panels.Portal" /> puts what it holds: a window-sized panel over the rest
+    ///     of the tree, so a dialog or a popover declared deep in a page is neither clipped by the
+    ///     page's scroller nor drawn under the player. The scene makes it; null until then.
+    /// </summary>
+    public Panels.Panel? OverlayHost { get; set; }
+
     /// <summary>The topmost element under the pointer (or the captured element during a drag).</summary>
     public UIElement? HoverTarget { get; private set; }
+
+    /// <summary>
+    ///     The cursor the pointer shows: the deepest hovered element that names one wins (a button's
+    ///     label shows its button's pointer), and a disabled one shows the default. Read by the scene
+    ///     each frame, so a button's pointer needs no <see cref="UIElement.Update" /> walk of the tree.
+    /// </summary>
+    public CursorType CursorAtPointer
+    {
+        get
+        {
+            for (var element = HoverTarget; element != null; element = element.Parent)
+                if (element.IsHovered && (element.Disabled || element.Cursor != CursorType.Default))
+                    return element.Disabled ? CursorType.Default : element.Cursor;
+            return CursorType.Default;
+        }
+    }
 
     /// <summary>The element that received the last press; it owns the pointer until release.</summary>
     public UIElement? CapturedElement { get; private set; }
@@ -249,6 +325,9 @@ public class UIContext : IGamePreloadable
     public float PointerX { get; private set; }
     public float PointerY { get; private set; }
     public bool PointerDown { get; private set; }
+
+    /// <summary>Whether either Shift key is held, polled by the host before pointer routing.</summary>
+    public bool ShiftDown { get; set; }
 
     /// <summary>
     ///     Bumped once per right-button press (on the up-to-down transition). Because
@@ -291,11 +370,14 @@ public class UIContext : IGamePreloadable
         bool isDown, bool wasPressed, bool wasReleased, Vector2 scrollDelta,
         bool isRightDown = false)
     {
+        // Once a frame, before input: a resize that crossed a breakpoint re-styles here.
+        RefreshMedia();
         _keyFocus = default;
         PointerX = x;
         PointerY = y;
         PointerDown = isDown;
-        if (isRightDown && !_rightDown) RightPressId++;
+        var rightPressed = isRightDown && !_rightDown;
+        if (rightPressed) RightPressId++;
         _rightDown = isRightDown;
 
         // A capture owned by another UI tree makes this tree unreachable for the pointer.
@@ -312,8 +394,8 @@ public class UIContext : IGamePreloadable
         HoverTarget = winner;
 
         if (scrollDelta != Vector2.Zero)
-            for (var e = winner; e != null; e = e.Parent)
-                if (e.HandleScroll(scrollDelta))
+            for (var element = winner; element != null; element = element.Parent)
+                if (element.HandleScroll(scrollDelta))
                     break;
 
         if (wasPressed)
@@ -321,20 +403,20 @@ public class UIContext : IGamePreloadable
             // The element that handles the press owns the capture (and future drag
             // updates); otherwise the raw hit winner does.
             UIElement? pressHandler = null;
-            for (var e = winner; e != null; e = e.Parent)
-                if (e.HandlePress(x, y))
+            for (var element = winner; element != null; element = element.Parent)
+                if (element.HandlePress(x, y))
                 {
-                    pressHandler = e;
+                    pressHandler = element;
                     break;
                 }
 
             CapturedElement = pressHandler ?? winner;
 
             UIElement? focusable = null;
-            for (var e = winner; e != null; e = e.Parent)
-                if (e.Focusable)
+            for (var element = winner; element != null; element = element.Parent)
+                if (element.Focusable)
                 {
-                    focusable = e;
+                    focusable = element;
                     break;
                 }
 
@@ -348,8 +430,8 @@ public class UIContext : IGamePreloadable
                                 Math.Abs(y - _lastPressY) <= DoubleClickSlopPx;
             if (isDoubleClick)
             {
-                for (var e = winner; e != null; e = e.Parent)
-                    if (e.HandleDoublePress(x, y))
+                for (var element = winner; element != null; element = element.Parent)
+                    if (element.HandleDoublePress(x, y))
                         break;
 
                 _lastPressTarget = null; // a third press starts a fresh cycle
@@ -363,12 +445,27 @@ public class UIContext : IGamePreloadable
             }
         }
 
+        // A right click (the press's first frame) goes to the nearest element that listens for one,
+        // and the rest of that press is its: a context menu opening under the pointer.
+        if (rightPressed)
+            for (var element = winner; element != null; element = element.Parent)
+                if (element.OnRightClick != null)
+                {
+                    if (!element.Disabled)
+                    {
+                        element.OnRightClick(element);
+                        ConsumeRightPress();
+                    }
+
+                    break;
+                }
+
         // Level-triggered, not edge-triggered: fires on every update while the right
         // button is held, so sweep gestures (erase everything crossed) work. Handlers
         // must be idempotent for a stationary pointer.
         if (isRightDown && RightPressId != _consumedRightPressId)
-            for (var e = winner; e != null; e = e.Parent)
-                if (e.HandleRightPress(x, y))
+            for (var element = winner; element != null; element = element.Parent)
+                if (element.HandleRightPress(x, y))
                     break;
 
         if (isDown && !wasPressed)
@@ -379,11 +476,11 @@ public class UIContext : IGamePreloadable
             var captured = CapturedElement;
             CapturedElement = null;
 
-            if (captured.ContainsPoint(x, y))
-                for (var e = captured; e != null; e = e.Parent)
-                    if (e.OnClick != null)
+            if (!captured.HandlePointerRelease(x, y) && captured.ContainsPoint(x, y))
+                for (var element = captured; element != null; element = element.Parent)
+                    if (element.OnClick != null)
                     {
-                        if (!e.Disabled) e.OnClick(e);
+                        if (!element.Disabled) element.OnClick(element);
                         break;
                     }
         }
@@ -394,42 +491,42 @@ public class UIContext : IGamePreloadable
     private void ApplyPointerState()
     {
         _newHoverCache.Clear();
-        for (var e = HoverTarget; e != null; e = e.Parent)
-            if (e.ContainsPoint(PointerX, PointerY))
-                _newHoverCache.Add(e);
+        for (var element = HoverTarget; element != null; element = element.Parent)
+            if (element.ContainsPoint(PointerX, PointerY))
+                _newHoverCache.Add(element);
 
         _newPressCache.Clear();
         if (PointerDown && CapturedElement != null)
-            for (var e = CapturedElement; e != null; e = e.Parent)
-                _newPressCache.Add(e);
+            for (var element = CapturedElement; element != null; element = element.Parent)
+                _newPressCache.Add(element);
 
-        foreach (var e in _hoverChain)
-            if (!_newHoverCache.Contains(e))
+        foreach (var element in _hoverChain)
+            if (!_newHoverCache.Contains(element))
             {
-                e.IsHovered = false;
-                e.SyncPointerState();
-                e.OnHoverExit?.Invoke(e);
+                element.IsHovered = false;
+                element.SyncPointerState();
+                element.OnHoverExit?.Invoke(element);
             }
 
-        foreach (var e in _pressChain)
-            if (!_newPressCache.Contains(e))
+        foreach (var element in _pressChain)
+            if (!_newPressCache.Contains(element))
             {
-                e.IsPressed = false;
-                e.SyncPointerState();
+                element.IsPressed = false;
+                element.SyncPointerState();
             }
 
-        foreach (var e in _newPressCache)
+        foreach (var element in _newPressCache)
         {
-            e.IsPressed = true;
-            e.SyncPointerState();
+            element.IsPressed = true;
+            element.SyncPointerState();
         }
 
-        foreach (var e in _newHoverCache)
+        foreach (var element in _newHoverCache)
         {
-            var entered = !e.IsHovered;
-            e.IsHovered = true;
-            e.SyncPointerState();
-            if (entered) e.OnHoverEnter?.Invoke(e);
+            var entered = !element.IsHovered;
+            element.IsHovered = true;
+            element.SyncPointerState();
+            if (entered) element.OnHoverEnter?.Invoke(element);
         }
 
         _hoverChain.Clear();
@@ -457,6 +554,22 @@ public class UIContext : IGamePreloadable
         if (IsInSubtree(HoverTarget, subtreeRoot)) HoverTarget = null;
         if (IsInSubtree(_lastPressTarget, subtreeRoot)) _lastPressTarget = null;
         if (IsInSubtree(FocusedElement, subtreeRoot)) Blur();
+
+        // Finding 2.3: a removed element leaves the hover and press chains quietly. Left in, the next
+        // pointer update would call its OnHoverExit on a tree that may already be disposed.
+        for (var index = _hoverChain.Count - 1; index >= 0; index--)
+            if (IsInSubtree(_hoverChain[index], subtreeRoot))
+            {
+                _hoverChain[index].IsHovered = false;
+                _hoverChain.RemoveAt(index);
+            }
+
+        for (var index = _pressChain.Count - 1; index >= 0; index--)
+            if (IsInSubtree(_pressChain[index], subtreeRoot))
+            {
+                _pressChain[index].IsPressed = false;
+                _pressChain.RemoveAt(index);
+            }
     }
 
     private static bool IsInSubtree(UIElement? element, UIElement subtreeRoot)
@@ -489,22 +602,22 @@ public class UIContext : IGamePreloadable
     ///     the key that typed it went down: a letter that opens a dialog with a name field must not
     ///     type itself into the field it just focused.
     /// </summary>
-    public void DispatchTextInput(TextInputEventArgs e)
+    public void DispatchTextInput(TextInputEventArgs args)
     {
         if (_keyFocus is { Pending: true } key && !ReferenceEquals(FocusedElement, key.Focus)) return;
-        FocusedElement?.HandleTextInput(e);
+        FocusedElement?.HandleTextInput(args);
     }
 
     /// <summary>
     ///     Forwards a key event to the focused element. Unhandled Escape blurs.
     /// </summary>
     /// <returns>True when the event was consumed by the UI.</returns>
-    public bool DispatchKeyDown(KeyboardKeyEventArgs e)
+    public bool DispatchKeyDown(KeyboardKeyEventArgs args)
     {
         _keyFocus = (FocusedElement, true);
         if (FocusedElement == null) return false;
-        if (FocusedElement.HandleKeyDown(e)) return true;
-        if (e.Key != Keys.Escape) return false;
+        if (FocusedElement.HandleKeyDown(args)) return true;
+        if (args.Key != Keys.Escape) return false;
 
         Blur();
         return true;

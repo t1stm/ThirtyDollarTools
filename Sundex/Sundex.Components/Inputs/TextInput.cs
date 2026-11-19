@@ -1,8 +1,9 @@
+using Sundex.Engine;
 using System.Buffers;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
+using Sundex.Components.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
@@ -25,19 +26,27 @@ public enum TextInputFilter
 }
 
 /// <summary>
-///     Single-line text input with caret, selection (keyboard + mouse drag),
-///     horizontal scroll-into-view, and numeric filter modes.
+///     Text input with caret, selection (keyboard + mouse drag), undo, the clipboard and numeric
+///     filter modes. Single-line by default, scrolling sideways to keep the caret in view; with
+///     <see cref="Multiline" /> the text wraps to the box, Enter starts a new line, Up and Down move
+///     between lines and the box scrolls down instead.
 ///     Receives input through the focus system: <see cref="UIContext.DispatchTextInput" />
 ///     and <see cref="UIContext.DispatchKeyDown" />.
 /// </summary>
 // ponytail: caret/selection indices are char-based; surrogate pairs can be split by
 // arrow keys/backspace. Fine for project names and numbers; revisit if emoji matter.
+[Sundex.Components.Attributes.MarkupTag("text-input")]
 public class TextInput : Panel
 {
     private readonly ColoredPlane _caretPlane = new() { Color = Vector4.One };
     private readonly Label _label;
     private readonly Label _placeholder;
     private readonly ColoredPlane _selectionPlane = new() { Color = new Vector4(0.3f, 0.5f, 0.9f, 0.45f) };
+
+    // A selection over several lines is three boxes: the rest of the first line, the whole lines
+    // between, and the start of the last.
+    private readonly ColoredPlane _selectionMiddle = new() { Color = new Vector4(0.3f, 0.5f, 0.9f, 0.45f) };
+    private readonly ColoredPlane _selectionLast = new() { Color = new Vector4(0.3f, 0.5f, 0.9f, 0.45f) };
 
     private int _anchor;
     private Vector4i? _inheritedClip;
@@ -62,24 +71,59 @@ public class TextInput : Panel
         };
         Children = [_label, _placeholder];
         BorderRadius = 4;
-        Background = new ColoredPlane { Color = FieldColors.Fill };
+        // The panel's own fill, not a plane of its own: a sheet's fill replaces it, transparent
+        // included, where a transparent fill left a separate plane showing.
+        Fill = FieldColors.Fill;
 
         Focusable = true;
         Cursor = CursorType.Text;
-        _text = SanitizeLine(value);
+        Padding = 5;
+        Height = 32;
+        _text = Sanitize(value);
         CaretIndex = _anchor = _text.Length;
     }
-
-    public override float Padding { get; set; } = 5;
-    public override LiteralOrComputable Height { get; set; } = 32;
 
     public override string Tag => "text-input";
 
     public string Value
     {
         get => _text;
-        set => SetText(SanitizeLine(value));
+        set
+        {
+            var clean = Sanitize(value);
+            // A two-way binding writes the text straight back: that must not collapse the selection.
+            if (clean == _text) return;
+            _undo.Clear();
+            _redo.Clear();
+            SetText(clean);
+        }
     }
+
+    /// <summary>Shows each character as a dot. Copy and cut do nothing while set.</summary>
+    [NamedSetting("password")]
+    public bool Password
+    {
+        get;
+        set
+        {
+            field = value;
+            _label.Value = Display;
+            InvalidateLayout();
+        }
+    }
+
+    /// <summary>The most characters the field takes; 0 for no limit.</summary>
+    [NamedSetting("max-length")]
+    public int MaxLength { get; set; }
+
+    [NamedSetting("font")]
+    public string? Font
+    {
+        get => _label.Font;
+        set => _label.Font = _placeholder.Font = value;
+    }
+
+    private string Display => Password ? new string('•', _text.Length) : _text;
 
     public TextInputFilter Filter { get; set; } = TextInputFilter.None;
 
@@ -92,6 +136,53 @@ public class TextInput : Panel
     /// <summary>Horizontal scroll offset in pixels keeping the caret visible.</summary>
     public float ScrollX { get; private set; }
 
+    /// <summary>A multi-line box's vertical scroll, in pixels.</summary>
+    public float ScrollY
+    {
+        get;
+        set
+        {
+            var clamped = Math.Clamp(value, 0, MaxScrollY);
+            if (Math.Abs(field - clamped) < 0.01f) return;
+            field = clamped;
+            InvalidateLayout();
+        }
+    }
+
+    /// <summary>Wraps to the box and takes Enter as a new line: a <c>&lt;textarea&gt;</c>.</summary>
+    [NamedSetting("multiline")]
+    public bool Multiline
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            _label.Wrap = value;
+            if (!value) SetText(Sanitize(_text));
+            InvalidateMeasure();
+        }
+    }
+
+    /// <summary>A key the box's owner wants first: return true to take it from the field.</summary>
+    public Func<KeyboardKeyEventArgs, bool>? OnKey { get; set; }
+
+    /// <summary>Where the caret before <paramref name="index" /> sits, from the text's top left, unscrolled.</summary>
+    public (float X, float Y) CaretPoint(int index) => _label.CaretAt(Math.Clamp(index, 0, _text.Length));
+
+    /// <summary>One line's height, in pixels.</summary>
+    public float TextLineHeight => LineHeight;
+
+    /// <summary>How far in from the box's top left the text starts.</summary>
+    public (float X, float Y) TextOrigin => (Padding, Padding + TextTop);
+
+    /// <summary>Puts the caret at <paramref name="index" />, collapsing the selection.</summary>
+    public void MoveCaret(int index) => SetCaret(index, false);
+
+    private float ContentHeight => _label.CaretAt(_text.Length).Y + LineHeight;
+    private float InnerHeight => Math.Max(0, Computed.Height - 2 * Padding);
+    private float MaxScrollY => Multiline ? Math.Max(0, ContentHeight - InnerHeight) : 0;
+
     [NamedSetting("font-size")]
     public LiteralOrComputable FontSizePx
     {
@@ -100,6 +191,7 @@ public class TextInput : Panel
     }
 
     /// <summary>Text shown, dimmed, while the field is empty - a browser input's placeholder.</summary>
+    [NamedSetting("placeholder")]
     public string Placeholder
     {
         get;
@@ -133,62 +225,117 @@ public class TextInput : Panel
     public Vector4 SelectionColor
     {
         get => _selectionPlane.Color;
-        set => _selectionPlane.Color = value;
+        set => _selectionPlane.Color = _selectionMiddle.Color = _selectionLast.Color = value;
     }
 
     public Action<TextInput>? OnValueChanged { get; set; }
     public Action<TextInput>? OnCommit { get; set; }
 
     private float FontSize => _label.FontSizePx.Resolve(14);
-    private float LineHeight => FontSize * 1.2f;
+    private float LineHeight => _label.LinePixels;
 
     /// <summary>Width at the right end of the content area not available to text (e.g. spinner buttons).</summary>
     protected virtual float ReservedRightWidth => 0;
 
     #region Input handling
 
-    public override void HandleTextInput(TextInputEventArgs e)
+    public override void HandleTextInput(TextInputEventArgs args)
     {
-        Insert(e.AsString);
+        // A run of typing is one undo step; a space or a pause ends it.
+        Remember(args.AsString != " ");
+        Insert(args.AsString);
     }
 
-    public override bool HandleKeyDown(KeyboardKeyEventArgs e)
+    public override bool HandleKeyDown(KeyboardKeyEventArgs args)
     {
-        switch (e.Key)
+        if (OnKey?.Invoke(args) == true) return true;
+        switch (args.Key)
         {
+            case Keys.Up when Multiline:
+            case Keys.Down when Multiline:
+            {
+                var (x, y) = _label.CaretAt(CaretIndex);
+                var target = y + (args.Key == Keys.Up ? -0.5f : 1.5f) * LineHeight;
+                SetCaret(target < 0 ? 0 : _label.IndexAt(x, target), args.Shift);
+                return true;
+            }
+
+            case Keys.Home when Multiline && !args.Control:
+                SetCaret(CaretIndex > 0 ? _text.LastIndexOf('\n', CaretIndex - 1) + 1 : 0, args.Shift);
+                return true;
+
+            case Keys.End when Multiline && !args.Control:
+            {
+                var end = _text.IndexOf('\n', CaretIndex);
+                SetCaret(end < 0 ? _text.Length : end, args.Shift);
+                return true;
+            }
+
             case Keys.Left:
-                if (!e.Shift && HasSelection) SetCaret(SelectionStart, false);
-                else SetCaret(CaretIndex - 1, e.Shift);
+                if (!args.Shift && HasSelection) SetCaret(SelectionStart, false);
+                else SetCaret(CaretIndex - 1, args.Shift);
                 return true;
 
             case Keys.Right:
-                if (!e.Shift && HasSelection) SetCaret(SelectionEnd, false);
-                else SetCaret(CaretIndex + 1, e.Shift);
+                if (!args.Shift && HasSelection) SetCaret(SelectionEnd, false);
+                else SetCaret(CaretIndex + 1, args.Shift);
                 return true;
 
             case Keys.Home:
-                SetCaret(0, e.Shift);
+                SetCaret(0, args.Shift);
                 return true;
 
             case Keys.End:
-                SetCaret(_text.Length, e.Shift);
+                SetCaret(_text.Length, args.Shift);
                 return true;
 
             case Keys.Backspace:
+                Remember(false);
                 if (HasSelection) RemoveSelection();
                 else if (CaretIndex > 0) SetText(_text.Remove(CaretIndex - 1, 1), CaretIndex - 1);
 
                 return true;
 
             case Keys.Delete:
+                Remember(false);
                 if (HasSelection) RemoveSelection();
                 else if (CaretIndex < _text.Length) SetText(_text.Remove(CaretIndex, 1), CaretIndex);
                 return true;
 
             // ponytail: inline rather than a Sundex-wide modifier abstraction - select-all in
             // a text field has to work with Cmd on a Mac, and it isn't a visualizer keybind.
-            case Keys.A when e.Control || e.Command:
+            case Keys.A when args.Control || args.Command:
                 SelectAll();
+                return true;
+
+            case Keys.C when args.Control || args.Command:
+                if (HasSelection && !Password) Clipboard.Write(SelectedText);
+                return true;
+
+            case Keys.X when args.Control || args.Command:
+                if (!HasSelection || Password) return true;
+                Clipboard.Write(SelectedText);
+                Remember(false);
+                RemoveSelection();
+                return true;
+
+            case Keys.V when args.Control || args.Command:
+                Remember(false);
+                Insert(Clipboard.Read());
+                return true;
+
+            case Keys.Z when (args.Control || args.Command) && args.Shift:
+            case Keys.Y when args.Control || args.Command:
+                Redo();
+                return true;
+
+            case Keys.Z when args.Control || args.Command:
+                Undo();
+                return true;
+
+            case Keys.Enter or Keys.KeyPadEnter when Multiline && !args.Control:
+                Remember(false);
+                Insert("\n");
                 return true;
 
             case Keys.Enter or Keys.KeyPadEnter:
@@ -200,21 +347,28 @@ public class TextInput : Panel
                 // A focused field owns plain keystrokes - otherwise Space/letters fall
                 // through to scene hotkeys mid-typing. Modified combos and Escape
                 // (the blur path) stay app-level.
-                return e is { Control: false, Alt: false, Command: false } && e.Key != Keys.Escape;
+                return args is { Control: false, Alt: false, Command: false } && args.Key != Keys.Escape;
         }
     }
 
     public override bool HandlePress(float x, float y)
     {
         _suppressDragSelection = false;
-        SetCaret(CaretIndexFromX(x), false);
+        SetCaret(CaretIndexAt(x, y), false);
         return true;
     }
 
     public override void HandlePointerDrag(float x, float y)
     {
         if (_suppressDragSelection) return;
-        SetCaret(CaretIndexFromX(x), true);
+        SetCaret(CaretIndexAt(x, y), true);
+    }
+
+    public override bool HandleScroll(Vector2 scrollDelta)
+    {
+        if (!Multiline || MaxScrollY <= 0) return false;
+        ScrollY -= scrollDelta.Y * 3 * LineHeight;
+        return true;
     }
 
     /// <summary>Double-click selects the run of letters/digits under the pointer.</summary>
@@ -223,7 +377,7 @@ public class TextInput : Panel
         _suppressDragSelection = true;
         if (_text.Length == 0) return true;
 
-        var index = Math.Clamp(CaretIndexFromX(x), 0, _text.Length - 1);
+        var index = Math.Clamp(CaretIndexAt(x, y), 0, _text.Length - 1);
         if (!char.IsLetterOrDigit(_text[index])) return true; // punctuation/gaps just keep the caret
 
         var start = index;
@@ -252,13 +406,14 @@ public class TextInput : Panel
         {
             var accepted = rented ?? stackalloc char[256];
             var count = 0;
-            foreach (var c in input)
+            foreach (var character in input)
             {
-                if (c is '\n' or '\r') continue;
-                if (!AllowsCharacter(c, remaining, caret + count)) continue;
-                accepted[count++] = c;
+                if (character == '\r' || (character == '\n' && !Multiline)) continue;
+                if (!AllowsCharacter(character, remaining, caret + count)) continue;
+                accepted[count++] = character;
             }
 
+            if (MaxLength > 0) count = Math.Min(count, Math.Max(0, MaxLength - remaining.Length));
             if (count == 0 && remaining == _text) return;
 
             SetText(remaining.Insert(caret, new string(accepted[..count])), caret + count);
@@ -276,12 +431,61 @@ public class TextInput : Panel
         AfterCaretMove();
     }
 
+    /// <summary>The selected text, or empty.</summary>
+    public string SelectedText => HasSelection ? _text[SelectionStart..SelectionEnd] : "";
+
+    private readonly List<(string Text, int Caret, int Anchor)> _undo = [];
+    private readonly List<(string Text, int Caret, int Anchor)> _redo = [];
+    private bool _typingRun;
+    private long _lastTyped;
+
+    /// <summary>Saves the text before an edit. Consecutive typing within a second is one step.</summary>
+    private void Remember(bool typing)
+    {
+        var now = Environment.TickCount64;
+        if (typing && _typingRun && now - _lastTyped < 1000)
+        {
+            _lastTyped = now;
+            return;
+        }
+
+        _undo.Add((_text, CaretIndex, _anchor));
+        if (_undo.Count > 200) _undo.RemoveAt(0);
+        _redo.Clear();
+        _typingRun = typing;
+        _lastTyped = now;
+    }
+
+    public void Undo()
+    {
+        if (_undo.Count == 0) return;
+        _redo.Add((_text, CaretIndex, _anchor));
+        Restore(_undo[^1]);
+        _undo.RemoveAt(_undo.Count - 1);
+    }
+
+    public void Redo()
+    {
+        if (_redo.Count == 0) return;
+        _undo.Add((_text, CaretIndex, _anchor));
+        Restore(_redo[^1]);
+        _redo.RemoveAt(_redo.Count - 1);
+    }
+
+    private void Restore((string Text, int Caret, int Anchor) state)
+    {
+        _typingRun = false;
+        SetText(state.Text, state.Caret);
+        _anchor = Math.Clamp(state.Anchor, 0, _text.Length);
+        AfterCaretMove();
+    }
+
     private void RemoveSelection()
     {
         SetText(_text.Remove(SelectionStart, SelectionEnd - SelectionStart), SelectionStart);
     }
 
-    private bool AllowsCharacter(char c, string remaining, int position)
+    private bool AllowsCharacter(char character, string remaining, int position)
     {
         switch (Filter)
         {
@@ -290,9 +494,9 @@ public class TextInput : Panel
 
             case TextInputFilter.Integer:
             case TextInputFilter.Decimal:
-                if (char.IsAsciiDigit(c)) return true;
-                if (c == '-') return position == 0 && !remaining.Contains('-');
-                if (c == '.' && Filter == TextInputFilter.Decimal) return !remaining.Contains('.');
+                if (char.IsAsciiDigit(character)) return true;
+                if (character == '-') return position == 0 && !remaining.Contains('-');
+                if (character == '.' && Filter == TextInputFilter.Decimal) return !remaining.Contains('.');
                 return false;
 
             default:
@@ -313,7 +517,7 @@ public class TextInput : Panel
         _text = text;
         CaretIndex = Math.Clamp(caret ?? CaretIndex, 0, _text.Length);
         _anchor = CaretIndex;
-        _label.Value = _text;
+        _label.Value = Display;
         RefreshPlaceholder();
         AfterCaretMove();
         if (changed) OnValueChanged?.Invoke(this);
@@ -331,9 +535,9 @@ public class TextInput : Panel
         InvalidateLayout();
     }
 
-    private static string SanitizeLine(string value)
+    private string Sanitize(string value)
     {
-        return value.Replace("\n", "").Replace("\r", "");
+        return Multiline ? value.Replace("\r", "") : value.Replace("\n", "").Replace("\r", "");
     }
 
     #endregion
@@ -342,6 +546,17 @@ public class TextInput : Panel
 
     private void ScrollCaretIntoView()
     {
+        if (Multiline)
+        {
+            var innerHeight = InnerHeight;
+            if (innerHeight <= 0) return;
+            var (_, caretY) = _label.CaretAt(CaretIndex);
+            if (caretY + LineHeight - ScrollY > innerHeight) ScrollY = caretY + LineHeight - innerHeight;
+            if (caretY - ScrollY < 0) ScrollY = caretY;
+            ScrollY = ScrollY;
+            return;
+        }
+
         var innerWidth = Math.Max(0, Computed.Width - 2 * Padding - ReservedRightWidth);
         if (innerWidth <= 0) return;
 
@@ -353,71 +568,39 @@ public class TextInput : Panel
         ScrollX = Math.Clamp(ScrollX, 0, Math.Max(0, totalWidth - innerWidth));
     }
 
-    /// <summary>Pixel width of the first <paramref name="length" /> characters at the current font size.</summary>
-    public float MeasurePrefix(int length)
+    /// <summary>Pixel width of the first <paramref name="length" /> characters, in the label's own font.</summary>
+    public float MeasurePrefix(int length) => _label.CaretAt(Math.Clamp(length, 0, _text.Length)).X;
+
+    /// <summary>Caret index closest to an absolute point: the line under it in a multi-line box.</summary>
+    public int CaretIndexAt(float absoluteX, float absoluteY)
     {
-        var text = _text.AsSpan(0, Math.Min(length, _text.Length));
-        var fontSize = FontSize;
-        var width = 0f;
-
-        Span<char> pair = stackalloc char[2];
-        for (var i = 0; i < text.Length;)
-        {
-            scoped ReadOnlySpan<char> character;
-            if (char.IsSurrogate(text[i]) && i + 1 < text.Length && char.IsSurrogatePair(text[i], text[i + 1]))
-            {
-                pair[0] = text[i];
-                pair[1] = text[i + 1];
-                character = pair;
-                i += 2;
-            }
-            else
-            {
-                pair[0] = text[i];
-                character = pair[..1];
-                i += 1;
-            }
-
-            width += Context.TextProvider.GetGlyph(character).Advance * fontSize;
-        }
-
-        return width;
+        if (!Multiline) return CaretIndexFromX(absoluteX);
+        var localX = absoluteX - (Computed.AbsoluteX + Padding);
+        var localY = absoluteY - (Computed.AbsoluteY + Padding) + ScrollY;
+        return Math.Clamp(_label.IndexAt(Math.Max(0, localX), Math.Max(0, localY)), 0, _text.Length);
     }
 
     /// <summary>Caret index closest to the given absolute X coordinate.</summary>
     public int CaretIndexFromX(float absoluteX)
     {
         var local = absoluteX - (Computed.AbsoluteX + Padding - ScrollX);
-        if (local <= 0) return 0;
-
-        var fontSize = FontSize;
-        var width = 0f;
-
-        Span<char> pair = stackalloc char[2];
-        for (var i = 0; i < _text.Length;)
-        {
-            var step = char.IsSurrogate(_text[i]) && i + 1 < _text.Length &&
-                       char.IsSurrogatePair(_text[i], _text[i + 1])
-                ? 2
-                : 1;
-            pair[0] = _text[i];
-            if (step == 2) pair[1] = _text[i + 1];
-
-            var advance = Context.TextProvider.GetGlyph(pair[..step]).Advance * fontSize;
-
-            if (local < width + advance / 2) return i;
-            width += advance;
-            i += step;
-        }
-
-        return _text.Length;
+        return local <= 0 ? 0 : Math.Clamp(_label.IndexAt(local, 0), 0, _text.Length);
     }
 
-    /// <summary>How far below the padding the text sits, so a line is centred in the box like a browser's input.</summary>
-    private float TextTop => Math.Max(0, (Computed.Height - 2 * Padding - LineHeight) / 2);
+    /// <summary>
+    ///     How far below the padding the text sits, so a line is centred in the box like a browser's input.
+    ///     Negative when the padding leaves less room than a line: a browser centres the line all the same.
+    /// </summary>
+    private float TextTop => Multiline ? 0 : (Computed.Height - 2 * Padding - LineHeight) / 2;
 
     protected override void DoLayout()
     {
+        if (Multiline)
+        {
+            LayoutMultiline();
+            return;
+        }
+
         _label.X = -ScrollX;
         _label.Y = _placeholder.Y = TextTop;
         base.DoLayout();
@@ -439,6 +622,43 @@ public class TextInput : Panel
         ApplyClip(_inheritedClip);
     }
 
+    private void LayoutMultiline()
+    {
+        _label.X = 0;
+        _label.Y = -ScrollY;
+        _placeholder.Y = 0;
+        base.DoLayout();
+        ScrollY = ScrollY;
+
+        var textX = Computed.AbsoluteX + Padding;
+        var textY = Computed.AbsoluteY + Padding - ScrollY;
+        var (caretX, caretY) = _label.CaretAt(CaretIndex);
+        _caretPlane.SetPosition((textX + caretX, textY + caretY, 0));
+        _caretPlane.Scale = IsFocused ? new Vector3(1.5f, LineHeight, 1) : Vector3.Zero;
+
+        var show = HasSelection && IsFocused;
+        var (startX, startY) = _label.CaretAt(SelectionStart);
+        var (endX, endY) = _label.CaretAt(SelectionEnd);
+        var width = Math.Max(0, Computed.Width - 2 * Padding);
+        if (!show || Math.Abs(startY - endY) < 0.5f)
+        {
+            _selectionPlane.SetPosition((textX + startX, textY + startY, 0));
+            _selectionPlane.Scale = show ? new Vector3(endX - startX, LineHeight, 1) : Vector3.Zero;
+            _selectionMiddle.Scale = _selectionLast.Scale = Vector3.Zero;
+        }
+        else
+        {
+            _selectionPlane.SetPosition((textX + startX, textY + startY, 0));
+            _selectionPlane.Scale = new Vector3(Math.Max(2, width - startX), LineHeight, 1);
+            _selectionMiddle.SetPosition((textX, textY + startY + LineHeight, 0));
+            _selectionMiddle.Scale = new Vector3(width, Math.Max(0, endY - startY - LineHeight), 1);
+            _selectionLast.SetPosition((textX, textY + endY, 0));
+            _selectionLast.Scale = new Vector3(endX, LineHeight, 1);
+        }
+
+        ApplyClip(_inheritedClip);
+    }
+
     /// <summary>Clips its own content (text/caret/selection) to the box, intersected with any outer clip.</summary>
     public override void ApplyClip(Vector4i? clip)
     {
@@ -450,6 +670,8 @@ public class TextInput : Panel
         base.ApplyClip(own);
         _caretPlane.ClipRect = own;
         _selectionPlane.ClipRect = own;
+        _selectionMiddle.ClipRect = own;
+        _selectionLast.ClipRect = own;
         // The box background itself is only bound by the outer clip.
         if (Background != null) Background.ClipRect = clip;
     }
@@ -468,6 +690,8 @@ public class TextInput : Panel
     {
         base.DrawSelf(ctx);
         ctx.QueueRender(_selectionPlane, Index);
+        ctx.QueueRender(_selectionMiddle, Index);
+        ctx.QueueRender(_selectionLast, Index);
         ctx.QueueRender(_caretPlane, Index + 2);
     }
 
@@ -476,6 +700,8 @@ public class TextInput : Panel
         if (!Visible) return;
         base.DrawTo(ctx);
         _selectionPlane.Update();
+        _selectionMiddle.Update();
+        _selectionLast.Update();
         _caretPlane.Update();
     }
 
@@ -489,6 +715,8 @@ public class TextInput : Panel
     {
         base.StopRendering();
         Context.DequeueRender(_selectionPlane, Index);
+        Context.DequeueRender(_selectionMiddle, Index);
+        Context.DequeueRender(_selectionLast, Index);
         Context.DequeueRender(_caretPlane, Index + 2);
     }
 
