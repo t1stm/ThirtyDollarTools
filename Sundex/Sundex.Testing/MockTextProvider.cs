@@ -2,7 +2,7 @@ using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Text;
 using Sundex.Engine.Text.Fonts;
 
-namespace Sundex.Components.Tests;
+namespace Sundex.Testing;
 
 public class MockTextProvider(IGlyphProvider? glyphProvider = null) : ITextProvider
 {

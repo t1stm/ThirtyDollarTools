@@ -24,6 +24,7 @@ using Shared.Audio.OpenAL;
 using SixLabors.ImageSharp;
 using Sundex.Components;
 using Sundex.Engine;
+using Sundex.Markup.Logic.Languages.CSharp;
 using ThirtyDollarVisualizer;
 using ThirtyDollarVisualizer.VisualizerSettings;
 using VisualizerScene;
@@ -157,6 +158,7 @@ Assembly[] assemblies =
     SettingsAssembly.Assembly
 ];
 
+CSharp.Register();
 var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings,
     "ThirtyDollarVisualizer");
 game.Globals.Set("visualizer-settings", settings);

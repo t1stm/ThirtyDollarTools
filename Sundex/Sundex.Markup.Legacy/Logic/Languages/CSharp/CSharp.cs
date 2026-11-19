@@ -10,6 +10,9 @@ namespace Sundex.Markup.Logic.Languages.CSharp;
 
 public class CSharp : SundexScript
 {
+    /// <summary>Enables the C# script language for Sundex 1.0 markup.</summary>
+    public static void Register() => LanguageProvider.Register("csharp", new CSharp());
+
     // Compiled scripts, keyed by imports plus source. Roslyn compilation is by far the
     // most expensive step in building a component; the compiled Script is immutable and
     // takes its globals per run, so one instance serves every component built from the
@@ -65,7 +68,7 @@ public class CSharp : SundexScript
         /* AddReferences doesn't work for some reason on SingleFilePublish when -p:IncludeAllContentForSelfExtract is not enabled.
          * See: https://github.com/dotnet/roslyn/issues/50719 */
         var options = ScriptOptions.Default
-            .AddReferences([typeof(CSharp).Assembly, .. assetAssemblies])
+            .AddReferences([typeof(CSharp).Assembly, typeof(SundexComponent).Assembly, .. assetAssemblies])
             .AddImports("System", "Sundex.Markup.Abstract", "Sundex.Markup.Logic.Languages.CSharp",
                 "Sundex.Components",
                 "Sundex.Components.Abstractions")

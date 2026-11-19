@@ -9,7 +9,7 @@ public class MarkdownParserTests
     private static string Fixture(string name)
     {
         using var stream = Assembly.GetExecutingAssembly()
-            .GetManifestResourceStream($"Sundex.Components.Tests.Assets.Markdown.{name}.md")!;
+            .GetManifestResourceStream($"Sundex.Components.TestResources.Assets.Markdown.{name}.md")!;
         return new StreamReader(stream).ReadToEnd();
     }
 

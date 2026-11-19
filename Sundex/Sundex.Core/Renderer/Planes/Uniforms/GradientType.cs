@@ -1,4 +1,4 @@
-namespace Sundex.Components.Renderer.Planes.Uniforms;
+namespace Sundex.Core.Renderer.Planes.Uniforms;
 
 public enum GradientType
 {

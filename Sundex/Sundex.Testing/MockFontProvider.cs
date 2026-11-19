@@ -1,7 +1,7 @@
 using Sundex.Engine.Text.Fonts;
 using Sundex.Slug;
 
-namespace Sundex.Components.Tests;
+namespace Sundex.Testing;
 
 public class MockFontProvider : IFontProvider
 {

@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 

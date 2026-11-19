@@ -1,6 +1,6 @@
 using EditorScene.State;
 using OpenTK.Mathematics;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Panels;
 using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;

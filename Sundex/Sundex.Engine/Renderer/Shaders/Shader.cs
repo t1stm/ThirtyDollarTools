@@ -46,12 +46,14 @@ public class Shader(AssetProvider assetProvider, params ShaderSource[] shaderSou
     {
         if (BufferState == BufferState.Created)
         {
-            RenderMarker.Debug($"Deleting already created shader: {Handle}");
+            if (RenderMarker.Enabled)
+                RenderMarker.Debug($"Deleting already created shader: {Handle}");
             GL.DeleteProgram(Handle);
         }
 
         Handle = GL.CreateProgram();
-        RenderMarker.Debug($"Created Shader: ({Handle})");
+        if (RenderMarker.Enabled)
+            RenderMarker.Debug($"Created Shader: ({Handle})");
 
         var handlesArray = ArrayPool<int>.Shared.Rent(Sources.Length);
         var handles = handlesArray.AsSpan()[..Sources.Length];
@@ -68,7 +70,8 @@ public class Shader(AssetProvider assetProvider, params ShaderSource[] shaderSou
                 GL.CompileShader(shader);
 
                 GL.AttachShader(Handle, shader);
-                RenderMarker.Debug($"Attached: ({shader}) {source.Type}");
+                if (RenderMarker.Enabled)
+                    RenderMarker.Debug($"Attached: ({shader}) {source.Type}");
             }
 
             LinkAndThrowOnError();
@@ -77,16 +80,19 @@ public class Shader(AssetProvider assetProvider, params ShaderSource[] shaderSou
             {
                 GL.DetachShader(Handle, shaderHandle);
                 GL.DeleteShader(shaderHandle);
-                RenderMarker.Debug($"Detached and Deleted: ({shaderHandle})");
+                if (RenderMarker.Enabled)
+                    RenderMarker.Debug($"Detached and Deleted: ({shaderHandle})");
             }
 
             BufferState = BufferState.Created;
-            RenderMarker.Debug($"Shader: ({Handle}) Successfully Loaded.");
+            if (RenderMarker.Enabled)
+                RenderMarker.Debug($"Shader: ({Handle}) Successfully Loaded.");
         }
         catch
         {
             BufferState = BufferState.Failed;
-            RenderMarker.Debug($"Failed to Create Shader: {Handle}");
+            if (RenderMarker.Enabled)
+                RenderMarker.Debug($"Failed to Create Shader: {Handle}");
             throw;
         }
         finally

@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Bars;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;

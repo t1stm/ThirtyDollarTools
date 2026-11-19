@@ -30,6 +30,8 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework"/>
+    <Content Include="../../Sundex.Style.DSL/Examples/*.snx.ss" Link="Sundex.Style.DSL/Examples/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 
 </Project>

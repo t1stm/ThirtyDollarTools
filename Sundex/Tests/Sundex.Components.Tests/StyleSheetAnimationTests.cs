@@ -126,6 +126,7 @@ public class StyleSheetAnimationTests
         // Appending bypasses the Animations setter, so the element's start pass has gone.
         Assert.True(animation.TimingStopwatch.IsRunning);
 
+        animation.TimingStopwatch.Stop();
         animation.TimingStopwatch.Seek(40);
         panel.DrawTo(context);
         Assert.Equal(40, animation.TimingStopwatch.ElapsedMilliseconds);

@@ -1,7 +1,7 @@
 using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Style.DSL;
 
 namespace Sundex.Components.Tests;

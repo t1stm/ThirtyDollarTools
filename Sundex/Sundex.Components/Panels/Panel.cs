@@ -1,7 +1,7 @@
 using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;

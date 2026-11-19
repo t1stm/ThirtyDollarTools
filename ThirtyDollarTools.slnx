@@ -18,9 +18,11 @@
     <Project Path="Sundex/Sundex.Engine/Sundex.Engine.csproj"/>
     <Project Path="Sundex/Sundex.Markup/Sundex.Markup.csproj"/>
     <Project Path="Sundex/Sundex.Markup.Generator/Sundex.Markup.Generator.csproj"/>
+    <Project Path="Sundex/Sundex.Markup.Legacy/Sundex.Markup.Legacy.csproj"/>
     <Project Path="Sundex/Sundex.Reactive/Sundex.Reactive.csproj"/>
     <Project Path="Sundex/Sundex.Slug/Sundex.Slug.csproj"/>
     <Project Path="Sundex/Sundex.Style.DSL/Sundex.Style.DSL.csproj"/>
+    <Project Path="Sundex/Sundex.Testing/Sundex.Testing.csproj"/>
   </Folder>
   <Folder Name="/Sundex/Debug/">
     <Project Path="Sundex/Debug/Sundex.Engine.DummyProject/Sundex.Engine.DummyProject.csproj"/>

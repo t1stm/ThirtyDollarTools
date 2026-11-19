@@ -103,13 +103,7 @@ public class StyleParserTests
     [Test]
     public void Parse_DefaultSnxsExample_ParsesWithoutErrors()
     {
-        var basePath = AppContext.BaseDirectory;
-        // Try to find the project root
-        var projectRoot = basePath;
-        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")) && !File.Exists(Path.Combine(projectRoot, "Experimental.slnx")))
-            projectRoot = Path.GetDirectoryName(projectRoot);
-
-        var path = Path.Combine(projectRoot!, "Sundex/Sundex.Style.DSL/Examples/default.snx.ss");
+        var path = Path.Combine(AppContext.BaseDirectory, "Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
         using (Assert.EnterMultipleScope())
@@ -132,17 +126,10 @@ public class StyleParserTests
     [Test]
     public void Parse_ImportSnxsExample_ParsesWithoutErrors()
     {
-        var basePath = AppContext.BaseDirectory;
-        var projectRoot = basePath;
-        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")) && !File.Exists(Path.Combine(projectRoot, "Experimental.slnx")))
-            projectRoot = Path.GetDirectoryName(projectRoot);
-
-        var path = Path.Combine(projectRoot!, "Sundex/Sundex.Style.DSL/Examples/import.snx.ss");
+        var path = Path.Combine(AppContext.BaseDirectory, "Sundex.Style.DSL/Examples/import.snx.ss");
         var dsl = File.ReadAllText(path);
 
-        // Use the directory of the style DSL project as base path for the examples to work
-        var styleDslRoot = Path.Combine(projectRoot!, "Sundex");
-        var sheet = StyleParser.Parse(dsl, relativePath => File.ReadAllText(Path.Combine(styleDslRoot, relativePath)));
+        var sheet = StyleParser.Parse(dsl, relativePath => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, relativePath)));
 
         Assert.That(sheet.Components, Has.Count.EqualTo(4));
         using (Assert.EnterMultipleScope())

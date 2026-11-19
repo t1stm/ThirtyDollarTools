@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <RootNamespace>Sundex.Components.TestResources</RootNamespace>
     <!-- Markup 2.0: the documents under Markup/ are compiled by the generator. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <SundexMarkupNamespace>Sundex.Components.Tests.Markup</SundexMarkupNamespace>
@@ -22,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
     <ProjectReference Include="..\..\Sundex.Markup\Sundex.Markup.csproj"/>
+    <ProjectReference Include="..\..\Sundex.Markup.Legacy\Sundex.Markup.Legacy.csproj"/>
+    <ProjectReference Include="..\..\Sundex.Testing\Sundex.Testing.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -40,6 +43,7 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
+    <Using Include="Sundex.Testing"/>
   </ItemGroup>
 
   <ItemGroup>

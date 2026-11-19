@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Abstractions;
 
 namespace Sundex.Components.Labels;

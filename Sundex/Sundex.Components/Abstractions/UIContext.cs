@@ -12,6 +12,7 @@ using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Text;
 using Sundex.Engine.Text.Fonts;
+using Sundex.Reactive;
 
 namespace Sundex.Components.Abstractions;
 
@@ -107,12 +108,8 @@ public class UIContext : IGamePreloadable
 
     public static void Preload(AssetProvider assetProvider)
     {
-#if DEBUG
-        // Makes a re-applied stylesheet able to drop rules that were deleted from it, which
-        // hot reload needs and nothing else does. Set here rather than by the engine:
-        // Sundex.Engine does not reference this assembly.
-        UIElement.TrackPristineStyles = true;
-#endif
+        // A reloaded stylesheet can drop rules that were deleted from it.
+        UIElement.TrackPristineStyles = SundexDevelopment.Enabled;
         _assetProvider = assetProvider;
         _fontProvider = new FontProvider(assetProvider);
         _createTextProvider = name => new TextProvider(_assetProvider, _fontProvider, name);
@@ -228,7 +225,7 @@ public class UIContext : IGamePreloadable
             // Position in LayeredRenderQueue is the UIElement.Index depth layer - an
             // outsized count here pinpoints which nesting depth a draw-call spike lives
             // at (e.g. a still-unbatched fixed pool queued at that layer).
-            if (queue.Count > 0)
+            if (RenderMarker.Enabled && queue.Count > 0)
                 RenderMarker.Debug("UI render layer ", $"{layerIndex} ({queue.Count} renderables)",
                     MarkerType.Hidden);
             layerIndex++;
@@ -268,8 +265,9 @@ public class UIContext : IGamePreloadable
                 count++;
             }
 
-            RenderMarker.Debug("UI layer ", $"{layerIndex - 1} rendered {count} renderables",
-                MarkerType.Hidden);
+            if (RenderMarker.Enabled)
+                RenderMarker.Debug("UI layer ", $"{layerIndex - 1} rendered {count} renderables",
+                    MarkerType.Hidden);
         }
 
         if (scissorOn) GL.Disable(EnableCap.ScissorTest);

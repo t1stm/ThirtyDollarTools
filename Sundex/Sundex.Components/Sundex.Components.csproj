@@ -11,11 +11,11 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\Textures\image-invalid.png"/>
     <EmbeddedResource Include="File Selector\FileSelection.snx.ss" LogicalName="Sundex.Components.FileSelection.snx.ss"/>
-    <EmbeddedResource Include="Assets\Shaders\**\*"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="all"/>
   </ItemGroup>
 
 </Project>

@@ -37,7 +37,8 @@ public class GPUTexture : IBindable
         BufferState = (Handle > 0 ? BufferState.Created : BufferState.Failed) |
                       (BufferState ^ BufferState.PendingCreation);
 
-        RenderMarker.Debug("Created Texture: ", $"({Handle})");
+        if (RenderMarker.Enabled)
+            RenderMarker.Debug("Created Texture: ", $"({Handle})");
         UploadBlankTextureToGPU();
     }
 
@@ -50,8 +51,9 @@ public class GPUTexture : IBindable
             0, PixelFormat.Rgba, PixelType.Byte, IntPtr.Zero);
 
         SetTexParams();
-        RenderMarker.Debug(
-            "Uploaded Blank Texture: ", $"({Handle.ToString()}) {Width}x{Height} InternalFormat: {InternalFormat}");
+        if (RenderMarker.Enabled)
+            RenderMarker.Debug(
+                "Uploaded Blank Texture: ", $"({Handle.ToString()}) {Width}x{Height} InternalFormat: {InternalFormat}");
     }
 
     public unsafe void QueueUploadToGPU<TPixel>(ImageFrame<TPixel> frame, Rectangle? rect = null)
@@ -80,9 +82,10 @@ public class GPUTexture : IBindable
 
                 GL.TexSubImage2D(TextureTarget.Texture2D, 0, rect?.X ?? 0, rect?.Y ?? 0,
                     rect?.Width ?? Width, rect?.Height ?? Height, pixelInfo.Format, pixelInfo.Type, handle.Pointer);
-                RenderMarker.Debug(
-                    "Texture Upload: ",
-                    $"({Handle.ToString()}) {rect?.ToString() ?? "Full"}, PixelFormat: {pixelInfo.Format}, PixelType: {pixelInfo.Type}");
+                if (RenderMarker.Enabled)
+                    RenderMarker.Debug(
+                        "Texture Upload: ",
+                        $"({Handle.ToString()}) {rect?.ToString() ?? "Full"}, PixelFormat: {pixelInfo.Format}, PixelType: {pixelInfo.Type}");
             });
             BufferState |= BufferState.PendingUpload;
         }

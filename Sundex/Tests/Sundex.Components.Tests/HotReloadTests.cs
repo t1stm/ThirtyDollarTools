@@ -4,6 +4,7 @@ using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace Sundex.Components.Tests;
@@ -15,6 +16,17 @@ namespace Sundex.Components.Tests;
 /// </summary>
 public class HotReloadTests
 {
+    [Fact]
+    public void MarkedAssemblyAssetsResolveUnderADifferentRootNamespace()
+    {
+        var provider = new AssetProvider(new LoggerConfiguration().CreateLogger(), [], new GLInfo());
+
+        Assert.Contains(Assembly.GetExecutingAssembly(), provider.AssetAssemblies);
+        Assert.Contains("probe", provider.LoadString("Layouts/HotReloadProbe.txt", StorageLocation.Assembly),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+#if DEBUG
     private static AssetProvider Provider()
     {
         return new AssetProvider(new LoggerConfiguration().CreateLogger(),
@@ -78,6 +90,7 @@ public class HotReloadTests
         Assert.Null(AssetLoader.FindInSourceRoots(Path.GetFullPath("Layouts/HotReloadProbe.txt"), roots));
         Assert.Null(AssetLoader.FindInSourceRoots("Layouts/HotReloadProbe.txt", []));
     }
+#endif
 
     [Fact]
     public async Task SavingAStylesheetAsksForAStyleReload()

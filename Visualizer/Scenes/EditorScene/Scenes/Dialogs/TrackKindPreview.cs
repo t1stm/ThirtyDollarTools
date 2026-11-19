@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 using Shared.Atlases;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using EditorScene.Scenes.Views;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;

@@ -8,12 +8,9 @@ using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 
-// UIContext stores its providers in static fields; parallel test classes clobber
-// each other's InjectForTesting calls, so this suite must run sequentially.
-[assembly: Xunit.v3.Parallelization(Mode = Xunit.Sdk.ParallelMode.None)]
+namespace Sundex.Testing;
 
-namespace Sundex.Components.Tests;
-
+/// <summary>A UI context with mock font providers. Run tests that use it sequentially.</summary>
 public class TestUIContext : UIContext
 {
     [SetsRequiredMembers]
@@ -22,10 +19,15 @@ public class TestUIContext : UIContext
     }
 
     [SetsRequiredMembers]
-    public TestUIContext(ILogger logger)
+    public TestUIContext(ILogger logger) : this(logger, [])
+    {
+    }
+
+    [SetsRequiredMembers]
+    public TestUIContext(ILogger logger, Assembly[] assetAssemblies)
     {
         InjectForTesting(
-            new AssetProvider(logger, [Assembly.GetExecutingAssembly(), ComponentsAssembly.Assembly], new GLInfo()),
+            new AssetProvider(logger, [.. assetAssemblies, ComponentsAssembly.Assembly], new GLInfo()),
             new MockFontProvider(),
             new MockTextProvider());
         Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
@@ -36,4 +38,7 @@ public class TestUIContext : UIContext
     {
         return LayeredRenderQueue.SelectMany(layer => layer);
     }
+
+    /// <summary>Whether the element has queued its drawing.</summary>
+    public static bool IsDrawn(UIElement element) => element.Drawn;
 }

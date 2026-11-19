@@ -3,7 +3,7 @@ using Sundex.Engine.Text.Fonts;
 using Sundex.Slug;
 using Sundex.Slug.Fonts;
 
-namespace Sundex.Components.Tests;
+namespace Sundex.Testing;
 
 public class MockGlyphProvider : IGlyphProvider
 {

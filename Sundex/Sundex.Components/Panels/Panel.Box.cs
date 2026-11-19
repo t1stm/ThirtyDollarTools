@@ -1,7 +1,7 @@
 using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Reactive;
 
 namespace Sundex.Components.Panels;

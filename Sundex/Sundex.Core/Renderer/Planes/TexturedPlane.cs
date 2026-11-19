@@ -1,7 +1,7 @@
 using JetBrains.Annotations;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using Sundex.Components.Renderer.Planes.Uniforms;
+using Sundex.Core.Renderer.Planes.Uniforms;
 using Sundex.Core;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Extensions;
@@ -13,26 +13,34 @@ using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Renderer.Data_Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
+using Sundex.Engine.Renderer.Textures;
 
-namespace Sundex.Components.Renderer.Planes;
+namespace Sundex.Core.Renderer.Planes;
 
 [PreloadGraphicsContext]
-public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
+public class TexturedPlane : Renderable, IGamePreloadable, IBorderRadius
 {
     private static DeleteQueue _deleteQueue = null!;
     private static Shader _shader = null!;
 
     private static bool _areVerticesGenerated;
     private static VertexArrayObject _staticVAO = null!;
-    private static GLBuffer<ColoredUniform>? _uniformBuffer;
+    private static GLBuffer<TexturedUniform>? _uniformBuffer;
 
-    private ColoredUniform _uniform;
+    private TexturedUniform _uniform;
 
-    public ColoredPlane()
+    public TexturedPlane()
     {
         if (!_areVerticesGenerated) SetVertices();
-        _uniform = new ColoredUniform();
+        _uniform = new TexturedUniform();
+
+        // The shader multiplies the sampled texel by this, so the inherited default of
+        // zero would draw nothing. White is "the texture as it is"; a caller lowers the
+        // alpha to fade it (ElementAlpha does exactly that) or the RGB to tint it.
+        Color = Vector4.One;
     }
+
+    public GPUTexture? Texture { get; set; }
 
     public override Vector3 Position
     {
@@ -54,22 +62,6 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
         }
     }
 
-    /// <summary>
-    ///     The plane's fill. A zero alpha paints nothing, so setting one clears
-    ///     <see cref="Renderable.IsVisible" /> and the draw is skipped entirely. The cull sits
-    ///     here rather than on <see cref="Renderable" /> because batched renderables hold
-    ///     their colors per instance and leave this property at its default.
-    /// </summary>
-    public override Vector4 Color
-    {
-        get => base.Color;
-        set
-        {
-            base.Color = value;
-            IsVisible = value.W > 0;
-        }
-    }
-
     public override Shader Shader
     {
         get => _shader;
@@ -82,12 +74,12 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
     public static void Preload(AssetProvider assetProvider)
     {
         _deleteQueue = assetProvider.DeleteQueue;
-        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/ColoredPlane", provider =>
+        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/TexturedPlane", provider =>
             new Shader(provider, provider.LoadShaders(
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    "Assets/Shaders/Planes/Colored/colored.vert"),
+                    "Assets/Shaders/Planes/Textured/textured.vert"),
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    "Assets/Shaders/Planes/Colored/colored.frag")))
+                    "Assets/Shaders/Planes/Textured/textured.frag")))
         );
     }
 
@@ -96,8 +88,9 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
         _staticVAO = new VertexArrayObject();
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
+        layout.PushFloat(2); // uv texture coords
 
-        _staticVAO.AddBuffer(GLQuad.VBOWithoutUV, layout);
+        _staticVAO.AddBuffer(GLQuad.VBOWithUV, layout);
         _staticVAO.SetIndexBuffer(GLQuad.EBO);
         _areVerticesGenerated = true;
     }
@@ -107,6 +100,7 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
         _staticVAO.Bind();
         _staticVAO.Update();
 
+        Texture?.Bind();
         Shader.Use();
         SetShaderUniforms(camera);
 
@@ -114,17 +108,21 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
         base.Render(camera);
     }
 
+    /// <summary>The part of the texture drawn (offset x, offset y, width, height, in 0–1); all of it by default.</summary>
+    public Vector4 UvRect { get; set; } = new(0, 0, 1, 1);
+
     public override void SetShaderUniforms(Camera camera)
     {
-        _uniform.Color = Color;
         _uniform.ScaleAndBorderPx = new Vector4(Scale.X, Scale.Y, BorderRadius, 0);
+        _uniform.Color = Color;
+        _uniform.UvRect = UvRect;
 
         _uniform.Model = Model;
         _uniform.Projection = camera.GetVPMatrix();
 
-        Span<ColoredUniform> span = [_uniform];
+        Span<TexturedUniform> span = [_uniform];
 
-        _uniformBuffer ??= new GLBuffer<ColoredUniform>(_deleteQueue, BufferTarget.UniformBuffer);
+        _uniformBuffer ??= new GLBuffer<TexturedUniform>(_deleteQueue, BufferTarget.UniformBuffer);
         _uniformBuffer.Dangerous_SetBufferData(span);
         GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }

@@ -3,7 +3,7 @@ using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;

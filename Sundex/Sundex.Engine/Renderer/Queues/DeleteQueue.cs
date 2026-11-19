@@ -42,7 +42,8 @@ public class DeleteQueue
                         throw new ArgumentOutOfRangeException();
                 }
 
-                RenderMarker.Debug($"Deleted {type}: ({handle})");
+                if (RenderMarker.Enabled)
+                    RenderMarker.Debug($"Deleted {type}: ({handle})");
             }
         }
     }

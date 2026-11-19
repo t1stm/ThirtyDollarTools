@@ -1,10 +1,17 @@
 using System.Buffers;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Sundex.Engine.Asset_Management.Extensions;
 
 public static class AssemblyExtensions
 {
+    private static readonly ConditionalWeakTable<Assembly, string> AssetRoots = new();
+
+    private static string AssetRoot(Assembly assembly) => AssetRoots.GetValue(assembly, static source =>
+        source.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => attribute.Key == "SundexAssetRoot")?.Value ?? source.GetName().Name!);
+
     extension(Assembly[] assemblies)
     {
         private static void Sanitize(ReadOnlySpan<char> src, Span<char> dest, char searchChar, char replaceChar)
@@ -29,8 +36,7 @@ public static class AssemblyExtensions
             {
                 foreach (var assembly in assemblies)
                 {
-                    var assemblyName = assembly.GetName().Name;
-                    var info = assembly.GetManifestResourceInfo($"{assemblyName}.{locationSpan}");
+                    var info = assembly.GetManifestResourceInfo($"{AssetRoot(assembly)}.{locationSpan}");
                     if (info != null) return info;
                 }
 
@@ -53,8 +59,7 @@ public static class AssemblyExtensions
             {
                 foreach (var assembly in assemblies)
                 {
-                    var assemblyName = assembly.GetName().Name;
-                    var stream = assembly.GetManifestResourceStream($"{assemblyName}.{locationSpan.ToString()}");
+                    var stream = assembly.GetManifestResourceStream($"{AssetRoot(assembly)}.{locationSpan}");
                     if (stream != null) return stream;
                 }
 

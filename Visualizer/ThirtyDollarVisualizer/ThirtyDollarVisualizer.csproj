@@ -37,6 +37,7 @@
     <ProjectReference Include="..\Scenes\DrumMasterScene\DrumMasterScene.csproj"/>
     <ProjectReference Include="..\Scenes\SettingsScene\SettingsScene.csproj"/>
     <ProjectReference Include="..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\..\Sundex\Sundex.Markup.Legacy\Sundex.Markup.Legacy.csproj"/>
     <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj"/>
     <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj"/>
     <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj"/>

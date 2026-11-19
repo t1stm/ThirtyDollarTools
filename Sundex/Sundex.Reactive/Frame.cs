@@ -47,11 +47,10 @@ public static class Frame
 
     public static bool OnUiThread => _uiThread == null || ReferenceEquals(Thread.CurrentThread, _uiThread);
 
-    /// <summary>Debug builds only: state is UI-thread only, and a write from elsewhere is a bug.</summary>
-    [Conditional("DEBUG")]
+    /// <summary>In development, rejects state writes made off the UI thread.</summary>
     public static void AssertUiThread()
     {
-        if (!OnUiThread)
+        if (SundexDevelopment.Enabled && !OnUiThread)
             throw new InvalidOperationException(
                 "Reactive state was written off the UI thread. Post the write with Frame.Post.");
     }

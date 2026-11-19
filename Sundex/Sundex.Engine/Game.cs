@@ -1,6 +1,5 @@
 using Sundex.Reactive;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -46,9 +45,7 @@ public class Game : GameWindow
     private readonly List<string> _pendingText = [];
     private WindowState _preFullscreenState = WindowState.Normal;
 
-#if DEBUG
-    private readonly SourceWatcher _sourceWatcher;
-#endif
+    private readonly SourceWatcher? _sourceWatcher;
 
     public Game(ILogger serilogLogger, Assembly[] assemblies, GameWindowSettings gameSettings,
         NativeWindowSettings nativeWindowSettings, string id) :
@@ -60,23 +57,20 @@ public class Game : GameWindow
         _loggerGL = Logger.ForContext("SourceContext", "OpenGL");
         _inputLogger = new SerilogLoggerFactory(serilogLogger).CreateLogger("Input");
 
-        var callingAssembly = Assembly.GetExecutingAssembly();
-        AssetAssemblies = [callingAssembly, .. assemblies];
-
-        AssetProvider = new AssetProvider(Logger, AssetAssemblies, GLInfo);
+        AssetProvider = new AssetProvider(Logger, [typeof(Game).Assembly, .. assemblies], GLInfo);
         SceneManager = new SceneManager(Logger);
 
-#if DEBUG
-        // Reloads land on the frame queue rather than running where they were raised: both
-        // the IDE's hot-reload callback and the file watcher fire on their own threads, and
-        // rebuilding a UI touches GL objects that belong to the render thread.
-        HotReload.Requested = scope => Enqueue(game => game.SceneManager.Reload(scope));
-        _sourceWatcher = new SourceWatcher(Logger, AssetProvider.SourceRoots);
-#endif
+        if (SundexDevelopment.Enabled)
+        {
+            // The IDE callback and file watcher run on their own threads. Rebuilding the UI
+            // touches GL objects, so reloads land on the render thread's frame queue.
+            HotReload.Requested = scope => Enqueue(game => game.SceneManager.Reload(scope));
+            _sourceWatcher = new SourceWatcher(Logger, AssetProvider.SourceRoots);
+        }
     }
 
     public ILogger Logger { get; }
-    public Assembly[] AssetAssemblies { get; }
+    public Assembly[] AssetAssemblies => AssetProvider.AssetAssemblies;
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     public ThreadRunner ThreadRunner => AssetProvider.ThreadRunner;
@@ -325,7 +319,7 @@ public class Game : GameWindow
 
         GL.Disable(EnableCap.Blend);
         Context.SwapBuffers();
-        LogInput();
+        if (SundexDevelopment.Enabled) LogInput();
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)
@@ -402,7 +396,6 @@ public class Game : GameWindow
     ///     visualizer-headless skill). Runs after SwapBuffers: OpenTK 5 renders once per update,
     ///     so the edges read here are the ones that update handled.
     /// </summary>
-    [Conditional("DEBUG")]
     private void LogInput()
     {
         foreach (var text in _pendingText) _inputLogger.TextEntered(text);
@@ -430,10 +423,9 @@ public class Game : GameWindow
     }
 
     /// <summary>Text arrives as events, not polled state, so it is held for the next drawn frame's <see cref="LogInput" />.</summary>
-    [Conditional("DEBUG")]
     private void LogTextInput(TextInputEventArgs args)
     {
-        _pendingText.Add(args.AsString);
+        if (SundexDevelopment.Enabled) _pendingText.Add(args.AsString);
     }
 
     /// <summary>Whether Alt+Enter (Ctrl+Cmd+F on macOS) toggles fullscreen before the scene sees the key.</summary>
@@ -505,10 +497,11 @@ public class Game : GameWindow
     {
         base.OnClosing(e);
         SceneManager.Shutdown();
-#if DEBUG
-        HotReload.Requested = null;
-        _sourceWatcher.Dispose();
-#endif
+        if (_sourceWatcher != null)
+        {
+            HotReload.Requested = null;
+            _sourceWatcher.Dispose();
+        }
     }
 
     public void Enqueue(Action<Game> action)

@@ -1,4 +1,5 @@
-using Sundex.Components.Renderer.Planes.Uniforms;
+using Sundex.Core.Renderer.Planes;
+using Sundex.Core.Renderer.Planes.Uniforms;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
 
 namespace Sundex.Components.Renderer.Planes.Extensions;

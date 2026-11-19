@@ -4,7 +4,7 @@ using OpenTK.Windowing.Desktop;
 using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.DummyProject;

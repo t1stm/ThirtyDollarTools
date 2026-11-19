@@ -54,17 +54,14 @@ public class ShaderPool(ILogger logger, AssetProvider assetProvider)
     public Shader GetOrLoad(string shaderLocation,
         Func<AssetProvider, Shader> missingFunction)
     {
-#if DEBUG
-        _logger.Debug("Searching for shader with name: '{ShaderName}'",
-            shaderLocation);
-#endif
+        if (Sundex.Reactive.SundexDevelopment.Enabled)
+            _logger.Debug("Searching for shader with name: '{ShaderName}'", shaderLocation);
         var alternative_lookup = _namedShaders.GetAlternateLookup<ReadOnlySpan<char>>();
         if (alternative_lookup.TryGetValue(shaderLocation, out var shader))
             return shader;
 
-#if DEBUG
-        _logger.Debug("Shader with name: '{ShaderName}' not found, invoking load function.", shaderLocation);
-#endif
+        if (Sundex.Reactive.SundexDevelopment.Enabled)
+            _logger.Debug("Shader with name: '{ShaderName}' not found, invoking load function.", shaderLocation);
 
         var result = missingFunction.Invoke(assetProvider);
         alternative_lookup[shaderLocation] = result;

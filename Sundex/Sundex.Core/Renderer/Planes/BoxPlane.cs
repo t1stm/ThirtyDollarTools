@@ -15,7 +15,7 @@ using Sundex.Engine.Renderer.Data_Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 
-namespace Sundex.Components.Renderer.Planes;
+namespace Sundex.Core.Renderer.Planes;
 
 /// <summary>
 ///     The plane behind every panel: what ColoredPlane is, plus a per-side border, a

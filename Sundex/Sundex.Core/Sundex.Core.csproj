@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sundex.Engine\Sundex.Engine.csproj"/>
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="all"/>
+    <EmbeddedResource Include="Assets\Shaders\**\*"/>
   </ItemGroup>
 
 </Project>

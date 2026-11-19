@@ -4,7 +4,7 @@ using Sundex.Core.Animations;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Renderer.Shaders;
 
-namespace Sundex.Components.Renderer.Planes;
+namespace Sundex.Core.Renderer.Planes;
 
 public class AnimatedPlane<T>(T renderable, Animation animation) : Renderable
     where T : Renderable

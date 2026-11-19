@@ -69,7 +69,8 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
         Handle = GL.GenVertexArray();
         BufferState = Handle > 0 ? BufferState.Created : BufferState.Failed;
 
-        RenderMarker.Debug("Vertex Array Object: ", $"({Handle}), State: {BufferState}");
+        if (RenderMarker.Enabled)
+            RenderMarker.Debug("Vertex Array Object: ", $"({Handle}), State: {BufferState}");
     }
 
     /// <summary>
@@ -117,7 +118,8 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
             if (element.Divisor != 0)
                 GL.VertexAttribDivisor(vertex, (uint)element.Divisor);
 
-            RenderMarker.Debug("Uploaded Buffer to VAO: ", $"({Handle}), Params: [{vbo}, {layout}]");
+            if (RenderMarker.Enabled)
+                RenderMarker.Debug("Uploaded Buffer to VAO: ", $"({Handle}), Params: [{vbo}, {layout}]");
         }
 
         _vertexIndex += elements.Count;
@@ -135,7 +137,8 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
     private void BindIndexBuffer(IBindable ibo)
     {
         GL.VertexArrayElementBuffer(Handle, ibo.Handle);
-        RenderMarker.Debug("Bound IBO Buffer to VAO: ", $"({Handle}), Params: ({ibo})");
+        if (RenderMarker.Enabled)
+            RenderMarker.Debug("Bound IBO Buffer to VAO: ", $"({Handle}), Params: ({ibo})");
     }
 
     private void UploadBufferLayouts()

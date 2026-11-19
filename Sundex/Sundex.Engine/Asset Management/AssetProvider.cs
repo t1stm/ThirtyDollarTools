@@ -1,10 +1,12 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using Serilog;
 using Sundex.Engine.Asset_Management.Abstract.Loading;
 using Sundex.Engine.Asset_Management.Abstract.Metadata;
 using Sundex.Engine.Asset_Management.Helpers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Threading;
+using Sundex.Reactive;
 
 namespace Sundex.Engine.Asset_Management;
 
@@ -13,8 +15,8 @@ public class AssetProvider : IAssetProvider
     public AssetProvider(ILogger logger, Assembly[] assetAssemblies, GLInfo glInfo)
     {
         Logger = logger.ForContext<AssetProvider>();
-        AssetAssemblies = assetAssemblies;
-        SourceRoots = ReadSourceRoots(assetAssemblies);
+        AssetAssemblies = DiscoverAssetAssemblies(assetAssemblies);
+        SourceRoots = SundexDevelopment.Enabled ? ReadSourceRoots(AssetAssemblies) : [];
         GLInfo = glInfo;
         ShaderPool = new ShaderPool(logger, this);
         CacheProvider = new CacheProvider(this);
@@ -24,6 +26,38 @@ public class AssetProvider : IAssetProvider
     public ILogger Logger { get; }
 
     public Assembly[] AssetAssemblies { get; }
+
+    private static Assembly[] DiscoverAssetAssemblies(Assembly[] supplied)
+    {
+        var assemblies = supplied.Distinct().ToList();
+        var seen = new HashSet<Assembly>(assemblies);
+        var pending = new Queue<Assembly>(assemblies);
+        if (Assembly.GetEntryAssembly() is { } entry && !seen.Contains(entry)) pending.Enqueue(entry);
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            if (assembly.IsDefined(typeof(SundexAssetsAttribute)) && seen.Add(assembly))
+            {
+                assemblies.Add(assembly);
+                pending.Enqueue(assembly);
+            }
+
+        // A scene can use planes after Game starts. Pick up its Sundex references even when
+        // the CLR has yet to load their types, so their preloads run with the graphics context.
+        while (pending.TryDequeue(out var assembly))
+        {
+            var context = AssemblyLoadContext.GetLoadContext(assembly);
+            if (context == null) continue;
+            foreach (var reference in assembly.GetReferencedAssemblies())
+            {
+                if (reference.Name?.StartsWith("Sundex.", StringComparison.Ordinal) != true) continue;
+                var dependency = context.LoadFromAssemblyName(reference);
+                if (!seen.Add(dependency)) continue;
+                if (dependency.IsDefined(typeof(SundexAssetsAttribute))) assemblies.Add(dependency);
+                pending.Enqueue(dependency);
+            }
+        }
+
+        return assemblies.ToArray();
+    }
 
     /// <summary>
     ///     Project directories of the asset assemblies, stamped in by Directory.Build.props
@@ -71,13 +105,11 @@ public class AssetProvider : IAssetProvider
     /// <typeparam name="TCreate">The type of creation information required to load the asset.</typeparam>
     /// <param name="createInfo">The information needed to create and load the asset.</param>
     /// <returns>The loaded asset of the specified type.</returns>
-    public TReturn Load<TReturn, TCreate>(TCreate createInfo)
+    public virtual TReturn Load<TReturn, TCreate>(TCreate createInfo)
         where TReturn : ILoadableAsset<TReturn, TCreate>
     {
-#if DEBUG
-        Logger.Debug("Loading {ReturnType} with params: {@CreateInfo}",
-            typeof(TReturn).Name, createInfo);
-#endif
+        if (SundexDevelopment.Enabled)
+            Logger.Debug("Loading {ReturnType} with params: {@CreateInfo}", typeof(TReturn).Name, createInfo);
 
         return TReturn.AssetLoader.Load(createInfo, this);
     }

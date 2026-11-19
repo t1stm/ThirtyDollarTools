@@ -15,7 +15,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     A pool of rects (grid/bar lines, markers, block fills) drawn as one instanced draw
-///     call instead of one <see cref="Sundex.Components.Renderer.Planes.ColoredPlane" /> - and one
+///     call instead of one <see cref="Sundex.Core.Renderer.Planes.ColoredPlane" /> - and one
 ///     uniform-buffer upload - per rect. Reuses the visualizer's instanced quad plumbing
 ///     (<see cref="RenderStack{TDataType}" />) with an instance of its own,
 ///     <see cref="ShadedRect" />: a rect is flat unless it is given a shape, which rounds

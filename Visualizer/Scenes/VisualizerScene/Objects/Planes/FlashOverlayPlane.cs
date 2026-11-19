@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Attributes;
 

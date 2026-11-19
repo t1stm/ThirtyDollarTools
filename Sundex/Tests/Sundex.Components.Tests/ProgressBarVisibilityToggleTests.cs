@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using OpenTK.Mathematics;
 using Sundex.Components;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;

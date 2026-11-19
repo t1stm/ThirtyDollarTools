@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 
-namespace Sundex.Components.Renderer.Planes.Uniforms;
+namespace Sundex.Core.Renderer.Planes.Uniforms;
 
 [StructLayout(LayoutKind.Explicit, Size = 160)]
 public struct ColoredUniform

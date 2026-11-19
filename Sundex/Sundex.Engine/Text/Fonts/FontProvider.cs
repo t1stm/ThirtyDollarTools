@@ -18,11 +18,6 @@ public class FontProvider : IFontProvider
             Location = "Assets/Fonts/Lato-Bold.ttf"
         }));
 
-        AddFont("Twemoji Mozilla", assetProvider.Load<AssetStream, AssetInfo>(new AssetInfo
-        {
-            Location = "Assets/Fonts/Twemoji.Mozilla.ttf"
-        }));
-
         AddFont("Lucide", assetProvider.Load<AssetStream, AssetInfo>(new AssetInfo
         {
             Location = "Assets/Fonts/lucide.ttf"

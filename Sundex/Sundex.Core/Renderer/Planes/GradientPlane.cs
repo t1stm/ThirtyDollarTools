@@ -1,7 +1,7 @@
 using JetBrains.Annotations;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using Sundex.Components.Renderer.Planes.Uniforms;
+using Sundex.Core.Renderer.Planes.Uniforms;
 using Sundex.Core;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Extensions;
@@ -14,7 +14,7 @@ using Sundex.Engine.Renderer.Data_Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 
-namespace Sundex.Components.Renderer.Planes;
+namespace Sundex.Core.Renderer.Planes;
 
 [PreloadGraphicsContext]
 public class GradientPlane : Renderable, IGamePreloadable, IBorderRadius

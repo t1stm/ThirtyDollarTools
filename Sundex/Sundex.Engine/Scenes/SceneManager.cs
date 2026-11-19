@@ -59,7 +59,6 @@ public class SceneManager(ILogger logger)
         }
     }
 
-    [Conditional("DEBUG")]
     private static void DebugMarker(ReadOnlySpan<char> message1, ReadOnlySpan<char> message2, bool hidden = false)
     {
         RenderMarker.Debug(message1, message2, hidden ? MarkerType.Hidden : MarkerType.Visible);
@@ -71,7 +70,8 @@ public class SceneManager(ILogger logger)
         {
             foreach (var (_, scene) in Scenes)
             {
-                DebugMarker("Resizing scene: ", $"{scene.GetType().Name} {eWidth}x{eHeight}");
+                if (RenderMarker.Enabled)
+                    DebugMarker("Resizing scene: ", $"{scene.GetType().Name} {eWidth}x{eHeight}");
                 scene.Resize(eWidth, eHeight);
             }
         }

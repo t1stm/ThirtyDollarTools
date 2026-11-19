@@ -6,12 +6,13 @@ using OpenTK.Mathematics;
 using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Tests;
+using Sundex.Testing;
 using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Markup;
+using Sundex.Markup.Logic.Languages.CSharp;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
 // so this suite must also run sequentially.
@@ -20,16 +21,15 @@ using Sundex.Markup;
 namespace LoadingScene.Tests;
 
 /// <summary>Headless UIContext over the LoadingScene assembly's embedded assets.</summary>
-public class LoaderTestContext : UIContext
+public class LoaderTestContext : TestUIContext
 {
+    static LoaderTestContext() => CSharp.Register();
+
     [SetsRequiredMembers]
     public LoaderTestContext()
+        : base(new LoggerConfiguration().CreateLogger(),
+            [typeof(LoaderInterface).Assembly, Assembly.GetExecutingAssembly()])
     {
-        InjectForTesting(
-            new AssetProvider(new LoggerConfiguration().CreateLogger(),
-                [typeof(LoaderInterface).Assembly, Assembly.GetExecutingAssembly()], new GLInfo()),
-            new MockFontProvider(),
-            new MockTextProvider());
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1600, 900));
     }
 }

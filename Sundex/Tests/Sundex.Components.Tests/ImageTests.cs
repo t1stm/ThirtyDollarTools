@@ -1,10 +1,9 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using OpenTK.Mathematics;
 using Serilog;
 using Sundex.Components;
-using Sundex.Components.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
@@ -701,18 +700,23 @@ public class ImageTests
         await stream.WriteAsync("HTTP/1.1 404 Not Found\r\nContent-Length: 4\r\nConnection: close\r\n\r\nnope"u8.ToArray(), cancel);
     }
 
-    /// <summary>A host that never listed this library in its asset assemblies.</summary>
+    /// <summary>A host whose asset loader fails for both the image and its placeholder.</summary>
     private sealed class NoPlaceholderContext : UIContext
     {
         [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
         public NoPlaceholderContext()
         {
             InjectForTesting(
-                new AssetProvider(new LoggerConfiguration().CreateLogger(), [Assembly.GetExecutingAssembly()],
-                    new GLInfo()),
+                new UnavailableAssets(),
                 new MockFontProvider(),
                 new MockTextProvider());
             Camera = new UICamera(Vector3.Zero, new Vector2i(1920, 1080));
         }
+    }
+
+    private sealed class UnavailableAssets() : AssetProvider(new LoggerConfiguration().CreateLogger(), [], new GLInfo())
+    {
+        public override TReturn Load<TReturn, TCreate>(TCreate createInfo) =>
+            throw new FileNotFoundException("Test asset unavailable.");
     }
 }

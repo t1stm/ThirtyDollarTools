@@ -178,13 +178,12 @@ public class TextBuffer : IRenderable, IClippable, IDisposable
 
         GLQuad.DrawInstanced(endIndex);
 
-#if DEBUG
-        Span<char> characterHandleString
-            = stackalloc char[11]; // 11 is the max characters an int can be represented with
-        Characters.Handle.TryFormat(characterHandleString, out _);
-
-        RenderMarker.Debug("Rendered Text Buffer: ", characterHandleString, MarkerType.Hidden);
-#endif
+        if (RenderMarker.Enabled)
+        {
+            Span<char> handle = stackalloc char[11];
+            Characters.Handle.TryFormat(handle, out var written);
+            RenderMarker.Debug("Rendered Text Buffer: ", handle[..written], MarkerType.Hidden);
+        }
     }
 
     public void Remove(TextSlice textSlice)

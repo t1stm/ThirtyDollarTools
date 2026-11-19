@@ -1,14 +1,17 @@
-using System.Diagnostics;
 using System.Text;
 using OpenTK.Graphics.OpenGL;
+using Sundex.Reactive;
 
 namespace Sundex.Engine.Renderer.Debug;
 
 public static class RenderMarker
 {
-    public static bool Enabled { get; set; } = true;
+    public static bool Enabled
+    {
+        get => field && SundexDevelopment.Enabled;
+        set;
+    } = true;
 
-    [Conditional("DEBUG")]
     public static unsafe void Debug(ReadOnlySpan<char> message, MarkerType markerType = MarkerType.Visible,
         DebugSource source = DebugSource.DebugSourceApplication,
         DebugType type = DebugType.DebugTypeMarker)
@@ -26,7 +29,6 @@ public static class RenderMarker
         }
     }
 
-    [Conditional("DEBUG")]
     public static void Debug(ReadOnlySpan<char> message1, ReadOnlySpan<char> message2,
         MarkerType markerType = MarkerType.Visible,
         DebugSource source = DebugSource.DebugSourceApplication,

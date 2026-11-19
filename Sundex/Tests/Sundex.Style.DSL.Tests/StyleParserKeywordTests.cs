@@ -5,21 +5,10 @@ namespace Sundex.Style.DSL.Tests;
 
 public class StyleParserKeywordTests
 {
-    private static string GetProjectRoot()
-    {
-        var basePath = AppContext.BaseDirectory;
-        var projectRoot = basePath;
-        while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.slnx")) && !File.Exists(Path.Combine(projectRoot, "Experimental.slnx")))
-            projectRoot = Path.GetDirectoryName(projectRoot);
-
-        return projectRoot!;
-    }
-
     [Test]
     public void KeyframesValue_TypedAccess_Works()
     {
-        var root = GetProjectRoot();
-        var path = Path.Combine(root, "Sundex/Sundex.Style.DSL/Examples/default.snx.ss");
+        var path = Path.Combine(AppContext.BaseDirectory, "Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 
@@ -39,8 +28,7 @@ public class StyleParserKeywordTests
     [Test]
     public void GradientValue_Linear_TypedAccess_Works()
     {
-        var root = GetProjectRoot();
-        var path = Path.Combine(root, "Sundex/Sundex.Style.DSL/Examples/default.snx.ss");
+        var path = Path.Combine(AppContext.BaseDirectory, "Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 
@@ -71,8 +59,7 @@ public class StyleParserKeywordTests
     [Test]
     public void GradientValue_Radial_TypedAccess_Works()
     {
-        var root = GetProjectRoot();
-        var path = Path.Combine(root, "Sundex/Sundex.Style.DSL/Examples/default.snx.ss");
+        var path = Path.Combine(AppContext.BaseDirectory, "Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 
@@ -102,8 +89,7 @@ public class StyleParserKeywordTests
     [Test]
     public void OverrideValue_TypedAccess_Works()
     {
-        var root = GetProjectRoot();
-        var path = Path.Combine(root, "Sundex/Sundex.Style.DSL/Examples/default.snx.ss");
+        var path = Path.Combine(AppContext.BaseDirectory, "Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 

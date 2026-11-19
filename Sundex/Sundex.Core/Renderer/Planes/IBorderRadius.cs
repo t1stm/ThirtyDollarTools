@@ -1,4 +1,4 @@
-namespace Sundex.Components.Renderer.Planes;
+namespace Sundex.Core.Renderer.Planes;
 
 public interface IBorderRadius
 {
