@@ -3,7 +3,7 @@ using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
 using EditorScene.State;
 using Sundex.Components.Abstractions;
-using Sundex.Components.File_Selector;
+using Sundex.Components.FileSelector;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 

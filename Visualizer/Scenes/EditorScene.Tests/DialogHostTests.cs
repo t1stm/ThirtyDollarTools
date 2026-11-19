@@ -2,7 +2,7 @@ using EditorScene.Scenes;
 using EditorScene.Scenes.Dialogs;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Sundex.Components.File_Selector;
+using Sundex.Components.FileSelector;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;

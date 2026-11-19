@@ -24,7 +24,7 @@ using Shared.Audio.OpenAL;
 using SixLabors.ImageSharp;
 using Sundex.Components;
 using Sundex.Engine;
-using Sundex.Markup.Logic.Languages.CSharp;
+using Sundex.Markup.Legacy;
 using ThirtyDollarVisualizer;
 using ThirtyDollarVisualizer.VisualizerSettings;
 using VisualizerScene;

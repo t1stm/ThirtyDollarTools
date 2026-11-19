@@ -1,7 +1,7 @@
 using OpenTK.Mathematics;
 using Shared;
 using Shared.Atlases;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Queues;

@@ -2,7 +2,7 @@ using System.Text.Json;
 using OpenTK.Windowing.Common;
 using Sundex.Components;
 using Sundex.Components.Abstractions;
-using Sundex.Components.File_Selector;
+using Sundex.Components.FileSelector;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;

@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Engine.Common;
 
 namespace Shared.Updates;

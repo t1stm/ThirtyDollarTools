@@ -5,7 +5,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
 using Shared.Animations;
 using Sundex.Markup.Attributes;

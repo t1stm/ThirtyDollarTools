@@ -7,7 +7,7 @@ using Shared;
 using Shared.Audio;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Engine;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;

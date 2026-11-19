@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Markup\Sundex.Markup.csproj"/>
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
+    <PackageReference Include="Sundex.Engine" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Markup" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Components" Version="$(SundexVersion)"/>
     <ProjectReference Include="..\..\Shared\Shared.csproj"/>
     <ProjectReference Include="..\VisualizerScene\VisualizerScene.csproj"/>
     <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Editor\ThirtyDollarConverter.Editor.csproj"/>

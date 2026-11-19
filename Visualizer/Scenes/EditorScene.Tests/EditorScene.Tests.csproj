@@ -27,8 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="..\EditorScene\EditorScene.csproj"/>
     <!-- for the shared UIContext mocks (MockFontProvider and friends) -->
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Testing\Sundex.Testing.csproj"/>
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Markup.Legacy\Sundex.Markup.Legacy.csproj"/>
+    <PackageReference Include="Sundex.Testing" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Markup.Legacy" Version="$(SundexVersion)"/>
   </ItemGroup>
 
 </Project>

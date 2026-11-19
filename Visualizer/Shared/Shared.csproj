@@ -31,10 +31,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Converter\ThirtyDollarConverter.Encoder\ThirtyDollarConverter.Encoder.csproj"/>
     <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Core\Sundex.Core.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+    <PackageReference Include="Sundex.Style.DSL" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Core" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Engine" Version="$(SundexVersion)"/>
   </ItemGroup>
 
   <ItemGroup>

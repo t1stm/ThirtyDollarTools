@@ -6,7 +6,7 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Markdown;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
 
 namespace HomeScene.Scenes;

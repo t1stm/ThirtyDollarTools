@@ -11,12 +11,12 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Testing;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Engine;
-using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
-using Sundex.Markup.Logic.Languages.CSharp;
+using Sundex.Markup.Legacy;
 using VisualizerScene.Settings;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),

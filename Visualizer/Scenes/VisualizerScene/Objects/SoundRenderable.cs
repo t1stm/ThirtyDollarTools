@@ -3,7 +3,7 @@ using OpenTK.Mathematics;
 using Shared.Animations;
 using Sundex.Core;
 using Sundex.Core.Animations;
-using Sundex.Engine.Renderer.Data_Buffers;
+using Sundex.Engine.Renderer.Buffers;
 using ThirtyDollarConverter.Parser;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 using VisualizerScene.Objects.Sound_Values;

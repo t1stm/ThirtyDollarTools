@@ -2,7 +2,7 @@ using System.Diagnostics;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using Sundex.Core.Renderer.Planes;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 using Sundex.Engine.Renderer.Attributes;
 
 namespace VisualizerScene.Objects.Planes;

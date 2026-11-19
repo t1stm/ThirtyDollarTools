@@ -1,4 +1,4 @@
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Text;
 using Sundex.Engine.Text.Fonts;

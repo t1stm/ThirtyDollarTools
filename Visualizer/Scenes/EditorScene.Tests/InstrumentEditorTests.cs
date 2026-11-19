@@ -4,7 +4,7 @@ using OpenTK.Mathematics;
 using Serilog;
 using Shared.Atlases;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 
