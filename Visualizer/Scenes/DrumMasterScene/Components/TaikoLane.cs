@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
@@ -52,7 +53,7 @@ public class TaikoLane : IDisposable
         {
             if (i % chunkSize == 0)
             {
-                var textBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
+                var textBuffer = new TextBuffer(fonts.LatoBoldProvider);
                 textBuffer.Resize(chunkSize * 6 /* avg chars */ * 3 /* max fields */);
                 currentChunk = new TaikoChunk(textBuffer, new StackCollection());
                 _chunks.Add(currentChunk);
@@ -410,10 +411,10 @@ public class TaikoLane : IDisposable
         RegisterHit(bestSound, bestChunkIdx, bestIdx, offset);
     }
 
-    public void Render(DollarStoreCamera camera)
+    public void Render(in RenderContext context)
     {
-        _lane.Render(camera);
-        _hitBox.Render(camera);
+        _lane.Render(context);
+        _hitBox.Render(context);
         // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
         foreach (var chunk in _chunks)
         {
@@ -434,9 +435,9 @@ public class TaikoLane : IDisposable
             if (maxX < LanePosition.X || minX > LanePosition.X + LaneScale.X)
                 continue;
 
-            chunk.Stacks.Render(camera);
-            chunk.BackgroundBlips?.Render(camera);
-            chunk.TextBuffer.Render(camera);
+            chunk.Stacks.Render(context);
+            chunk.BackgroundBlips?.Render(context);
+            chunk.TextBuffer.Render(context);
         }
     }
 

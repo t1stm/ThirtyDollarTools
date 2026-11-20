@@ -8,10 +8,10 @@ layout (location = 6) in vec4 aRGBA; // BackgroundBlip->RGBA
 out vec2 fragmentCoords;
 out vec4 RGBA;
 
-uniform mat4 u_VPMatrix;
+layout (std140) uniform View { mat4 ViewProjection; };
 
 void main() {
-    vec4 finalCoords = u_VPMatrix * aModel * vec4(aPosition, 1.0);
+    vec4 finalCoords = ViewProjection * aModel * vec4(aPosition, 1.0);
     gl_Position = finalCoords;
     fragmentCoords = aUV;
     RGBA = aRGBA;

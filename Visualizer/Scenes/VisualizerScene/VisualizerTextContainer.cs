@@ -1,7 +1,7 @@
+using Sundex.Engine.Renderer;
 using Shared.Helpers.Positioning;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Abstract.Extensions;
-using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Text;
 
 namespace VisualizerScene;
@@ -18,9 +18,9 @@ public class VisualizerTextContainer
     {
         _scale = scale;
 
-        _genericBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
-        _debugBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
-        _greetingBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
+        _genericBuffer = new TextBuffer(fonts.LatoBoldProvider);
+        _debugBuffer = new TextBuffer(fonts.LatoBoldProvider);
+        _greetingBuffer = new TextBuffer(fonts.LatoBoldProvider);
         Overlay = CreateLayout(width, height);
         Greeting = _greetingBuffer.GetTextSlice(" ", UpdatableTextSliceMaxLength);
     }
@@ -56,17 +56,17 @@ public class VisualizerTextContainer
         return overlay;
     }
 
-    public void RenderStaticText(Camera camera)
+    public void RenderStaticText(in RenderContext context)
     {
-        _genericBuffer.RenderBuffer(camera);
+        _genericBuffer.RenderBuffer(context);
 
         if (ShowDebug)
-            _debugBuffer.RenderBuffer(camera);
+            _debugBuffer.RenderBuffer(context);
     }
 
-    public void RenderGreeting(Camera camera)
+    public void RenderGreeting(in RenderContext context)
     {
-        _greetingBuffer.RenderBuffer(camera);
+        _greetingBuffer.RenderBuffer(context);
     }
 
     public T Get<T>(ReadOnlySpan<char> name) where T : IPositionable

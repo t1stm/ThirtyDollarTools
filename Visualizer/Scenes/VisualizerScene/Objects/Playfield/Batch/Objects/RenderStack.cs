@@ -1,64 +1,48 @@
+using System.Runtime.CompilerServices;
 using Sundex.Engine.Renderer;
 using Sundex.Engine.Renderer.Abstract;
-using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Renderer.Buffers;
-using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 
 namespace VisualizerScene.Objects.Playfield.Batch.Objects;
 
-public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, IGPUReflection
+public class RenderStack<TDataType>(int capacity = 0, bool texturedQuad = false) : IDisposable
+    where TDataType : unmanaged, IVertexData
 {
-    public RenderStack(DeleteQueue deleteQueue, int capacity = 0,
-        GLBuffer<float>? initialVertexBuffer = null,
-        VertexBufferLayout? initialLayout = null,
-        GLBuffer<int>? initialIndexElementBuffer = null)
-    {
-        initialVertexBuffer ??= GLQuad.VBOWithoutUV;
-        initialLayout ??= new VertexBufferLayout().PushFloat(3);
-        initialIndexElementBuffer ??= GLQuad.EBO;
-
-        VAO = new VertexArrayObject();
-        List = new GLBufferList<TDataType>(deleteQueue, capacity);
-
-        AddQuadDataToVAO(VAO, initialVertexBuffer, initialLayout, initialIndexElementBuffer);
-        AddBufferTypeRefectionToVAO(List, VAO);
-    }
+    private static readonly ConditionalWeakTable<Shader, Pipeline> PositionPipelines = new();
+    private static readonly ConditionalWeakTable<Shader, Pipeline> TexturedPipelines = new();
+    private Pipeline? _pipeline;
 
     public required Shader Shader { get; init; }
-    public GLBufferList<TDataType> List { get; }
-    public VertexArrayObject VAO { get; }
+    public GpuBufferList<TDataType> List { get; } = new(capacity);
 
     public void Dispose()
     {
         List.Dispose();
-        VAO.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    protected void AddQuadDataToVAO(VertexArrayObject vao, GLBuffer<float> vertexBuffer,
-        VertexBufferLayout initialLayout, GLBuffer<int> indexBuffer)
+    public void Render(in RenderContext context)
     {
-        vao.AddBuffer(vertexBuffer, initialLayout);
-        vao.SetIndexBuffer(indexBuffer);
+        if (List.Count == 0) return;
+        _pipeline ??= texturedQuad
+            ? TexturedPipelines.GetValue(Shader, static shader => CreatePipeline(shader, true))
+            : PositionPipelines.GetValue(Shader, static shader => CreatePipeline(shader, false));
+
+        var commands = context.Commands;
+        commands.SetPipeline(_pipeline);
+        commands.SetVertexBuffer(0, texturedQuad ? UnitQuad.PositionsWithUV : UnitQuad.Positions);
+        commands.SetVertexBuffer(1, List.Buffer);
+        commands.SetIndexBuffer(UnitQuad.Indices);
+        commands.DrawIndexed(UnitQuad.IndexCount, List.Count);
     }
 
-    protected void AddBufferTypeRefectionToVAO(IGPUBuffer<TDataType> buffer, VertexArrayObject vao)
+    private static Pipeline CreatePipeline(Shader shader, bool textured)
     {
-        var layout = new VertexBufferLayout();
-
-        TDataType.SelfReflectToGL(layout);
-        vao.AddBuffer(buffer, layout);
-    }
-
-    public void Render(Camera camera)
-    {
-        Shader.Use();
-        Shader.SetUniform("u_VPMatrix", camera.GetVPMatrix());
-
-        VAO.Bind();
-        VAO.Update();
-
-        GLQuad.DrawInstanced(List.Count);
+        var vertices = new VertexBufferLayout().PushFloat(3);
+        if (textured) vertices.PushFloat(2);
+        var instances = new VertexBufferLayout(VertexStepRate.Instance);
+        TDataType.DescribeLayout(instances);
+        return new Pipeline(new PipelineDescription(shader, [vertices, instances]));
     }
 }

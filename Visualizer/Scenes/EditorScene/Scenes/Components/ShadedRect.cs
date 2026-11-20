@@ -11,7 +11,7 @@ namespace EditorScene.Scenes.Components;
 ///     a plain flat rect, so everything written without one keeps the look it always had.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct ShadedRect : IGPUReflection
+public struct ShadedRect : IVertexData
 {
     public Matrix4 Model;
     public Vector4 Color;
@@ -51,10 +51,10 @@ public struct ShadedRect : IGPUReflection
         return new Vector4(radius, corners | (int)light << 4, outline, strength);
     }
 
-    public static void SelfReflectToGL(VertexBufferLayout layout)
+    public static void DescribeLayout(VertexBufferLayout layout)
     {
         layout.PushMatrix4(1);
-        layout.PushFloat(4, true);
-        layout.PushFloat(4, true);
+        layout.PushFloat(4);
+        layout.PushFloat(4);
     }
 }

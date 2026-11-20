@@ -71,7 +71,7 @@ public class TextBenchScene : Scene
 
         _context.Clear();
         _timer?.Dispose();
-        _timer = new GpuTimer();
+        _timer = Game.Device.CreateGpuTimer();
         _cpuSamples.Clear();
         _glyphs = 0;
         _frames = 0;
@@ -129,7 +129,7 @@ public class TextBenchScene : Scene
 
     public override void Initialize(InitArguments initArguments)
     {
-        _renderer = initArguments.GLInfo.Renderer;
+        _renderer = initArguments.Capabilities.Renderer;
     }
 
     public override void Start()
@@ -143,15 +143,15 @@ public class TextBenchScene : Scene
         var alone = SceneManager.ActiveScenes is [var only] && only == this;
         if (_done || !alone || ++_frames <= WarmupFrames)
         {
-            _context.Render();
+            _context.Render(renderArgs.Commands);
             return;
         }
 
-        _timer!.Begin();
+        _timer!.Begin(renderArgs.Commands);
         var start = Stopwatch.GetTimestamp();
-        _context.Render();
+        _context.Render(renderArgs.Commands);
         _cpuSamples.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds);
-        _timer.End();
+        _timer.End(renderArgs.Commands);
 
         if (_timer.Samples.Count >= MeasuredFrames) FinishVariant();
     }

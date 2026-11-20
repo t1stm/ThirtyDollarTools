@@ -1,3 +1,5 @@
+using Sundex.Engine.Renderer;
+using Sundex.Reactive;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using Shared;
@@ -129,18 +131,19 @@ public class PlayfieldContainer(
         }
     }
 
-    public void Render(double renderDelta)
+    public void Render(ICommandList commands, double renderDelta)
     {
         lock (_playfields)
         {
-            BackgroundPlane.Render(StaticCamera);
-            FlashOverlayPlane.Render(StaticCamera);
+            var context = commands.WithCamera(StaticCamera);
+            BackgroundPlane.Render(context);
+            FlashOverlayPlane.Render(context);
 
             if (_playfields.Length <= 0) return;
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(CurrentSequence, _playfields.Length);
 
             var currentPlayfield = _playfields.AsSpan()[CurrentSequence];
-            currentPlayfield.Render(Camera, Camera.GetRenderScale(), renderDelta);
+            currentPlayfield.Render(commands, Camera, Camera.GetRenderScale(), renderDelta);
         }
     }
 
@@ -329,8 +332,9 @@ public class PlayfieldContainer(
     {
         if (sequenceIndex >= _playfields.Length) return;
 
-        var element = GetRenderable(placement, sequenceIndex);
-        element?.SetValue(placement.Event, ValueChangeWrapMode.RemoveTexture);
+        // The value is text in a GPU buffer, so it changes on the UI thread, between frames.
+        if (GetRenderable(placement, sequenceIndex) is { } element)
+            Frame.Post(() => element.SetValue(placement.Event, ValueChangeWrapMode.RemoveTexture));
     }
 
     [UsedImplicitly]
@@ -338,8 +342,8 @@ public class PlayfieldContainer(
     {
         if (sequenceIndex >= _playfields.Length) return;
 
-        var element = GetRenderable(placement, sequenceIndex);
-        element?.SetValue(placement.Event, ValueChangeWrapMode.ResetToDefault);
+        if (GetRenderable(placement, sequenceIndex) is { } element)
+            Frame.Post(() => element.SetValue(placement.Event, ValueChangeWrapMode.ResetToDefault));
     }
 
     [UsedImplicitly]

@@ -7,7 +7,7 @@ using Sundex.Engine.Renderer.Abstract;
 namespace Shared.Atlases;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct QuadUV : IGPUReflection
+public struct QuadUV : IVertexData
 {
     public Vector4 UV;
 
@@ -16,10 +16,10 @@ public struct QuadUV : IGPUReflection
         return $"{UV}";
     }
 
-    public static void SelfReflectToGL(VertexBufferLayout layout)
+    public static void DescribeLayout(VertexBufferLayout layout)
     {
-        layout.PushFloat(2, true); // QuadUV.UV0
-        layout.PushFloat(2, true); // QuadUV.UV1
+        layout.PushFloat(2); // QuadUV.UV0
+        layout.PushFloat(2); // QuadUV.UV1
     }
 
     public static QuadUV FromRectangle(RectangleF reference, int atlasWidth, int atlasHeight)

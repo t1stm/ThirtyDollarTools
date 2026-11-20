@@ -1,5 +1,4 @@
 using System.Globalization;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Serilog;
 using Shared.Atlases;
@@ -11,7 +10,6 @@ using Sundex.Engine.Renderer;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Buffers;
-using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Text;
 using ThirtyDollarConverter;
@@ -32,7 +30,6 @@ public class RenderableFactory(AtlasStore store)
 
     private const int MaxValueLength = 32;
     private static ShaderPool _shaderPool = null!;
-    private static DeleteQueue _deleteQueue = null!;
     private static ILogger _logger = null!;
 
     /// <summary>
@@ -54,35 +51,20 @@ public class RenderableFactory(AtlasStore store)
 
     public static void Preload(AssetProvider assetProvider)
     {
-        _deleteQueue = assetProvider.DeleteQueue;
         _shaderPool = assetProvider.ShaderPool;
         _logger = assetProvider.Logger.ForContext<RenderableFactory>();
 
-        assetProvider.ShaderPool.PreloadShader(AnimatedShaderLocation, provider =>
-            new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    $"{AnimatedShaderLocation}.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    $"{AnimatedShaderLocation}.frag")))
-        );
+        QueueShader(AnimatedShaderLocation, FramedAtlas.Layout);
+        QueueShader(StaticShaderLocation, StaticSoundAtlas.Layout);
+        QueueShader(BackgroundBlipShaderLocation, new ShaderLayout(ShaderLayout.View));
 
-        assetProvider.ShaderPool.PreloadShader(StaticShaderLocation, provider =>
-            new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    $"{StaticShaderLocation}.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    $"{StaticShaderLocation}.frag")))
-        );
-
-
-        assetProvider.ShaderPool.PreloadShader(BackgroundBlipShaderLocation, provider =>
-            new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    $"{BackgroundBlipShaderLocation}.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    $"{BackgroundBlipShaderLocation}.frag")
-            ))
-        );
+        void QueueShader(string location, ShaderLayout layout)
+        {
+            _shaderPool.PreloadShader(location, provider => new Shader(provider, layout,
+                provider.LoadShaders(
+                    ShaderInfo.CreateFromUnknownStorage(ShaderStage.Vertex, location + ".vert"),
+                    ShaderInfo.CreateFromUnknownStorage(ShaderStage.Fragment, location + ".frag"))));
+        }
     }
 
     public static void AssignTextBuffers(SoundRenderable renderable, BaseEvent baseEvent, TextBuffer textBuffer,
@@ -284,9 +266,7 @@ public class RenderableFactory(AtlasStore store)
             Model = Matrix4.Identity
         };
 
-        BackgroundBlips ??= new RenderStack<BackgroundBlip>(_deleteQueue, 0, GLQuad.VBOWithUV,
-            new VertexBufferLayout().PushFloat(3).PushFloat(2),
-            GLQuad.EBO)
+        BackgroundBlips ??= new RenderStack<BackgroundBlip>(texturedQuad: true)
         {
             Shader = _shaderPool.GetNamedShader(BackgroundBlipShaderLocation)
         };
@@ -319,7 +299,7 @@ public class RenderableFactory(AtlasStore store)
         };
 
         if (!staticAtlases.TryGetValue(atlas, out var renderStack))
-            staticAtlases.Add(atlas, renderStack = new RenderStack<StaticSound>(_deleteQueue)
+            staticAtlases.Add(atlas, renderStack = new RenderStack<StaticSound>()
             {
                 Shader = staticShader
             });
@@ -343,7 +323,7 @@ public class RenderableFactory(AtlasStore store)
         var soundData = new SoundData();
 
         if (!animatedAtlases.TryGetValue(animatedAtlas, out var renderStack))
-            animatedAtlases.Add(animatedAtlas, renderStack = new RenderStack<SoundData>(_deleteQueue)
+            animatedAtlases.Add(animatedAtlas, renderStack = new RenderStack<SoundData>()
             {
                 Shader = animatedShader
             });

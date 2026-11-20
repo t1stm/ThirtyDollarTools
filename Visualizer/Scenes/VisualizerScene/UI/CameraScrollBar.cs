@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer;
 using System.Diagnostics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Core.Renderer.Planes;
@@ -114,7 +115,7 @@ public sealed class CameraScrollBar(PlayfieldContainer playfield)
     }
 
     /// <param name="screenCamera">An unzoomed camera over the window, in pixels.</param>
-    public void Render(Camera screenCamera)
+    public void Render(in RenderContext context)
     {
         Measure();
         if (!Visible) return;
@@ -124,8 +125,8 @@ public sealed class CameraScrollBar(PlayfieldContainer playfield)
         _thumb.Position = (_left, ThumbTop(playfield.Camera.Position.Y), 0);
         _thumb.Scale = (Thickness, _thumbLength, 0);
 
-        _track.Render(screenCamera);
-        _thumb.Render(screenCamera);
+        _track.Render(context);
+        _thumb.Render(context);
     }
 
     private void Measure()

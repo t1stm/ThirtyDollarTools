@@ -1,9 +1,10 @@
-using OpenTK.Graphics.OpenGL;
+using Sundex.Engine.Renderer;
+using Sundex.Engine.Renderer.Shaders;
+using Sundex.Engine.Renderer.Textures;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Sundex.Engine.Renderer.Buffers;
-using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Textures.Atlases;
 
 namespace Shared.Atlases;
@@ -16,9 +17,8 @@ namespace Shared.Atlases;
 public class StaticSoundAtlas(
     int width,
     int height,
-    DeleteQueue deleteQueue,
-    InternalFormat internalFormat = InternalFormat.Rgba8)
-    : GPUTextureAtlas(width, height, internalFormat)
+    TextureFormat format = TextureFormat.Rgba8Unorm)
+    : GPUTextureAtlas(width, height, format)
 {
     /// <summary>
     ///     How many images one atlas holds: the length of <c>u_UVs</c> in Static.vert. 1024 vec4s fill
@@ -26,12 +26,15 @@ public class StaticSoundAtlas(
     /// </summary>
     public const int MaxImages = 1024;
 
-    /// <summary>The uniform block binding Static.vert reads its UVs from (a block's default).</summary>
-    private const int UVBinding = 0;
+    private const int UVBinding = 2;
+    private const int TextureBinding = 3;
+    public static ShaderLayout Layout { get; } = new(ShaderLayout.View,
+        new ShaderBinding("UVs", UVBinding, ShaderBindingType.UniformBuffer),
+        new ShaderBinding("u_Texture", TextureBinding, ShaderBindingType.Texture));
 
     private readonly Dictionary<string, ushort> _indices = [];
     private readonly Lock _lock = new();
-    private readonly GLBuffer<Vector4> _uvBuffer = new(deleteQueue, BufferTarget.UniformBuffer);
+    private readonly GpuBuffer<Vector4> _uvBuffer = new(BufferUsage.Uniform);
 
     // The whole block is uploaded, as a buffer smaller than the block it backs is undefined behavior.
     private readonly Vector4[] _uvs = new Vector4[MaxImages];
@@ -76,19 +79,19 @@ public class StaticSoundAtlas(
     }
 
     /// <summary>Binds the texture and the UV table, uploading slots added since the last bind.</summary>
-    public override void Bind()
+    public void Bind(ICommandList commands)
     {
-        base.Bind();
+        commands.SetTexture(TextureBinding, Texture, Texture.DefaultSampler);
 
         lock (_lock)
         {
             if (_uvsDirty)
             {
-                _uvBuffer.Dangerous_SetBufferData(_uvs);
+                _uvBuffer.SetData(_uvs);
                 _uvsDirty = false;
             }
         }
 
-        GL.BindBufferBase(BufferTarget.UniformBuffer, UVBinding, _uvBuffer.Handle);
+        commands.SetUniformBuffer(UVBinding, _uvBuffer);
     }
 }

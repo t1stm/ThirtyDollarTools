@@ -159,7 +159,7 @@ Assembly[] assemblies =
 ];
 
 CSharp.Register();
-var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings,
+using var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings,
     "ThirtyDollarVisualizer");
 game.Globals.Set("visualizer-settings", settings);
 

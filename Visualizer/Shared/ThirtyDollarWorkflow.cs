@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer.OpenGL;
 using System.Diagnostics;
 using Shared.Atlases;
 using Shared.Audio;
@@ -83,9 +84,10 @@ public class ThirtyDollarWorkflow
 
         // The song can mix on the GPU when the context has compute shaders and there is something
         // to hear; a --no-audio run keeps the CPU mixer. GpuMixing switches it.
-        if (game.GLInfo.SupportsComputeShaders && SequencePlayer.AudioContext is not NullAudioContext)
+        if (game.Device is GLGraphicsDevice glDevice && glDevice.Capabilities.SupportsCompute &&
+            SequencePlayer.AudioContext is not NullAudioContext)
         {
-            var mixer = GpuMixer = new GpuVoiceMixer(logger, game.AssetProvider);
+            var mixer = GpuMixer = new GpuVoiceMixer(logger, game.AssetProvider, glDevice);
             SequencePlayer.CursorFactory = mixer.CreateCursor;
             game.UpdateFrame += _ => mixer.Pump();
         }

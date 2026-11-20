@@ -10,8 +10,8 @@ out vec4 RGBA;
 out float offsetPercentage;
 out float localU;
 
-uniform mat4 u_VPMatrix;
-uniform vec4 u_UV;
+layout (std140) uniform View { mat4 ViewProjection; };
+layout (std140) uniform Draw { vec4 u_UV; };
 
 vec2 getFragCoordsBasedOnVertexID(int vertexID) {
     vec2 uv0 = u_UV.xy;
@@ -26,7 +26,7 @@ vec2 getFragCoordsBasedOnVertexID(int vertexID) {
 }
 
 void main() {
-    vec4 finalCoords = u_VPMatrix * vec4(aPosition.xy * aBox.zw + aBox.xy, 0.0, 1.0);
+    vec4 finalCoords = ViewProjection * vec4(aPosition.xy * aBox.zw + aBox.xy, 0.0, 1.0);
     gl_Position = finalCoords;
     RGBA = aRGBA;
     vec2 fragCoords = getFragCoordsBasedOnVertexID(gl_VertexID);

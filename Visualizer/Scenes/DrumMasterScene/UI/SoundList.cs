@@ -44,8 +44,8 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
         {
             if (!StackCollection.AnimatedStacks.TryGetValue(framedAtlas, out var stack))
             {
-                var shader = Context.AssetProvider.ShaderPool.GetOrLoad(AnimatedShaderLocation);
-                stack = new RenderStack<SoundData>(Context.DeleteQueue) { Shader = shader };
+                var shader = Context.AssetProvider.ShaderPool.GetOrLoad(AnimatedShaderLocation, FramedAtlas.Layout);
+                stack = new RenderStack<SoundData>() { Shader = shader };
                 StackCollection.AnimatedStacks.Add(framedAtlas, stack);
             }
 
@@ -68,8 +68,8 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
 
             if (!StackCollection.StaticStacks.TryGetValue(staticAtlas, out var stack))
             {
-                var shader = Context.AssetProvider.ShaderPool.GetOrLoad(StaticShaderLocation);
-                stack = new RenderStack<StaticSound>(Context.DeleteQueue) { Shader = shader };
+                var shader = Context.AssetProvider.ShaderPool.GetOrLoad(StaticShaderLocation, StaticSoundAtlas.Layout);
+                stack = new RenderStack<StaticSound>() { Shader = shader };
                 StackCollection.StaticStacks.Add(staticAtlas, stack);
             }
 

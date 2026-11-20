@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer.OpenGL;
 #if DEBUG
 using System.Diagnostics;
 using System.Globalization;
@@ -55,7 +56,7 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
     private Task<(float[] Left, float[] Right, double Seconds)>? _reference;
     private string _renderer = "";
     private VoiceRender? _render;
-    private bool _supported;
+    private GLGraphicsDevice? _device;
 
     private static int Env(string name, int fallback)
     {
@@ -64,8 +65,8 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
 
     public override void Initialize(InitArguments initArguments)
     {
-        _renderer = initArguments.GLInfo.Renderer;
-        _supported = GpuVoiceKernels.IsSupported(initArguments.GLInfo);
+        _renderer = initArguments.Capabilities.Renderer;
+        if (initArguments.Capabilities.SupportsCompute) _device = Game.Device as GLGraphicsDevice;
     }
 
     public override void Start()
@@ -99,10 +100,8 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
 
         try
         {
-            if (_kernels == null) Prepare();
-            else if (_fence != default) Collect();
-            else if (_next < _blocks) Submit();
-            else if (_reference!.IsCompleted) Verify();
+            if (_device is not null) _device.RunNative(Advance);
+            else Prepare();
         }
         catch (Exception e)
         {
@@ -111,9 +110,17 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
         }
     }
 
+    private void Advance()
+    {
+        if (_kernels == null) Prepare();
+        else if (_fence != default) Collect();
+        else if (_next < _blocks) Submit();
+        else if (_reference!.IsCompleted) Verify();
+    }
+
     private void Prepare()
     {
-        if (!_supported)
+        if (_device is null)
         {
             Finish("unsupported", "the context is older than OpenGL 4.3");
             return;
@@ -396,12 +403,17 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
 
     public override void Shutdown()
     {
+        _device?.RunNative(ReleaseNative);
+        _cursor.Attach(null, 0);
+        _render?.Dispose();
+    }
+
+    private void ReleaseNative()
+    {
         _kernels?.Dispose();
         foreach (var query in _queries)
             if (query != 0)
                 GL.DeleteQuery(query);
-        _cursor.Attach(null, 0);
-        _render?.Dispose();
     }
 
     public override void FileDrop(string[] locations)

@@ -6,14 +6,14 @@ using Sundex.Engine.Renderer.Abstract;
 namespace VisualizerScene.Objects.Playfield.Batch.Objects;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct BackgroundBlip : IGPUReflection
+public struct BackgroundBlip : IVertexData
 {
     public Matrix4 Model;
     public Vector4 Color;
 
-    public static void SelfReflectToGL(VertexBufferLayout layout)
+    public static void DescribeLayout(VertexBufferLayout layout)
     {
         layout.PushMatrix4(1);
-        layout.PushFloat(4, true);
+        layout.PushFloat(4);
     }
 }

@@ -1,7 +1,7 @@
+using Sundex.Engine.Renderer;
 using OpenTK.Mathematics;
 using Shared.Atlases;
 using Sundex.Engine.Renderer.Abstract;
-using Sundex.Engine.Renderer.Cameras;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 
 namespace VisualizerScene.Objects.Playfield.Batch.Chunks;
@@ -25,24 +25,21 @@ public class StackCollection : IDisposable, IRenderable, IClippable
         GC.SuppressFinalize(this);
     }
 
-    public void Render(Camera temporaryCamera)
+    public void Render(in RenderContext context)
     {
         // A pooled chunk keeps the stacks of atlases its current slice no longer uses, empty.
         foreach (var (atlas, render_stack) in StaticStacks)
         {
             if (render_stack.List.Count == 0) continue;
-            atlas.Bind();
-            render_stack.Render(temporaryCamera);
+            atlas.Bind(context.Commands);
+            render_stack.Render(context);
         }
 
         foreach (var (atlas, render_stack) in AnimatedStacks)
         {
             if (render_stack.List.Count == 0) continue;
-            atlas.Bind();
-            render_stack.Shader.Use(); // one bind per stack, rather than grouping stacks by shader
-
-            atlas.SetUniforms(render_stack.Shader);
-            render_stack.Render(temporaryCamera);
+            atlas.Bind(context.Commands);
+            render_stack.Render(context);
         }
     }
 }

@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer;
 using System.Diagnostics;
 using System.Globalization;
 using OpenTK.Mathematics;
@@ -61,7 +62,7 @@ public class Visualizer : Scene, IGamePreloadable
     private Panel? _dialogHost;
     private CursorType _cursorType;
     private char[]? _debugBuffer;
-    private GLInfo _glInfo = null!;
+    private DeviceCapabilities _capabilities = null!;
 
     private int _height;
     private PlayerBar? _playerBar;
@@ -149,7 +150,7 @@ public class Visualizer : Scene, IGamePreloadable
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public override void Initialize(InitArguments initArguments)
     {
-        _glInfo = initArguments.GLInfo;
+        _capabilities = initArguments.Capabilities;
         TextContainer = new VisualizerTextContainer(VisualizerFonts, _width, _height, Scale)
         {
             Greeting =
@@ -261,26 +262,27 @@ public class Visualizer : Scene, IGamePreloadable
         // get static values from current camera, for this frame
         _tempCamera.CopyFrom(PlayfieldContainer.Camera);
 
-        PlayfieldContainer.Render((float)deltaTime);
+        PlayfieldContainer.Render(args.Commands, (float)deltaTime);
 
         // render the greeting
-        TextContainer.RenderGreeting(_tempCamera);
+        TextContainer.RenderGreeting(args.Commands.WithCamera(_tempCamera));
 
         // renders the static layout
-        TextContainer.RenderStaticText(_textCamera);
+        var screen = args.Commands.WithCamera(_textCamera);
+        TextContainer.RenderStaticText(screen);
 
         if (_playerBar is not null)
         {
             var idle = TimedEvents.Placement.Length == 0;
             _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, Game.IsCursorInWindow, (float)deltaTime, idle);
             _shortcutSheet?.UpdateAlpha((float)deltaTime, idle);
-            _playerBar.RootPanel.Context.Render();
+            _playerBar.RootPanel.Context.Render(args.Commands);
         }
 
         // Over the player bar, as a page's scroll bar is over everything on the page - but
         // not over a dialog, which takes the pointer from it.
         if (_dialogHost is not { Children.Count: > 0 })
-            _scrollBar.Render(_textCamera);
+            _scrollBar.Render(args.Commands.WithCamera(_textCamera));
     }
 
     public override void TransitionedTo()
@@ -852,10 +854,10 @@ public class Visualizer : Scene, IGamePreloadable
              In: {next_beat_ms:0.##}ms / {beats_to_next_beat:0.##} beats
 
              [OpenGL]
-             Version: {_glInfo.Version}
-             Renderer: {_glInfo.Renderer}
-             Max Texture Size: {_glInfo.MaxTexture2DSize}
-             Max Texture Layers: {_glInfo.MaxTexture2DLayers}
+             Version: {_capabilities.Version}
+             Renderer: {_capabilities.Renderer}
+             Max Texture Size: {_capabilities.MaxTexture2DSize}
+             Max Texture Layers: {_capabilities.MaxTexture2DLayers}
 
              """, out var written);
 

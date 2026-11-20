@@ -41,8 +41,8 @@ public sealed class SoundRenderable : Renderable
     // The instance this renderable draws with: a slot of one of its chunk's render stacks, set
     // by RenderableFactory.CookUp. Held as list + index rather than closures over a tracked
     // reference - those were seven objects per sound, and a long song has millions of sounds.
-    private GLBufferList<StaticSound>? _staticList;
-    private GLBufferList<SoundData>? _animatedList;
+    private GpuBufferList<StaticSound>? _staticList;
+    private GpuBufferList<SoundData>? _animatedList;
     private int _dataIndex;
 
     public ISoundValue? Value { get; set; }
@@ -127,7 +127,7 @@ public sealed class SoundRenderable : Renderable
     }
 
     /// <summary>Draws with slot <paramref name="index" /> of a static atlas's stack.</summary>
-    internal void Bind(GLBufferList<StaticSound> list, int index)
+    internal void Bind(GpuBufferList<StaticSound> list, int index)
     {
         _staticList = list;
         _animatedList = null;
@@ -135,7 +135,7 @@ public sealed class SoundRenderable : Renderable
     }
 
     /// <summary>Draws with slot <paramref name="index" /> of an animated atlas's stack.</summary>
-    internal void Bind(GLBufferList<SoundData> list, int index)
+    internal void Bind(GpuBufferList<SoundData> list, int index)
     {
         _animatedList = list;
         _staticList = null;

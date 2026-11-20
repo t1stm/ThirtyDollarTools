@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer;
 using JetBrains.Annotations;
 using DrumMasterScene.Components;
 using DrumMasterScene.UI;
@@ -129,10 +130,11 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
         if (_state is DrumMasterState.Playing)
         {
             _visualizer.Render(renderArgs);
-            foreach (var taikoLane in PlayerTaikoLanes) taikoLane.Render(_camera);
+            var context = renderArgs.Commands.WithCamera(_camera);
+            foreach (var taikoLane in PlayerTaikoLanes) taikoLane.Render(context);
         }
 
-        _sundexContext.UIContext.Render();
+        _sundexContext.UIContext.Render(renderArgs.Commands);
     }
 
     public override void TransitionedTo()

@@ -140,7 +140,7 @@ public class Loader : Scene, IGamePreloadable
                 _workflow.GpuMixing = settings.GpuAudioMixing;
         };
 
-        _background = new DollarStoreLoaderBackground(game.AssetProvider.DeleteQueue)
+        _background = new DollarStoreLoaderBackground()
         {
             AtlasStore = _thirtyDollarDownloader.AtlasStore
         };
@@ -311,8 +311,8 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Render(RenderArguments renderArgs)
     {
-        _background.Render();
-        _context.Render();
+        _background.Render(renderArgs.Commands);
+        _context.Render(renderArgs.Commands);
     }
 
     public override void TransitionedTo()

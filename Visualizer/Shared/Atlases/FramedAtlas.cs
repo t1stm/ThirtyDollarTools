@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer;
 using System.Diagnostics;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
@@ -110,10 +111,15 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
         return atlas;
     }
 
-    public void SetUniforms(Shader shader)
+    private const int TextureBinding = 2;
+    public static ShaderLayout Layout { get; } = new(ShaderLayout.View, ShaderLayout.Draw,
+        new ShaderBinding("u_Texture", TextureBinding, ShaderBindingType.Texture));
+
+    public void Bind(ICommandList commands)
     {
+        commands.SetTexture(TextureBinding, Texture, Texture.DefaultSampler);
         var quad = QuadUV.FromRectangle(CurrentRectangle, Width, Height);
-        shader.SetUniform("u_UV", quad.UV);
+        commands.PushUniforms(1, quad.UV);
     }
 
     private static float? TryGetFrameDelay(ImageFrame frame)

@@ -39,8 +39,8 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
         }
     }
 
-    public void LoadImageAtPath(string imagePath, string soundName,
-        StorageLocation storageLocation = StorageLocation.Disk)
+    /// <summary>Decodes an image on the calling thread, or returns null when it doesn't exist.</summary>
+    public TextureHolder? LoadImage(string imagePath, StorageLocation storageLocation = StorageLocation.Disk)
     {
         var assetInfo = new AssetInfo
         {
@@ -56,10 +56,21 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
         if (!assetProvider.Query<AssetStream, AssetInfo>(assetInfo))
         {
             _logger.Warning("Image file not found at path: {ImagePath}. Skipping.", imagePath);
-            return;
+            return null;
         }
 
         var textureHolder = assetProvider.Load<TextureHolder, TextureInfo>(textureInfo);
+        _logger.Debug("Loaded asset {ImagePath} with {FrameCount} frames", imagePath,
+            textureHolder.Texture.Frames.Count);
+        return textureHolder;
+    }
+
+    /// <summary>
+    ///     Adds a decoded image to the atlases. Call between frames: the atlases are drawn from, and
+    ///     a write after a draw in the same frame would reach that draw on a deferred backend.
+    /// </summary>
+    public void Add(TextureHolder textureHolder, string soundName)
+    {
         _semaphore.Wait();
         try
         {
@@ -72,9 +83,6 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
         {
             _semaphore.Release();
         }
-
-        _logger.Debug("Loaded asset {ImagePath} with {FrameCount} frames", imagePath,
-            textureHolder.Texture.Frames.Count);
     }
 
     private void HandleAnimatedImage(TextureHolder holder, string soundName)
@@ -98,7 +106,7 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
         var atlas = StaticAtlases.FirstOrDefault(soundAtlas =>
             !soundAtlas.IsFull && soundAtlas.Atlas.CanFit(frame.Width, frame.Height));
         if (atlas == null)
-            StaticAtlases.Add(atlas = new StaticSoundAtlas(4096, 4096, assetProvider.DeleteQueue)
+            StaticAtlases.Add(atlas = new StaticSoundAtlas(4096, 4096)
             {
                 AtlasID = $"StaticAtlas_{StaticAtlases.Count}"
             });

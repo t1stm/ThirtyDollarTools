@@ -7,7 +7,7 @@ namespace VisualizerScene.Objects.Playfield.Batch.Objects;
 
 /// <summary>One sound quad: 24 bytes. A new one is a 1x1 white quad at the origin.</summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct SoundData() : IGPUReflection
+public struct SoundData() : IVertexData
 {
     /// <summary>
     ///     The quad's top-left corner (xy) and its width and height (zw). Sounds only ever move and
@@ -26,11 +26,11 @@ public struct SoundData() : IGPUReflection
         set => _rgba = PackedColor.Pack(value);
     }
 
-    public static void SelfReflectToGL(VertexBufferLayout layout)
+    public static void DescribeLayout(VertexBufferLayout layout)
     {
-        layout.PushFloat(4, true); // Box
-        layout.PushByte(4, true, normalized: true); // RGBA
-        layout.PushFloat(1, true); // OffsetPercentage
+        layout.PushFloat(4); // Box
+        layout.PushByte(4, normalized: true); // RGBA
+        layout.PushFloat(1); // OffsetPercentage
     }
 
     public override string ToString()

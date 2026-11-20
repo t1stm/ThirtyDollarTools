@@ -1,17 +1,17 @@
+using Sundex.Engine.Renderer;
 using OpenTK.Mathematics;
 using Shared;
 using Shared.Atlases;
 using Sundex.Engine.AssetManagement;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
-using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 
 namespace LoadingScene.Background;
 
 [PreloadGraphicsContext]
-public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreloadable
+public class DollarStoreLoaderBackground : IGamePreloadable
 {
     private const int SoundSize = 32;
     private static readonly Vector4 SoundColorMultiply = new(1f, 1f, 1f, 0.4f);
@@ -39,8 +39,8 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
 
     public static void Preload(AssetProvider assetProvider)
     {
-        AnimatedShader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Playfield/Chunk/Animated");
-        StaticShader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Playfield/Chunk/Static");
+        AnimatedShader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Playfield/Chunk/Animated", FramedAtlas.Layout);
+        StaticShader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Playfield/Chunk/Static", StaticSoundAtlas.Layout);
     }
 
     private float RandomFloat(float min, float max)
@@ -71,7 +71,7 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
     private void HandleStatic(string sound, StaticSoundAtlas staticAtlas)
     {
         if (!_staticSounds.TryGetValue(staticAtlas, out var renderBuffer))
-            _staticSounds.Add(staticAtlas, renderBuffer = new RenderStack<StaticSound>(deleteQueue)
+            _staticSounds.Add(staticAtlas, renderBuffer = new RenderStack<StaticSound>()
             {
                 Shader = StaticShader
             });
@@ -98,7 +98,7 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
     private void HandleAnimated(FramedAtlas framedAtlas)
     {
         if (!_animatedSounds.TryGetValue(framedAtlas, out var renderBuffer))
-            _animatedSounds.Add(framedAtlas, renderBuffer = new RenderStack<SoundData>(deleteQueue)
+            _animatedSounds.Add(framedAtlas, renderBuffer = new RenderStack<SoundData>()
             {
                 Shader = AnimatedShader
             });
@@ -211,26 +211,25 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
         return velocity;
     }
 
-    public void Render()
+    public void Render(ICommandList commands)
     {
         _semaphore.Wait();
         try
         {
             AtlasStore.Update();
             _camera.UpdateMatrix();
+            var context = commands.WithCamera(_camera);
 
             foreach (var (atlas, soundBuffer) in _animatedSounds)
             {
-                atlas.Bind();
-                AnimatedShader.Use();
-                atlas.SetUniforms(AnimatedShader);
-                soundBuffer.Render(_camera);
+                atlas.Bind(commands);
+                soundBuffer.Render(context);
             }
 
             foreach (var (atlas, renderStack) in _staticSounds)
             {
-                atlas.Bind();
-                renderStack.Render(_camera);
+                atlas.Bind(commands);
+                renderStack.Render(context);
             }
         }
         finally

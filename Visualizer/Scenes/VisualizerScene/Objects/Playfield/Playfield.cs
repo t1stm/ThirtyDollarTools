@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer;
 using OpenTK.Mathematics;
 using Shared;
 using Sundex.Core.Renderer.Planes;
@@ -118,7 +119,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
         }
     }
 
-    public void Render(DollarStoreCamera realCamera, float zoom, double updateDelta)
+    public void Render(ICommandList commands, DollarStoreCamera realCamera, float zoom, double updateDelta)
     {
         var layoutWidth = _chunkGenerator.LayoutHandler.Width;
         var layoutHeight = Height;
@@ -162,7 +163,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
             _objectBox.BorderRadius = 0f;
 
             _objectBox.UpdateModel(false);
-            _objectBox.Render(CameraFrom(box_top));
+            _objectBox.Render(commands.WithCamera(CameraFrom(box_top)));
         }
 
         lock (_renderLock)
@@ -187,7 +188,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
             // A chunk still being filled is skipped this frame; it is a frame or two away.
             for (var chunk = first; chunk <= last; chunk++)
                 if (_slotOf[chunk] is var id and >= 0 && Volatile.Read(ref _slots[id].State) == Ready)
-                    _slots[id].Chunk.Render(CameraFrom(layouts[chunk].StartY));
+                    _slots[id].Chunk.Render(commands.WithCamera(CameraFrom(layouts[chunk].StartY)));
         }
     }
 

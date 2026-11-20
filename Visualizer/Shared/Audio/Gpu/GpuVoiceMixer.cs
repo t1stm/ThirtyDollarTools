@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer.OpenGL;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using Serilog;
@@ -17,7 +18,7 @@ namespace Shared.Audio.Gpu;
 ///         logged once and hands every block back to the CPU for the rest of the session.
 ///     </para>
 /// </summary>
-public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) : IDisposable
+public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider, GLGraphicsDevice device) : IDisposable
 {
     /// <summary>GPU time per frame while keeping up, and the most it grows to while blocks pile up.</summary>
     private const double BudgetMs = 2, MaxBudgetMs = 8;
@@ -92,7 +93,9 @@ public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) :
     /// <summary>Whether blocks are going to the GPU: switched on, and nothing has failed.</summary>
     public bool Active => _enabled && !_failed;
 
-    public void Dispose()
+    public void Dispose() => device.RunNative(DisposeNative);
+
+    private void DisposeNative()
     {
         _kernels?.Dispose();
         _kernels = null;
@@ -121,6 +124,11 @@ public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) :
         // to free what was in flight; the cursor asks for nothing new.
         if (_kernels == null && !_enabled) return;
 
+        device.RunNative(() => PumpNative(cursor));
+    }
+
+    private void PumpNative(GpuVoiceCursor cursor)
+    {
         try
         {
             // whatever the last frame's draws left behind isn't ours to report

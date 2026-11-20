@@ -54,8 +54,8 @@ internal sealed class SoundImages(UIContext context, AtlasStore store)
         {
             if (!Stacks.AnimatedStacks.TryGetValue(framedAtlas, out var stack))
             {
-                var shader = context.AssetProvider.ShaderPool.GetOrLoad(AnimatedShaderLocation);
-                stack = new RenderStack<SoundData>(context.DeleteQueue) { Shader = shader };
+                var shader = context.AssetProvider.ShaderPool.GetOrLoad(AnimatedShaderLocation, FramedAtlas.Layout);
+                stack = new RenderStack<SoundData>() { Shader = shader };
                 Stacks.AnimatedStacks.Add(framedAtlas, stack);
             }
 
@@ -77,8 +77,8 @@ internal sealed class SoundImages(UIContext context, AtlasStore store)
         {
             if (!Stacks.StaticStacks.TryGetValue(staticAtlas, out var stack))
             {
-                var shader = context.AssetProvider.ShaderPool.GetOrLoad(StaticShaderLocation);
-                stack = new RenderStack<StaticSound>(context.DeleteQueue) { Shader = shader };
+                var shader = context.AssetProvider.ShaderPool.GetOrLoad(StaticShaderLocation, StaticSoundAtlas.Layout);
+                stack = new RenderStack<StaticSound>() { Shader = shader };
                 Stacks.StaticStacks.Add(staticAtlas, stack);
             }
 

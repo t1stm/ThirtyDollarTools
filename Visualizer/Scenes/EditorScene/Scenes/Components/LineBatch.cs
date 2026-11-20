@@ -1,13 +1,9 @@
+using Sundex.Engine.Renderer;
 using JetBrains.Annotations;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Sundex.Engine.AssetManagement;
-using Sundex.Engine.AssetManagement.Extensions;
-using Sundex.Engine.AssetManagement.Types.Shader;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
-using Sundex.Engine.Renderer.Cameras;
-using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 
@@ -28,7 +24,6 @@ namespace EditorScene.Scenes.Components;
 [PreloadGraphicsContext]
 internal class LineBatch : IRenderable, IClippable, IGamePreloadable
 {
-    private static DeleteQueue _deleteQueue = null!;
     private static Shader _shader = null!;
     private RenderStack<ShadedRect>? _stack;
 
@@ -37,7 +32,7 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     {
         set
         {
-            _stack ??= new RenderStack<ShadedRect>(_deleteQueue, value) { Shader = _shader };
+            _stack ??= new RenderStack<ShadedRect>(value) { Shader = _shader };
             _stack.List.EnsureCount(value);
         }
     }
@@ -47,26 +42,19 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     [UsedImplicitly]
     public static void Preload(AssetProvider assetProvider)
     {
-        _deleteQueue = assetProvider.DeleteQueue;
-        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Planes/Colored/shaded-instanced", provider =>
-            new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    "Assets/Shaders/Planes/Colored/shaded-instanced.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    "Assets/Shaders/Planes/Colored/shaded-instanced.frag")))
-        );
+        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Planes/Colored/shaded-instanced",
+            new ShaderLayout(ShaderLayout.View));
     }
 
-    public void Render(Camera camera)
+    public void Render(in RenderContext context)
     {
         if (_stack is not { List.Count: > 0 }) return;
-        _stack.Render(camera);
+        _stack.Render(context);
     }
 
     /// <summary>
     ///     Assigns one rect, growing the pool if the slot is past its end. Unchanged slots
-    ///     are skipped, since the buffer uploads per written index (see GLBuffer's update
-    ///     map) and the views re-assign every slot on every layout pass.
+    ///     are skipped, since a write widens the buffer's pending upload range and the views re-assign every slot on every layout pass.
     /// </summary>
     public void Set(int index, float x, float y, float width, float height, Vector4 color)
     {

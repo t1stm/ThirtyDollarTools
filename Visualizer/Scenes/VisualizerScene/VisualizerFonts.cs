@@ -1,5 +1,4 @@
 using Sundex.Engine.AssetManagement;
-using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Text;
 using Sundex.Engine.Text.Fonts;
 
@@ -13,10 +12,8 @@ public class VisualizerFonts
         LatoRegularProvider = new TextProvider(assetProvider, fontProvider,
             "Lato Regular");
         LatoBoldProvider = new TextProvider(assetProvider, fontProvider, "Lato Bold");
-        DeleteQueue = assetProvider.DeleteQueue;
     }
 
     public TextProvider LatoRegularProvider { get; }
     public TextProvider LatoBoldProvider { get; }
-    public DeleteQueue DeleteQueue { get; }
 }

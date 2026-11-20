@@ -114,7 +114,7 @@ public class Editor : Scene, IFadeInScene
 
     public override void Render(RenderArguments renderArgs)
     {
-        _context.Render();
+        _context.Render(renderArgs.Commands);
     }
 
     public override void TransitionedTo()

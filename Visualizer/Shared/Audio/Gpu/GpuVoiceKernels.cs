@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer.OpenGL;
 using OpenTK.Graphics.OpenGL;
 using Sundex.Engine;
 using Sundex.Engine.AssetManagement;
@@ -11,7 +12,7 @@ namespace Shared.Audio.Gpu;
 
 /// <summary>
 ///     The GPU half of the voice mixer: two compute programs - <c>Assets/Shaders/Audio/voice-mix.comp</c>
-///     and <c>voice-reduce.comp</c>, from the shader pool - and the buffers they read, on the app's
+///     and <c>voice-reduce.comp</c>, and the buffers they read, on the app's
 ///     own GL context, so every call belongs to the render thread. One block is mixed in two passes. Pass 1 gives each workgroup a <see cref="Tile" /> of the block's samples and a
 ///     chunk of its sounding voices, and writes that chunk's sum; pass 2 adds the chunks up in
 ///     index order, so a block comes out the same from run to run.
@@ -32,7 +33,7 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
 
     private const string MixLocation = "Assets/Shaders/Audio/voice-mix", ReduceLocation = "Assets/Shaders/Audio/voice-reduce";
 
-    private readonly Shader _mix, _reduce;
+    private readonly GLProgram _mix, _reduce;
     private readonly int _samples, _sounds, _voices, _active, _partials, _output;
 
     /// <summary>Where each uploaded sound's channels start in the samples buffer, in floats.</summary>
@@ -80,17 +81,12 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
 
     public void Dispose()
     {
-        // the programs belong to the shader pool
+        _mix.Dispose();
+        _reduce.Dispose();
         List?.Dispose();
         List = null;
         foreach (var buffer in (ReadOnlySpan<int>)[_samples, _sounds, _voices, _active, _partials, _output])
             GL.DeleteBuffer(buffer);
-    }
-
-    /// <summary>Whether the context can run the kernels at all.</summary>
-    public static bool IsSupported(GLInfo info)
-    {
-        return info.SupportsComputeShaders;
     }
 
     public int Chunks(int activeCount)
@@ -317,11 +313,6 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
         Allocate(buffer, capacity, null, usage);
     }
 
-    /// <summary>A compute program from the shader pool, loaded the way the draws' shaders are: <c>location.comp</c>.</summary>
-    private static Shader LoadCompute(AssetProvider assetProvider, string location)
-    {
-        return assetProvider.ShaderPool.GetOrLoad(location, provider =>
-            new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.ComputeShader, location + ".comp"))) { IsPedantic = true });
-    }
+    private static GLProgram LoadCompute(AssetProvider assetProvider, string location) =>
+        new(assetProvider.LoadShaders(ShaderInfo.CreateFromUnknownStorage(ShaderStage.Compute, location + ".comp")));
 }

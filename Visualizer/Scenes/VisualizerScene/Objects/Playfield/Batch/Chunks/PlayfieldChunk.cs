@@ -1,3 +1,4 @@
+using Sundex.Engine.Renderer;
 using OpenTK.Mathematics;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Cameras;
@@ -23,7 +24,7 @@ public class PlayfieldChunk : IDisposable, IRenderable, IClippable
     public PlayfieldChunk(PlayfieldSettings settings)
     {
         var provider = settings.Fonts.LatoBoldProvider;
-        _textBuffer = new TextBuffer(provider, provider.AssetProvider.DeleteQueue);
+        _textBuffer = new TextBuffer(provider);
         _factory = new RenderableFactory(settings.AtlasStore);
         MainStackCollection.AnimatedStacks = _factory.AnimatedAtlases;
         MainStackCollection.StaticStacks = _factory.StaticAtlases;
@@ -137,14 +138,14 @@ public class PlayfieldChunk : IDisposable, IRenderable, IClippable
         BackgroundBlips = _factory.BackgroundBlips;
     }
 
-    public void Render(Camera temporaryCamera)
+    public void Render(in RenderContext context)
     {
         foreach (var renderable in Renderables) renderable.Update();
 
-        MainStackCollection.Render(temporaryCamera);
-        BackgroundBlips?.Render(temporaryCamera);
-        _textBuffer.Render(temporaryCamera);
+        MainStackCollection.Render(context);
+        BackgroundBlips?.Render(context);
+        _textBuffer.Render(context);
 
-        CutSoundsStackCollection?.Render(temporaryCamera);
+        CutSoundsStackCollection?.Render(context);
     }
 }

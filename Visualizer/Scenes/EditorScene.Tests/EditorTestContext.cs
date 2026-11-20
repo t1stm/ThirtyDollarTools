@@ -82,7 +82,7 @@ public class EditorTestContext : TestUIContext
     private static StyleSheet LoadStyles()
     {
         var provider = new AssetProvider(new LoggerConfiguration().CreateLogger(),
-            [typeof(EditorInterface).Assembly, SharedAssembly.Assembly], new GLInfo());
+            [typeof(EditorInterface).Assembly, SharedAssembly.Assembly]);
 
         string Read(string path)
         {

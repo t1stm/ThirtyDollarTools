@@ -3,7 +3,9 @@ using Serilog;
 using Shared.Atlases;
 using Sundex.Engine.AssetManagement;
 using Sundex.Engine.AssetManagement.Types.Asset;
+using Sundex.Engine.AssetManagement.Types.Texture;
 using Sundex.Engine.Threading;
+using Sundex.Reactive;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Parser;
 
@@ -69,6 +71,11 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
 
         var loadedImages = await CheckFilesAndDownload();
         LoadRemainingSoundsToAssetStore(loadedImages, SampleHolder);
+
+        // Posted actions run in order, so this one completing means every image is in an atlas.
+        var added = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Frame.Post(added.SetResult);
+        await added.Task;
     }
 
     private async Task<HashSet<Sound>> CheckFilesAndDownload()
@@ -168,11 +175,16 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
     private void LoadTextureToAtlasStore(string imagePath, string soundName,
         StorageLocation storageLocation = StorageLocation.Disk)
     {
-        lock (AtlasStore)
+        TextureHolder? image;
+        lock (AtlasStore) image = AtlasStore.LoadImage(imagePath, storageLocation);
+        if (image is null) return;
+
+        // Decoded here, added on the UI thread between frames: the loading screen draws the atlases
+        // and the background while this thread runs.
+        Frame.Post(() =>
         {
-            var atlasStore = AtlasStore;
-            atlasStore.LoadImageAtPath(imagePath, soundName, storageLocation);
+            AtlasStore.Add(image, soundName);
             OnLoadSound?.Invoke(soundName);
-        }
+        });
     }
 }
