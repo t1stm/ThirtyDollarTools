@@ -4,7 +4,6 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Core.Renderer.Planes;
-using Sundex.Core.Renderer.Planes.Uniforms;
 using Sundex.Core;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Components;
@@ -874,7 +873,7 @@ public sealed class ActionValueDialog
 
         private readonly Stopwatch _clock = new();
         private readonly ColoredPlane _fill = new();
-        private readonly GradientPlane _ramp = new() { GradientType = GradientType.Linear };
+        private readonly GradientPlane _ramp = new() { GradientType = GradientPlane.Type.Linear };
         private readonly List<Panel> _ticks = [];
         private double _fadeSeconds;
         private double _gap;

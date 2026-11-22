@@ -262,8 +262,6 @@ public sealed class EventCanvas : Panel
     /// <summary>The events currently drawn, in the order they were given.</summary>
     public IReadOnlyList<BaseEvent> Events => _events;
 
-    public override ComputedRectangle Computed { get; protected set; }
-
     /// <summary>
     ///     Replaces what this canvas draws. The old chunks' GL buffers are released here -
     ///     nothing else owns them.

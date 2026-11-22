@@ -27,8 +27,6 @@ public class SoundListElement : FlexPanel
     public TrackedBufferReference<StaticSound>? StaticReference { get; set; }
     public TrackedBufferReference<SoundData>? AnimatedReference { get; set; }
 
-    public sealed override ComputedRectangle Computed { get; protected set; }
-
     private void UpdateMatrix()
     {
         var box = new Vector4(Computed.AbsoluteX, Computed.AbsoluteY, Computed.Width, Computed.Height);
