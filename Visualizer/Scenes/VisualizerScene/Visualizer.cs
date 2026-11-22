@@ -733,7 +733,8 @@ public class Visualizer : Scene, IGamePreloadable
         var beats_to_next_beat = 0f;
 
         var fps = _fpsCounter.GetAverageFPS(1 / deltaTime);
-        var audio_backend = SequencePlayer.AudioDevice.Name;
+        var audio_device = SequencePlayer.AudioDevice;
+        var audio_backend = audio_device.Silent ? "null" : "miniaudio";
         var audio_engine_load = SequencePlayer.CpuLoad * 100;
         var gpu_mixer = _workflow.GpuMixer;
 
@@ -840,6 +841,7 @@ public class Visualizer : Scene, IGamePreloadable
              [Debug]
              FPS: {fps:0.##}
              Audio Backend: {audio_backend}
+             Audio Device: {audio_device.Name}
              Audio Engine CPU: {audio_engine_load:0.00}%
              Audio Engine GPU: {gpu_text}
              Resampler: {_workflow.EncoderSettings.Resampler.Name}
