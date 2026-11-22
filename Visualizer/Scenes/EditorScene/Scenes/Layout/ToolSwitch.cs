@@ -101,6 +101,12 @@ public sealed class ToolSwitch : FlexPanel
         return _segments.Single(segment => segment.Tool == tool).Reveal.Width.Value;
     }
 
+    /// <summary>The color <paramref name="tool" />'s name is drawn in, fade included. For tests.</summary>
+    public Vector4 NameColor(EditorTool tool)
+    {
+        return _segments.Single(segment => segment.Tool == tool).NameColor;
+    }
+
     private sealed class Segment
     {
         private static readonly string[] Fills = ["tool-segment-idle", "tool-segment-draw", "tool-segment-select"];
@@ -153,6 +159,7 @@ public sealed class ToolSwitch : FlexPanel
         public EditorTool Tool { get; }
         public Button Button { get; }
         public RevealPanel Reveal { get; }
+        public Vector4 NameColor => _name.Color;
 
         public void SetActive(bool active)
         {
@@ -165,6 +172,10 @@ public sealed class ToolSwitch : FlexPanel
             _chip.SetClass("key-chip-on-card", !active);
             _chipLabel.SetClass("key-chip-label-on-quiet", !active);
             _chipLabel.SetClass("key-chip-label-on-accent", active && draw);
+            // A restyle leaves a color that code changed since the sheet set it, and the fade
+            // writes the name's color. Back at its styled color, the name takes the new shade;
+            // the Peek that follows every change fades it again.
+            _alpha.Apply(_name, 1);
             foreach (var label in new[] { _icon, _name })
             {
                 label.SetClass("light-label", active && draw);

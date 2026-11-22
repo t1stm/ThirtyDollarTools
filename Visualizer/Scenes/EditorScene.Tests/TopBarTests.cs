@@ -90,6 +90,30 @@ public class TopBarTests
     }
 
     /// <summary>
+    ///     A name takes its tool's shade on every pick, not just the first: a faded name used to
+    ///     keep the shade it had when it faded, so Draw's opened in the idle gray after Select.
+    /// </summary>
+    [Fact]
+    public void ToolSwitch_NameTakesTheActiveShade_AfterItHasFaded()
+    {
+        var tools = EditorTestContext.Styled(new ToolSwitch(_context, () => _now));
+        tools.SetActive(EditorTool.Draw);
+        var white = tools.NameColor(EditorTool.Draw);
+
+        tools.SetActive(EditorTool.Select);
+        tools.Peek(EditorTool.Select);
+        tools.Animate();
+        _now = 3; // Select's name has folded away again.
+        tools.Animate();
+
+        tools.SetActive(EditorTool.Draw);
+        tools.Peek(EditorTool.Draw);
+        _now = 4; // Open and opaque, inside the hold.
+        tools.Animate();
+        Assert.Equal(white, tools.NameColor(EditorTool.Draw));
+    }
+
+    /// <summary>
     ///     A project with no file saves as; New and Open show only until the first edit; Save's
     ///     chip is lit exactly while there are unsaved changes.
     /// </summary>
