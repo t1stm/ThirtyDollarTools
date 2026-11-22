@@ -51,7 +51,8 @@ latest copy of the compiled projects, or you can compile this project from the s
 
 The **officially supported operating systems** are **Windows x64** and **Linux x64**, but I also include builds for **macOS x64/ARM**
 
-## Acknowledgements
+## Powered By
 
-Text is drawn with the [Slug algorithm](https://github.com/EricLengyel/Slug) by Eric Lengyel. The
-text shader is translated from his reference shaders (MIT, Copyright 2017 Eric Lengyel).
+[![Sundex](https://raw.githubusercontent.com/t1stm/Sundex/master/docs/images/sundex-wordmark.svg)](https://github.com/t1stm/Sundex)
+
+[Sundex](https://github.com/t1stm/Sundex)
