@@ -81,9 +81,6 @@ Parser.Default.ParseArguments<Options>(args)
         settings_location = options.SettingsLocation;
         transparent_framebuffer = options.TransparentFramebuffer;
 
-        if (options.AudioBackend is "bass" or "openal")
-            serilogLogger.Warning("The {Backend} audio backend is gone; audio plays through miniaudio",
-                options.AudioBackend);
         audio_device = AudioDevice.Open(serilogLogger, silent: no_audio || options.AudioBackend == "null");
     });
 
