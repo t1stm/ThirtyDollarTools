@@ -1,20 +1,26 @@
+using Sundex.Engine.Audio;
 using ThirtyDollarConverter.Encoder.PCM;
 
 namespace Shared.Audio;
 
-public class BackingAudio(AudioContext context, AudioData<float> data, int sampleRate)
+/// <summary>The visualizer's backing track: one voice over the whole file, kept within 50 ms of the song.</summary>
+public class BackingAudio(AudioDevice device, AudioData<float> data, int sampleRate)
 {
-    private readonly AudibleBuffer _buffer = context.GetBufferObject(data, sampleRate);
+    private readonly AudioBuffer _buffer = device.CreateBuffer(data, sampleRate);
+    private AudioVoice? _voice;
+
+    private AudioVoice Voice => _voice ??= _buffer.CreateVoice();
 
     public long GetCurrentTime()
     {
-        return _buffer.GetTime_Milliseconds();
+        return Voice.Position * 1000 / sampleRate;
     }
 
     public void Play()
     {
-        _buffer.SetVolume(1f);
-        _buffer.Play();
+        Voice.Volume = 1f;
+        Voice.Seek(0);
+        Voice.Paused = false;
     }
 
     public void SyncTime(TimeSpan playerTime)
@@ -24,17 +30,16 @@ public class BackingAudio(AudioContext context, AudioData<float> data, int sampl
         var delta = Math.Abs(time - (float)playerTime.TotalSeconds);
         if (delta <= 0.050f) return; // 50 milliseconds 
 
-        var position = (long)(playerTime.TotalSeconds * 1000);
-        _buffer.SeekTime_Milliseconds(position);
+        Voice.Seek((long)(playerTime.TotalSeconds * sampleRate));
     }
 
     public void UpdatePlayState(bool playing)
     {
-        _buffer.SetPause(!playing);
+        Voice.Paused = !playing;
     }
 
     public void Stop()
     {
-        _buffer.Stop();
+        _buffer.Dispose();
     }
 }

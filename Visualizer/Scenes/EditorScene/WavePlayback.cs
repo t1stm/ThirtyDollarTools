@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Shared.Audio;
+using Sundex.Engine.Audio;
 using System.Collections.Concurrent;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -19,7 +20,7 @@ namespace EditorScene;
 ///     but not its code: a clip here starts at an offset, carries its own gain, follows mute and
 ///     solo, and holds still outside its own span.
 /// </summary>
-public sealed class WavePlayback(AudioContext context, ILogger logger, Action<string, Exception> onError)
+public sealed class WavePlayback(AudioDevice device, ILogger logger, Action<string, Exception> onError)
 {
     /// <summary>
     ///     How far a clip may sit from where the transport says it should be before it is
@@ -109,7 +110,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
                 // Prepare doesn't go through _reading, so one path can be decoded twice. The
                 // first stays - its clips may already be playing - and the second is freed,
                 // since a buffer is native memory the collector never sees.
-                if (!_files.TryAdd(done.Path, file)) file.Buffer.Delete();
+                if (!_files.TryAdd(done.Path, file)) file.Buffer.Dispose();
                 else OnFileDecoded?.Invoke();
             }
             else
@@ -157,7 +158,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         foreach (var clip in _clips.Values) clip.Delete();
         _clips.Clear();
 
-        foreach (var file in _files.Values) file.Buffer.Delete();
+        foreach (var file in _files.Values) file.Buffer.Dispose();
         _files.Clear();
     }
 
@@ -181,7 +182,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         if (_clips.TryGetValue(placement, out var existing) && existing.File == file) return existing;
 
         existing?.Delete(); // the clip's track points at another file now
-        var clip = new Clip(file.Buffer.NewVoice(), file);
+        var clip = new Clip(file.Buffer.CreateVoice(), file);
         _clips[placement] = clip;
         return clip;
     }
@@ -219,7 +220,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
     ///     are let go once the buffer holds them, so a file costs its audio once, in the audio
     ///     library - not once there per clip and again here for the whole session, which for a
     ///     project of full-length stems ran to gigabytes. And in the file's own sample format
-    ///     and channel count (see <see cref="AudioContext.GetBufferObject(PcmDataHolder)" />):
+    ///     and channel count (see <see cref="AudioUploads.CreateBuffer(AudioDevice, PcmDataHolder)" />):
     ///     widened to stereo float, a 16-bit stereo stem took twice its size and a mono one four
     ///     times.
     ///     Null (with the failure reported once) when the path is gone or the decoder cannot
@@ -241,7 +242,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
                 throw new InvalidDataException("The file holds no readable audio.");
 
             var peaks = PeaksOf(pcm, frames);
-            return new WaveFile(context.GetBufferObject(pcm), frames / (double)pcm.SampleRate, peaks);
+            return new WaveFile(device.CreateBuffer(pcm), frames / (double)pcm.SampleRate, peaks);
         }
         catch (Exception e)
         {
@@ -304,7 +305,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
     ///     // ponytail: never evicted while the editor is open - a project holds a handful of
     ///     references, not a library. Evict by use count if that stops being true.
     /// </summary>
-    private sealed record WaveFile(AudibleBuffer Buffer, double Seconds, float[] Peaks);
+    private sealed record WaveFile(AudioBuffer Buffer, double Seconds, float[] Peaks);
 
     /// <summary>One placement's voice on its file's buffer, paused at the start until the first Drive.</summary>
     private sealed class Clip(AudioVoice voice, WaveFile file)
@@ -316,29 +317,28 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
 
         public bool Sounding => _playing;
 
-        public double PositionSeconds => voice.GetTime_Milliseconds() / 1000d;
+        public double PositionSeconds => voice.Position / (double)voice.Buffer.SampleRate;
 
         public void Drive(double? position, bool play, float volume)
         {
             if (Math.Abs(volume - _volume) > 0.0005f)
             {
-                voice.SetVolume(volume);
+                voice.Volume = volume;
                 _volume = volume;
             }
 
             // Seeked before the pause state changes, so a resume starts from the right sample.
-            if (position is { } seconds &&
-                Math.Abs(voice.GetTime_Milliseconds() / 1000d - seconds) > SyncToleranceSeconds)
-                voice.SeekTime_Milliseconds((long)(seconds * 1000));
+            if (position is { } seconds && Math.Abs(PositionSeconds - seconds) > SyncToleranceSeconds)
+                voice.Seek((long)(seconds * voice.Buffer.SampleRate));
 
             if (play == _playing) return;
-            voice.SetPause(!play);
+            voice.Paused = !play;
             _playing = play;
         }
 
         public void Delete()
         {
-            voice.Delete();
+            voice.Dispose();
         }
     }
 }

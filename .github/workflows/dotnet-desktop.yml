@@ -7,7 +7,6 @@ on:
     paths:
       - 'Visualizer/**'
       - 'Converter/**'
-      - 'BASS.Redist/**'
       - 'Directory.Build.props'
       - 'Sundex.props'
       - 'UseLocalSundex.sh'

@@ -6,12 +6,12 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
-using Shared.Audio;
 using Shared.Updates;
 using Sundex.Components;
 using Sundex.Components.Markdown;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
+using Sundex.Engine.Audio;
 using Sundex.Engine.AssetManagement;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -41,7 +41,7 @@ public class Loader : Scene, IGamePreloadable
     private const float ExitFadeStart = 0.5f;
 
     private static AssetProvider _assetProvider = null!;
-    private readonly AudioContext? _audioContext;
+    private readonly AudioDevice? _audioDevice;
     private readonly DollarStoreLoaderBackground _background;
     private readonly DollarStoreCamera _camera;
     private readonly UIContext _context;
@@ -87,7 +87,7 @@ public class Loader : Scene, IGamePreloadable
     private Vector2 _lastScale = Vector2.One;
     private IProgressReport _progressReport = new NotStartedReport();
 
-    public Loader(Game game, AudioContext? audioContext, VisualizerSettings settings, VersionInfo? version) : base(game)
+    public Loader(Game game, AudioDevice? audioDevice, VisualizerSettings settings, VersionInfo? version) : base(game)
     {
         _settings = settings;
         _version = version;
@@ -96,7 +96,7 @@ public class Loader : Scene, IGamePreloadable
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
-        _audioContext = audioContext;
+        _audioDevice = audioDevice;
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
 
         _context = new UIContext
@@ -114,7 +114,7 @@ public class Loader : Scene, IGamePreloadable
         // fill in as files arrive, so tool scenes can be handed this and built before the
         // download has produced anything.
         _workflow = new ThirtyDollarWorkflow(game, Logger, _thirtyDollarDownloader.SampleHolder,
-            _thirtyDollarDownloader.AtlasStore, _audioContext);
+            _thirtyDollarDownloader.AtlasStore, _audioDevice);
 
         // The resampler is stored as a name plus its parameters, so it is rebuilt whenever
         // one of them changes. Filtered by name because building one is expensive and most

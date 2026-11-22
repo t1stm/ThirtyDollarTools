@@ -287,49 +287,4 @@ public class GpuVoiceCursorTests
     {
         return Interleave(audio.Samples[0], audio.Samples[1]);
     }
-
-    private sealed class CaptureStream : AudioStream
-    {
-        private readonly List<float> _put = [];
-        private long _base;
-        public long Played { get; set; }
-
-        public override long QueuedFrames => 0;
-        public override long PlayedPosition => _base + Played;
-
-        public float[] Take()
-        {
-            var taken = _put.ToArray();
-            _put.Clear();
-            return taken;
-        }
-
-        public override void Put(ReadOnlySpan<float> interleaved)
-        {
-            _put.AddRange(interleaved);
-        }
-
-        public override void Flush(long basePosition)
-        {
-            _put.Clear();
-            _base = basePosition;
-            Played = 0;
-        }
-
-        public override void Play()
-        {
-        }
-
-        public override void SetPause(bool paused)
-        {
-        }
-
-        public override void SetVolume(float volume)
-        {
-        }
-
-        public override void Delete()
-        {
-        }
-    }
 }

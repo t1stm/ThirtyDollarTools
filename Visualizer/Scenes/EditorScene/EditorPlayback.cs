@@ -2,6 +2,7 @@ using EditorScene.State;
 using System.Diagnostics;
 using Shared;
 using Shared.Audio;
+using Sundex.Engine.Audio;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -33,7 +34,7 @@ public class EditorPlayback
     /// </summary>
     public const double LeadInSeconds = 0.2;
 
-    private readonly List<AudibleBuffer> _preview = [];
+    private readonly List<AudioBuffer> _preview = [];
 
     private readonly PcmEncoder _previewEncoder;
     private readonly PlacementCalculator _previewPlacement;
@@ -72,7 +73,7 @@ public class EditorPlayback
     {
         _workflow = workflow;
         _state = state;
-        _wave = new WavePlayback(workflow.SequencePlayer.AudioContext, state.Logger, (title, e) => SetError(title, e));
+        _wave = new WavePlayback(workflow.SequencePlayer.AudioDevice, state.Logger, (title, e) => SetError(title, e));
         Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings,
             indexReport: (done, total) =>
             {
@@ -380,9 +381,9 @@ public class EditorPlayback
             return;
         }
 
-        var buffer = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
-        buffer.SetVolume(1f); // volume and pan are already mixed in
-        buffer.Play();
+        var buffer = _workflow.SequencePlayer.AudioDevice.CreateBuffer(audio, (int)_previewSampleRate);
+        var voice = buffer.CreateVoice(); // volume and pan are already mixed in
+        voice.Paused = false;
         _preview.Add(buffer);
     }
 
@@ -405,14 +406,15 @@ public class EditorPlayback
             _previewSampleRate);
         if (audio.GetLength() == 0) return; // unknown sound or samples still downloading
 
-        var buffer = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
+        var buffer = _workflow.SequencePlayer.AudioDevice.CreateBuffer(audio, (int)_previewSampleRate);
         // SampleProcessor only resamples for pitch - volume/pan are normally baked into PCM
         // during PCMEncoder's mixdown, which a one-shot preview buffer never goes through.
-        // AudibleBuffer's own volume/pan (latched by Play(), see BassBuffer/OpenALBuffer) are
-        // on 0-1/-1-1 scales, unlike the event's 0-100/-100-100 - convert both.
-        buffer.SetVolume((float)(volume ?? 100) / 100f);
-        buffer.SetPan(pan / 100f);
-        buffer.Play();
+        // The voice's own volume/pan are on 0-1/-1-1 scales, unlike the event's
+        // 0-100/-100-100 - convert both.
+        var voice = buffer.CreateVoice();
+        voice.Volume = (float)(volume ?? 100) / 100f;
+        voice.Pan = pan / 100f;
+        voice.Paused = false;
         _preview.Add(buffer);
     }
 
@@ -521,11 +523,8 @@ public class EditorPlayback
     public void StopPreview()
     {
         _comboPlayPending = false;
-        foreach (var buffer in _preview)
-        {
-            buffer.Stop();
-            buffer.Delete();
-        }
+        // a buffer takes its voice with it
+        foreach (var buffer in _preview) buffer.Dispose();
 
         _preview.Clear();
     }

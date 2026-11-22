@@ -18,12 +18,10 @@ using SettingsScene;
 using Shared;
 using Shared.Audio;
 using Shared.Updates;
-using Shared.Audio.BASS;
-using Shared.Audio.Null;
-using Shared.Audio.OpenAL;
 using SixLabors.ImageSharp;
 using Sundex.Components;
 using Sundex.Engine;
+using Sundex.Engine.Audio;
 using Sundex.Markup.Legacy;
 using ThirtyDollarVisualizer;
 using ThirtyDollarVisualizer.VisualizerSettings;
@@ -35,7 +33,7 @@ using VisualizerScene.Settings;
 string? sequence = null;
 string? mode = null;
 bool no_audio;
-AudioContext? audio_context = null;
+AudioDevice? audio_device = null;
 var width = 1600;
 var height = 840;
 int? fps = null;
@@ -83,15 +81,10 @@ Parser.Default.ParseArguments<Options>(args)
         settings_location = options.SettingsLocation;
         transparent_framebuffer = options.TransparentFramebuffer;
 
-        audio_context = no_audio
-            ? new NullAudioContext()
-            : options.AudioBackend switch
-            {
-                "null" => new NullAudioContext(),
-                "openal" => new OpenALContext(serilogLogger),
-                "bass" => new BassAudioContext(serilogLogger),
-                _ => null
-            };
+        if (options.AudioBackend is "bass" or "openal")
+            serilogLogger.Warning("The {Backend} audio backend is gone; audio plays through miniaudio",
+                options.AudioBackend);
+        audio_device = AudioDevice.Open(serilogLogger, silent: no_audio || options.AudioBackend == "null");
     });
 
 Configuration.Default.PreferContiguousImageBuffers = true;
@@ -170,7 +163,7 @@ game.Enqueue(instance =>
 {
     var version = VersionInfo.Read(instance.AssetProvider);
     instance.SceneManager.LoadScene<Loader>("loader",
-        _ => new Loader(instance, audio_context, settings, version)
+        _ => new Loader(instance, audio_device, settings, version)
         {
             Preloads = BuildPreloads(version, sequence, greeting, scale, mode),
             // Scene names, as LoadScene registers them: "visualizer", "drum-master",

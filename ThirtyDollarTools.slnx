@@ -29,6 +29,5 @@
     <Project Path="Visualizer/Scenes/SettingsScene.Tests/SettingsScene.Tests.csproj"/>
     <Project Path="Visualizer/Scenes/VisualizerScene/VisualizerScene.csproj"/>
   </Folder>
-  <Project Path="BASS.Redist/BASS.Redist.csproj"/>
   <Project Path="BMS2TDWex/BMS2TDWex.csproj"/>
 </Solution>

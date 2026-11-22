@@ -1,12 +1,13 @@
 using System.Diagnostics;
-using Shared.Audio.Features;
+using Sundex.Core;
+using Sundex.Engine.Audio;
 using ThirtyDollarConverter.Voices;
 
 namespace Shared.Audio;
 
 /// <summary>
-///     Plays a <see cref="VoiceList" /> by mixing it a block at a time on a feeder thread of its
-///     own - through an <see cref="IVoiceCursor" />, the CPU's <see cref="VoiceCursor" /> unless
+///     Plays a <see cref="VoiceList" /> by mixing it a block at a time on the audio device's feeder
+///     thread - through an <see cref="IVoiceCursor" />, the CPU's <see cref="VoiceCursor" /> unless
 ///     given one that mixes elsewhere - and keeping an <see cref="AudioStream" /> topped up to <c>aheadSeconds</c> in front of
 ///     the playhead. The stream's queue is native memory the audio device reads without entering
 ///     managed code, so a garbage collection only pauses the feeder and the queue covers it.
@@ -18,7 +19,7 @@ namespace Shared.Audio;
 ///         list it will play and the block size it mixes at.
 ///     </para>
 /// </summary>
-public sealed class VoicePlayback : IBufferStopwatch, IDisposable
+public sealed class VoicePlayback : ISeekableStopwatch, IDisposable
 {
     /// <summary>The range <see cref="BlockFrames" /> is clamped to, and where it starts.</summary>
     public const int MinBlockFrames = 64, MaxBlockFrames = 65536, DefaultBlockFrames = 4096;
@@ -31,16 +32,12 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     private readonly IVoiceCursor _cursor;
     private readonly int _sampleRate;
     private readonly AudioStream _stream;
-    private readonly Thread? _thread;
-    private readonly ManualResetEventSlim _wake = new(false);
 
     /// <summary>Published, not taken by the feeder yet.</summary>
     private VoiceList? _pending;
 
     /// <summary>Frame to seek to, -1 for none; the clock reports it until the feeder has flushed to it.</summary>
     private long _pendingSeek = -1;
-
-    private volatile bool _stopping;
 
     // what the feeder has spent mixing, against how much audio that made - see Load
     private long _busyTicks;
@@ -50,11 +47,15 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     private bool _fedSinceFlush;
 
     /// <summary>
-    ///     Plays on a stream of <paramref name="context" />, mixing through <paramref name="cursor" /> -
+    ///     Plays on a stream of <paramref name="device" />, mixing through <paramref name="cursor" /> -
     ///     the CPU's <see cref="VoiceCursor" /> unless given one - which is disposed with this.
     /// </summary>
-    public VoicePlayback(AudioContext context, int sampleRate, double aheadSeconds, IVoiceCursor? cursor = null)
-        : this(context.CreateStream(sampleRate, 2), sampleRate, aheadSeconds, true, cursor)
+    public VoicePlayback(AudioDevice device, int sampleRate, double aheadSeconds, IVoiceCursor? cursor = null)
+        // ponytail: sized for the longest render-ahead setting, 30 s of stereo float (~11 MB) of
+        // native memory per song; recreate the stream on a setting change if that ever matters.
+        : this(device.CreateStream(sampleRate, 2,
+            (int)(ThirtyDollarWorkflow.MaxRenderAheadSeconds * sampleRate) + MaxBlockFrames), sampleRate, aheadSeconds,
+            true, cursor)
     {
     }
 
@@ -69,10 +70,7 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
         _stream = stream;
         _sampleRate = sampleRate;
         _aheadFrames = (int)(aheadSeconds * sampleRate);
-        if (!startFeeder) return;
-
-        _thread = new Thread(Feed) { IsBackground = true, Name = "Voice feeder", Priority = ThreadPriority.AboveNormal };
-        _thread.Start();
+        if (startFeeder) _stream.Refill = Pump;
     }
 
     /// <summary>How far ahead of the playhead the feeder keeps the stream filled.</summary>
@@ -141,10 +139,8 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
 
     public void Dispose()
     {
-        _stopping = true;
-        _wake.Set();
-        _thread?.Join();
-        _stream.Delete();
+        // waits out a pump the device's feeder is in the middle of; none runs after
+        _stream.Dispose();
 
         Interlocked.Exchange(ref _pending, null)?.Dispose();
         _cursor.Attach(null, 0)?.Dispose();
@@ -160,7 +156,7 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     {
         // a list published over one the feeder never took is never read
         Interlocked.Exchange(ref _pending, list)?.Dispose();
-        _wake.Set();
+        _stream.RequestRefill();
     }
 
     /// <summary>Plays from the start, as a freshly uploaded buffer does.</summary>
@@ -172,7 +168,7 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
 
     public void SetPause(bool paused)
     {
-        _stream.SetPause(paused);
+        _stream.Paused = paused;
         IsRunning = !paused;
     }
 
@@ -185,12 +181,12 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     public void SeekTime_Milliseconds(long milliseconds)
     {
         Interlocked.Exchange(ref _pendingSeek, Math.Max(milliseconds, 0) * _sampleRate / 1000);
-        _wake.Set();
+        _stream.RequestRefill();
     }
 
     public void SetVolume(float volume)
     {
-        _stream.SetVolume(volume);
+        _stream.Volume = volume;
     }
 
     private void MeasureLoad(long ticks, int frames)
@@ -205,19 +201,10 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
         _busyFrames = 0;
     }
 
-    private void Feed()
-    {
-        while (!_stopping)
-        {
-            Pump();
-            _wake.Wait(10);
-            _wake.Reset();
-        }
-    }
-
     /// <summary>
-    ///     One pass of the feeder: takes a published list or a seek, then tops the queue up. Only
-    ///     a changed <see cref="BlockFrames" /> allocates, for the new scratch.
+    ///     One pass of the feeder - the stream's <see cref="AudioStream.Refill" />: takes a published
+    ///     list or a seek, then tops the queue up. Only a changed <see cref="BlockFrames" />
+    ///     allocates, for the new scratch.
     /// </summary>
     internal void Pump()
     {

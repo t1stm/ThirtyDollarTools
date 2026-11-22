@@ -733,7 +733,7 @@ public class Visualizer : Scene, IGamePreloadable
         var beats_to_next_beat = 0f;
 
         var fps = _fpsCounter.GetAverageFPS(1 / deltaTime);
-        var audio_backend = SequencePlayer.AudioContext.Name;
+        var audio_backend = SequencePlayer.AudioDevice.Name;
         var audio_engine_load = SequencePlayer.CpuLoad * 100;
         var gpu_mixer = _workflow.GpuMixer;
 
@@ -903,7 +903,7 @@ public class Visualizer : Scene, IGamePreloadable
         var audio = pcm_data.ReadAsFloat32Array(true);
 
         if (audio == null) return;
-        _backingAudio = new BackingAudio(SequencePlayer.GetContext(), audio, (int)pcm_data.SampleRate);
+        _backingAudio = new BackingAudio(SequencePlayer.AudioDevice, audio, (int)pcm_data.SampleRate);
         _backingAudio.Play();
     }
 

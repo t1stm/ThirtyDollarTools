@@ -38,7 +38,6 @@
 
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2026.2.0"/>
-    <PackageReference Include="ManagedBass" Version="4.0.2"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,9 +1,7 @@
 using Serilog;
-using Shared.Audio.BASS;
-using Shared.Audio.Null;
-using Shared.Audio.OpenAL;
 using Shared.Objects;
 using Sundex.Core;
+using Sundex.Engine.Audio;
 using Sundex.Engine.Threading;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser.Custom_Events;
@@ -13,13 +11,12 @@ namespace Shared.Audio;
 
 public class SequencePlayer
 {
-    public readonly AudioContext AudioContext = new NullAudioContext();
+    public readonly AudioDevice AudioDevice;
     protected readonly long[] Bookmarks = new long[10];
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     protected readonly ILogger Logger;
     protected readonly SemaphoreSlim UpdateLock = new(1);
 
-    protected PlayerErrors Errors = PlayerErrors.None;
     protected TimedEvents Events;
 
     protected SequenceIndices SequenceIndices = new();
@@ -36,8 +33,8 @@ public class SequencePlayer
     ///     Creates a player that plays Thirty Dollar sequences.
     /// </summary>
     /// <param name="logger">The Logger instance you want to give.</param>
-    /// <param name="context">The audio context you want to use.</param>
-    public SequencePlayer(ILogger logger, AudioContext? context = null)
+    /// <param name="device">The output to play on; the default one when null.</param>
+    public SequencePlayer(ILogger logger, AudioDevice? device = null)
     {
         Logger = logger.ForContext<SequencePlayer>();
         Events = new TimedEvents
@@ -46,17 +43,10 @@ public class SequencePlayer
             TimingSampleRate = 100_000
         };
 
-        var c = context;
-        c?.Create();
-        c ??= GetAvailableContext();
-
-        if (c == null)
-        {
-            Errors = PlayerErrors.NoContext;
-            return;
-        }
-
-        AudioContext = c;
+        AudioDevice = device ?? AudioDevice.Open(logger);
+        // BASS played everything at half its level (global sample and stream volumes of 5000),
+        // and songs, previews and wave references are mixed for that.
+        AudioDevice.Volume = 0.5f;
     }
 
     public float Volume
@@ -95,7 +85,7 @@ public class SequencePlayer
         set
         {
             field = value;
-            TimingStopwatch.AudibleBuffer = field;
+            TimingStopwatch.Source = field;
         }
     }
 
@@ -116,18 +106,6 @@ public class SequencePlayer
 
     /// <summary>Times the song's queue ran dry while playing - see <see cref="VoicePlayback.Underruns" />.</summary>
     public int Underruns => Playback?.Underruns ?? 0;
-
-    protected AudioContext? GetAvailableContext()
-    {
-        AudioContext context;
-
-        if ((context = new BassAudioContext(Logger)).Create() ||
-            (context = new OpenALContext(Logger)).Create())
-            return context;
-
-        Logger.Error("Unable to initialize the audio device");
-        return null;
-    }
 
     /// <summary>
     ///     Subscribes a given event_name to a action, which is invoked when the event is played.
@@ -168,11 +146,6 @@ public class SequencePlayer
     public void ClearSubscriptions()
     {
         EventActions.Clear();
-    }
-
-    public AudioContext GetContext()
-    {
-        return AudioContext;
     }
 
     public ISeekableStopwatch GetTimingStopwatch()
@@ -264,7 +237,7 @@ public class SequencePlayer
             SequenceIndices = sequenceIndices;
             _aheadSeconds = aheadSeconds;
 
-            Playback ??= new VoicePlayback(AudioContext, AudioContext.SampleRate, aheadSeconds(), CursorFactory?.Invoke());
+            Playback ??= new VoicePlayback(AudioDevice, AudioDevice.SampleRate, aheadSeconds(), CursorFactory?.Invoke());
             Playback.AheadSeconds = aheadSeconds();
             Playback.BlockFrames = BlockFrames;
             Playback.Publish(voices);

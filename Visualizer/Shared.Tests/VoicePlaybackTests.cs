@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Serilog.Core;
 using Shared.Audio;
-using Shared.Audio.Null;
+using Sundex.Engine.Audio;
 using Shared.Objects;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -83,7 +83,7 @@ public class VoicePlaybackTests
     {
         using var first = Build("a|b|!cut@a|a|b@4|!cut|a");
         using var second = Build("b|a|a@3|!cut@a|b");
-        using var playback = new VoicePlayback(new NullStream(SampleRate, 2), SampleRate, 0.05, false);
+        using var playback = new VoicePlayback(CaptureStream.Silent.CreateStream(SampleRate, 2, SampleRate), SampleRate, 0.05, false);
 
         void Run()
         {
@@ -114,7 +114,7 @@ public class VoicePlaybackTests
     public void TheClockRunsWithTheStreamAndStopsAtTheEnd()
     {
         using var render = Build("a|b");
-        using var playback = new VoicePlayback(new NullAudioContext(), SampleRate, 2);
+        using var playback = new VoicePlayback(CaptureStream.Silent, SampleRate, 2);
 
         render.Voices.Retain();
         playback.Publish(render.Voices);
@@ -138,12 +138,12 @@ public class VoicePlaybackTests
     public void RefreshAheadSeconds_RereadsTheUploadersValue()
     {
         using var render = Build("a|b");
-        var player = new SequencePlayer(Logger.None, new NullAudioContext());
+        var player = new SequencePlayer(Logger.None, CaptureStream.Silent);
         var ahead = 2.0;
 
         render.Voices.Retain();
         player.UpdateSequence(render.TimedEvents, new SequenceIndices(), render.Voices, () => ahead);
-        var playback = (VoicePlayback)((TimingStopwatchWrapper)player.GetTimingStopwatch()).AudibleBuffer!;
+        var playback = (VoicePlayback)((TimingStopwatchWrapper)player.GetTimingStopwatch()).Source!;
         Assert.Equal(2, playback.AheadSeconds, 3);
 
         ahead = 5;
@@ -163,51 +163,5 @@ public class VoicePlaybackTests
         }
 
         return interleaved;
-    }
-
-    /// <summary>Keeps what it is put; never fills up, so one pump writes out the rest of the song.</summary>
-    private sealed class CaptureStream : AudioStream
-    {
-        private readonly List<float> _put = [];
-        public long Base { get; private set; }
-        public long Played { get; set; }
-
-        public override long QueuedFrames => 0;
-        public override long PlayedPosition => Base + Played;
-
-        public float[] Take()
-        {
-            var taken = _put.ToArray();
-            _put.Clear();
-            return taken;
-        }
-
-        public override void Put(ReadOnlySpan<float> interleaved)
-        {
-            _put.AddRange(interleaved);
-        }
-
-        public override void Flush(long basePosition)
-        {
-            _put.Clear();
-            Base = basePosition;
-            Played = 0;
-        }
-
-        public override void Play()
-        {
-        }
-
-        public override void SetPause(bool paused)
-        {
-        }
-
-        public override void SetVolume(float volume)
-        {
-        }
-
-        public override void Delete()
-        {
-        }
     }
 }

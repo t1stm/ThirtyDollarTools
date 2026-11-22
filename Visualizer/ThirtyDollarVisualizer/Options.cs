@@ -31,7 +31,7 @@ public class Options
     public float? Scale { get; set; }
 
     [Option("audio-backend",
-        HelpText = "Changes the audio backend the application uses. Values: \"bass\", \"openal\"")]
+        HelpText = "Pass \"null\" to play silently. Audio otherwise plays through miniaudio.")]
     public string? AudioBackend { get; set; }
 
     [Option("greeting",

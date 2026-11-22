@@ -1,38 +1,38 @@
-using Shared.Audio.Features;
 using Sundex.Core;
 
 namespace Shared.Audio;
 
 public class TimingStopwatchWrapper : ISeekableStopwatch
 {
-    public IBufferStopwatch? AudibleBuffer { get; set; }
+    /// <summary>The playing song's clock, once there is one.</summary>
+    public ISeekableStopwatch? Source { get; set; }
 
-    public TimeSpan Elapsed => AudibleBuffer?.Elapsed ?? TimeSpan.Zero;
-    public long ElapsedMilliseconds => AudibleBuffer?.ElapsedMilliseconds ?? 0;
-    public bool IsRunning => AudibleBuffer?.IsRunning ?? false;
+    public TimeSpan Elapsed => Source?.Elapsed ?? TimeSpan.Zero;
+    public long ElapsedMilliseconds => Source?.ElapsedMilliseconds ?? 0;
+    public bool IsRunning => Source?.IsRunning ?? false;
 
     public void Start()
     {
-        AudibleBuffer?.Start();
+        Source?.Start();
     }
 
     public void Stop()
     {
-        AudibleBuffer?.Stop();
+        Source?.Stop();
     }
 
     public void Restart()
     {
-        AudibleBuffer?.Restart();
+        Source?.Restart();
     }
 
     public void Reset()
     {
-        AudibleBuffer?.Reset();
+        Source?.Reset();
     }
 
     public void Seek(long milliseconds)
     {
-        AudibleBuffer?.Seek(milliseconds);
+        Source?.Seek(milliseconds);
     }
 }

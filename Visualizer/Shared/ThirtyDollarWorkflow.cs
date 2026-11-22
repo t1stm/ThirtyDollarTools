@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Shared.Atlases;
 using Shared.Audio;
 using Shared.Audio.Gpu;
-using Shared.Audio.Null;
+using Sundex.Engine.Audio;
 using Shared.Objects;
 using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Engine;
@@ -74,18 +74,18 @@ public class ThirtyDollarWorkflow
     private VoiceRender? _render;
 
     public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
-        AudioContext? context = null)
+        AudioDevice? device = null)
     {
         _assetProvider = game.AssetProvider;
         Game = game;
         Logger = logger.ForContext<ThirtyDollarWorkflow>();
-        SequencePlayer = new SequencePlayer(logger, context);
+        SequencePlayer = new SequencePlayer(logger, device);
         AtlasStore = atlasStore;
 
         // The song can mix on the GPU when the context has compute shaders and there is something
         // to hear; a --no-audio run keeps the CPU mixer. GpuMixing switches it.
         if (game.Device is GLGraphicsDevice glDevice && glDevice.Capabilities.SupportsCompute &&
-            SequencePlayer.AudioContext is not NullAudioContext)
+            !SequencePlayer.AudioDevice.Silent)
         {
             var mixer = GpuMixer = new GpuVoiceMixer(logger, game.AssetProvider, glDevice);
             SequencePlayer.CursorFactory = mixer.CreateCursor;
@@ -97,7 +97,7 @@ public class ThirtyDollarWorkflow
 
         EncoderSettings = new EncoderSettings
         {
-            SampleRate = (uint)SequencePlayer.AudioContext.SampleRate,
+            SampleRate = (uint)SequencePlayer.AudioDevice.SampleRate,
             Channels = 2,
             Resampler = new HermiteResampler(),
             EnableNormalization = false,
@@ -207,8 +207,7 @@ public class ThirtyDollarWorkflow
             ExtractedSpeedEvents = [];
         }
 
-        var audio_context = SequencePlayer.GetContext();
-        var updateRate = audio_context.SampleRate;
+        var updateRate = SequencePlayer.AudioDevice.SampleRate;
 
         if (restartPlayer)
             SequencePlayer.Stop();

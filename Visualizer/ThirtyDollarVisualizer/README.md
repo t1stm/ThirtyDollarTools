@@ -25,7 +25,7 @@ I'll now showcase all available launch options for the more advanced users.
 | `-c`       | `--camera-follow-mode` | Mode: Possible values are "tdw" or "line".                                                                | "tdw"         |
 | `-f`       | `--fps-limit`          | Sets the FPS limit of the window. If unset, the window uses VSync. If set to 0, the fps limit is removed. | unset         |
 | `-s`       | `--scale`              | Changes the zoom/scale of all sequence objects.                                                           | 1.0           |
-|            | `--audio-backend`      | Changes the audio backend. Possible values are "bass" or "openal".                                        | "bass"        |
+|            | `--audio-backend`      | Pass "null" to play silently; audio otherwise goes through miniaudio.                                     | (miniaudio)   |
 |            | `--no-audio`           | Disables all audio processing and playback.                                                               | unset         |
 |            | `--greeting`           | Changes the greeting at the start of the visualizer.                                                      | unset         |
 |            | `--event-size`         | Changes how big the events are in pixels.                                                                 | unset         |
