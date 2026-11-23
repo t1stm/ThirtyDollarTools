@@ -73,9 +73,7 @@ public class EditorInterfaceMarkupTests
     }
 
     /// <summary>
-    ///     A sub-component's ids live in its own map, never the host's - that is what each
-    ///     region's .snx.csx reaches through, so a rename there is silent until the scene
-    ///     opens.
+    ///     EditorInterface binds each region's controls through the child component's ID map.
     /// </summary>
     [Theory]
     [InlineData("editor-header", "editor-header", "editor-header-bar", "project-menu-button", "project-name",

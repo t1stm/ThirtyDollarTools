@@ -18,9 +18,10 @@ using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 using Sundex.Engine.Text;
-using Sundex.Markup;
+using ThirtyDollarConverter;
 using VisualizerScene;
 using VisualizerScene.Settings;
+using Sundex.Engine.Input;
 
 namespace LoadingScene;
 
@@ -65,11 +66,9 @@ public class Loader : Scene, IGamePreloadable
     private bool _preloadsQueued;
 
     /// <summary>
-    ///     The warm-up tasks the scene builds depend on. Both must have completed before a
-    ///     scene is built - see <see cref="QueuePreloadsWhenWarm" />.
+    ///     The font warm-up the scene builds depend on. It must have completed before a scene
+    ///     is built - see <see cref="QueuePreloadsWhenWarm" />.
     /// </summary>
-    private Task? _componentWarm;
-
     private Task? _fontWarm;
 
     /// <summary>
@@ -87,13 +86,16 @@ public class Loader : Scene, IGamePreloadable
     private Vector2 _lastScale = Vector2.One;
     private IProgressReport _progressReport = new NotStartedReport();
 
-    public Loader(Game game, AudioDevice? audioDevice, VisualizerSettings settings, VersionInfo? version) : base(game)
+    /// <param name="workspace">Where the tool scenes open and save files.</param>
+    /// <param name="samples">Where sounds download from and to; null for the site and the local cache.</param>
+    public Loader(GameRuntime runtime, AudioDevice? audioDevice, VisualizerSettings settings, VersionInfo? version,
+        Workspace workspace, SampleHolder? samples = null) : base(runtime)
     {
         _settings = settings;
         _version = version;
 
-        var clientSize = game.ClientSize;
-        if (game.TryGetScreenScale(out var scaleX, out var scaleY))
+        var clientSize = runtime.ClientSize;
+        if (runtime.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _audioDevice = audioDevice;
@@ -105,7 +107,7 @@ public class Loader : Scene, IGamePreloadable
             PixelScale = _lastScale,
             RequestCursor = type => _cursorType = type
         };
-        _thirtyDollarDownloader = new ThirtyDollarDownloader(game.ThreadRunner, _assetProvider)
+        _thirtyDollarDownloader = new ThirtyDollarDownloader(runtime.ThreadRunner, _assetProvider, samples)
         {
             StatusUpdate = StatusUpdate
         };
@@ -113,8 +115,8 @@ public class Loader : Scene, IGamePreloadable
         // The sample holder and atlas store exist from the downloader's construction and
         // fill in as files arrive, so tool scenes can be handed this and built before the
         // download has produced anything.
-        _workflow = new ThirtyDollarWorkflow(game, Logger, _thirtyDollarDownloader.SampleHolder,
-            _thirtyDollarDownloader.AtlasStore, _audioDevice);
+        _workflow = new ThirtyDollarWorkflow(runtime, Logger, _thirtyDollarDownloader.SampleHolder,
+            _thirtyDollarDownloader.AtlasStore, workspace, _audioDevice);
 
         // The resampler is stored as a name plus its parameters, so it is rebuilt whenever
         // one of them changes. Filtered by name because building one is expensive and most
@@ -126,6 +128,7 @@ public class Loader : Scene, IGamePreloadable
         _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
         _workflow.SequencePlayer.BlockFrames = settings.AudioBlockSize;
         _workflow.GpuMixing = settings.GpuAudioMixing;
+        _workflow.EncoderSettings.CutFadeLengthMs = (uint)Math.Max(0, settings.CutFadeLength);
         settings.Changed += name =>
         {
             if (Resamplers.Properties.Contains(name))
@@ -136,6 +139,8 @@ public class Loader : Scene, IGamePreloadable
                 _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
             else if (name == nameof(VisualizerSettings.AudioBlockSize))
                 _workflow.SequencePlayer.BlockFrames = settings.AudioBlockSize;
+            else if (name == nameof(VisualizerSettings.CutFadeLength))
+                _workflow.EncoderSettings.CutFadeLengthMs = (uint)Math.Max(0, settings.CutFadeLength);
             else if (name == nameof(VisualizerSettings.GpuAudioMixing))
                 _workflow.GpuMixing = settings.GpuAudioMixing;
         };
@@ -152,9 +157,8 @@ public class Loader : Scene, IGamePreloadable
             OnStartLoading = StartLoading
         };
 
-        // Started before either path below returns, so the warm-ups overlap the download on
+        // Started before either path below returns, so the warm-up overlaps the download on
         // a returning boot and the setup being read on a first run.
-        WarmComponents();
         WarmFonts();
 
         _setupNeeded = !_settings.UpdateCheckAsked;
@@ -179,26 +183,6 @@ public class Loader : Scene, IGamePreloadable
         // A build with no VERSION date (a developer build) still gets the setup, minus the
         // update question: there is no build date to compare a release against.
         _loaderInterface.BeginSetup(_version?.Date is not null);
-    }
-
-    /// <summary>
-    ///     Compiles every screen's logic block on a worker, before any of them is built, so
-    ///     the Roslyn compilation that dominates a component build is not paid on the render
-    ///     thread. Runs in its own task alongside <see cref="WarmFonts" />; the scene builds
-    ///     wait for both - see <see cref="QueuePreloadsWhenWarm" />.
-    /// </summary>
-    private Task WarmComponents()
-    {
-        return ThreadRunner.RunTask(() =>
-        {
-            var stopwatch = Stopwatch.StartNew();
-            // A throwaway context: precompiling only touches the markup parser, the asset
-            // provider and the script cache, none of which is per-context state.
-            var compiled = new SundexContext(_context).PrecompileLogic();
-
-            Logger.Debug("[Component Warmup] Compiled {Count} logic blocks in {Elapsed} ms",
-                compiled, stopwatch.ElapsedMilliseconds);
-        });
     }
 
     /// <summary>
@@ -334,13 +318,12 @@ public class Loader : Scene, IGamePreloadable
             // feeds is allowed to start.
             _thirtyDollarDownloader.LoadSampleList();
 
-            _componentWarm = WarmComponents();
             _fontWarm = WarmFonts();
 
             StatusUpdate(new ScenePreloadReport
             {
                 Message = "Preparing the interface",
-                Detail = "compiling layouts"
+                Detail = "loading fonts"
             });
         }
 
@@ -360,8 +343,8 @@ public class Loader : Scene, IGamePreloadable
             _ => MouseCursor.Default
         };
 
-        if (Game.Cursor != cursor)
-            Game.Cursor = cursor;
+        if (Runtime.Host.Cursor != cursor)
+            Runtime.Host.Cursor = cursor;
 
         QueuePreloadsWhenWarm();
         StartDownloadWhenReady();
@@ -381,14 +364,13 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Holds the scene builds until both warm-ups have landed, so a build never blocks
+    ///     Holds the scene builds until the font warm-up has landed, so a build never blocks
     ///     on the work meant to make it cheap. The render thread animates this screen while
-    ///     the workers run, which it cannot do while a scene is being built.
+    ///     the worker runs, which it cannot do while a scene is being built.
     /// </summary>
     private void QueuePreloadsWhenWarm()
     {
         if (_preloadsQueued) return;
-        if (_componentWarm is not { IsCompleted: true }) return;
         if (_fontWarm is not { IsCompleted: true }) return;
 
         _preloadsQueued = true;
@@ -408,16 +390,16 @@ public class Loader : Scene, IGamePreloadable
             var preload = Preloads[index];
             var step = index;
 
-            Game.Enqueue(_ => StatusUpdate(new ScenePreloadReport
+            Runtime.Enqueue(_ => StatusUpdate(new ScenePreloadReport
             {
                 Message = preload.Message,
                 Detail = $"{step + 1} of {Preloads.Count}",
                 Percentage = (step + 1) / (double)Preloads.Count
             }));
 
-            Game.Enqueue(game =>
+            Runtime.Enqueue(runtime =>
             {
-                preload.Load(game, _workflow);
+                preload.Load(runtime, _workflow);
                 // Render thread, same as Update - no interlock needed.
                 _preloadsDone++;
             });
@@ -512,7 +494,7 @@ public class Loader : Scene, IGamePreloadable
     {
         float width = w;
         float height = h;
-        if (Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        if (Runtime.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             width /= scaleX;
             height /= scaleY;
@@ -535,11 +517,11 @@ public class Loader : Scene, IGamePreloadable
     {
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
         _loaderInterface.MouseEvent(mouseState, _lastScale);
     }

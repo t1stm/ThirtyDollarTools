@@ -11,11 +11,11 @@ using ThirtyDollarConverter.Parser;
 
 namespace LoadingScene;
 
-public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider assetProvider)
+public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider assetProvider, SampleHolder? samples = null)
 {
     private readonly ILogger _logger = threadRunner.Logger.ForContext<ThirtyDollarDownloader>();
     public required Action<IProgressReport>? StatusUpdate { get; set; }
-    public SampleHolder SampleHolder { get; set; } = new(threadRunner.Logger);
+    public SampleHolder SampleHolder { get; } = samples ?? new(threadRunner.Logger);
     public AtlasStore AtlasStore { get; set; } = new(assetProvider, threadRunner.Logger);
 
     private Task? _sampleListTask;
@@ -37,17 +37,19 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
     {
         // No status of its own: this runs alongside the scene preloads, which own the status
         // line. The loading screen reports this only if it is still out once they finish.
-        return _sampleListTask ??= threadRunner.RunTask(() =>
+        return _sampleListTask ??= threadRunner.RunTask(LoadSampleListCore);
+    }
+
+    private async Task LoadSampleListCore()
+    {
+        try
         {
-            try
-            {
-                SampleHolder.LoadSampleList().GetAwaiter().GetResult();
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "Loading sounds.json failed. Continuing with cached files if possible.");
-            }
-        });
+            await SampleHolder.LoadSampleList();
+        }
+        catch (Exception e)
+        {
+            _logger.Error(e, "Loading sounds.json failed. Continuing with cached files if possible.");
+        }
     }
 
     public void Load()
@@ -55,12 +57,20 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
         if (Loading) return;
         Loading = true;
 
-        threadRunner.RunThread(() =>
+        threadRunner.RunTask(CompleteLoad);
+    }
+
+    private async Task CompleteLoad()
+    {
+        try
         {
-            LoadTask().GetAwaiter().GetResult();
-            Loading = false;
+            await LoadTask();
             AssetsLoaded = true;
-        });
+        }
+        finally
+        {
+            Loading = false;
+        }
     }
 
     private async Task LoadTask()

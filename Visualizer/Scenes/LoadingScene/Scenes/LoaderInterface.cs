@@ -8,9 +8,8 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
-using Sundex.Markup.Attributes;
+using Sundex.Engine.Input;
 
 namespace LoadingScene.Scenes;
 
@@ -93,14 +92,7 @@ public class LoaderInterface
     {
         _context = context;
 
-        var sundexContext = new SundexContext(context);
-        var componentSource = context.AssetProvider.LoadString("Scenes/Layout/LoaderInterface.snx.xml");
-
-        Component = sundexContext.NewComponent(componentSource);
-        sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => Strip, () => Ticks, () => Status,
-            () => StatusMessage, () => StatusDetail, () => StatusPercent, () => PaneWelcome, () => PaneUpdates,
-            () => PaneSounds, () => IncludePrereleases, () => IncludeNightlies, () => WelcomeNext,
-            () => UpdatesDecline, () => UpdatesAccept, () => SoundsStart);
+        new Markup.LoaderInterface(new SundexContext<LoaderInterface>(context, this)).Create();
 
         // Nothing is on screen until Begin* says so: the strip has no height and every pane
         // is off, so the first frame is the bare sound field.
@@ -133,28 +125,26 @@ public class LoaderInterface
     /// <summary>Raised when the user starts the download on the last setup pane.</summary>
     public Action? OnStartLoading { get; init; }
 
-    [UsedImplicitly] public SundexComponent Component { get; }
+    public Panel RootPanel { get; set; } = null!;
+    public Panel Strip { get; set; } = null!;
+    public FlexPanel Ticks { get; set; } = null!;
 
-    [SetFromLogic] public Panel RootPanel { get; set; } = null!;
-    [SetFromLogic] public Panel Strip { get; set; } = null!;
-    [SetFromLogic] public FlexPanel Ticks { get; set; } = null!;
+    public Panel Status { get; set; } = null!;
+    public Label StatusMessage { get; set; } = null!;
+    public Label StatusDetail { get; set; } = null!;
+    public Label StatusPercent { get; set; } = null!;
 
-    [SetFromLogic] public Panel Status { get; set; } = null!;
-    [SetFromLogic] public Label StatusMessage { get; set; } = null!;
-    [SetFromLogic] public Label StatusDetail { get; set; } = null!;
-    [SetFromLogic] public Label StatusPercent { get; set; } = null!;
+    public Panel PaneWelcome { get; set; } = null!;
+    public Panel PaneUpdates { get; set; } = null!;
+    public Panel PaneSounds { get; set; } = null!;
 
-    [SetFromLogic] public Panel PaneWelcome { get; set; } = null!;
-    [SetFromLogic] public Panel PaneUpdates { get; set; } = null!;
-    [SetFromLogic] public Panel PaneSounds { get; set; } = null!;
+    public Checkbox IncludePrereleases { get; set; } = null!;
+    public Checkbox IncludeNightlies { get; set; } = null!;
 
-    [SetFromLogic] public Checkbox IncludePrereleases { get; set; } = null!;
-    [SetFromLogic] public Checkbox IncludeNightlies { get; set; } = null!;
-
-    [SetFromLogic] public Button WelcomeNext { get; set; } = null!;
-    [SetFromLogic] public Button UpdatesDecline { get; set; } = null!;
-    [SetFromLogic] public Button UpdatesAccept { get; set; } = null!;
-    [SetFromLogic] public Button SoundsStart { get; set; } = null!;
+    public Button WelcomeNext { get; set; } = null!;
+    public Button UpdatesDecline { get; set; } = null!;
+    public Button UpdatesAccept { get; set; } = null!;
+    public Button SoundsStart { get; set; } = null!;
 
     /// <summary>Segments in the meter while the setup is up - one per pane it will show.</summary>
     public int SetupTicks => _panes.Count;
@@ -233,7 +223,7 @@ public class LoaderInterface
         RootPanel.Layout();
     }
 
-    public void MouseEvent(MouseState mouseState, Vector2 scale)
+    public void MouseEvent(PointerInput mouseState, Vector2 scale)
     {
         RootPanel.Test(mouseState, scale);
     }

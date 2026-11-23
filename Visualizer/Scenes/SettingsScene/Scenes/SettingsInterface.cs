@@ -9,10 +9,9 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
-using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
-using Sundex.Markup.Attributes;
 using VisualizerScene.Settings;
+using Sundex.Engine.Input;
 using CultureInfo = System.Globalization.CultureInfo;
 
 namespace SettingsScene.Scenes;
@@ -76,6 +75,8 @@ public class SettingsInterface
             new SettingRow(nameof(VisualizerSettings.AudioBlockSize), "Audio block size",
                 "Samples mixed per pass. Bigger costs less on\ndense songs; seeks and edits wait for one block.",
                 VoicePlayback.MinBlockFrames, VoicePlayback.MaxBlockFrames, PowersOfTwo: true),
+            new SettingRow(nameof(VisualizerSettings.CutFadeLength), "Cut fade length",
+                "Milliseconds a cut fades the stopped sound out\nover. Longer is softer; 0 clicks.", 0, 50),
             new SettingRow(nameof(VisualizerSettings.GpuAudioMixing), "Mix audio on the GPU",
                 "Needs OpenGL 4.3. Off, the CPU mixes, which\ncan't keep up with the densest songs.")
         ]),
@@ -131,11 +132,7 @@ public class SettingsInterface
         OnBack = back;
         _settings = settings;
 
-        var sundexContext = new SundexContext(context);
-        var componentSource = context.AssetProvider.LoadString("Scenes/Layout/SettingsInterface.snx.xml");
-
-        Component = sundexContext.NewComponent(componentSource);
-        sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => SettingsList, () => Strip);
+        new Markup.SettingsInterface(new SundexContext<SettingsInterface>(context, this)).Create();
 
         foreach (var (title, rows) in Sections)
             SettingsList.AddChild(BuildSection(title, rows));
@@ -153,11 +150,10 @@ public class SettingsInterface
     private UIContext UI { get; }
 
     [UsedImplicitly] public Action OnBack { get; }
-    [UsedImplicitly] public SundexComponent Component { get; }
-    [SetFromLogic] public Panel RootPanel { get; set; } = null!;
-    [SetFromLogic] public ScrollView SettingsList { get; set; } = null!;
-    [SetFromLogic] public ScrollView StripView { get; set; } = null!;
-    [SetFromLogic] public FlexPanel Strip { get; set; } = null!;
+    public Panel RootPanel { get; set; } = null!;
+    public ScrollView SettingsList { get; set; } = null!;
+    public ScrollView StripView { get; set; } = null!;
+    public FlexPanel Strip { get; set; } = null!;
 
     public void Resize()
     {
@@ -175,7 +171,7 @@ public class SettingsInterface
         RootPanel.Layout();
     }
 
-    public void MouseEvent(MouseState mouseState, Vector2 scale)
+    public void MouseEvent(PointerInput mouseState, Vector2 scale)
     {
         RootPanel.Test(mouseState, scale);
     }

@@ -12,6 +12,7 @@ using ThirtyDollarConverter.Objects;
 using VisualizerScene;
 using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
+using Sundex.Engine.Input;
 
 namespace DrumMasterScene.Components;
 
@@ -341,7 +342,7 @@ public class TaikoLane : IDisposable
         _chunks[chunkIndex].Renderables[index].Bounce();
     }
 
-    public void Keyboard(KeyboardState state)
+    public void Keyboard(KeyboardInput state)
     {
         if (AutoPlay) return;
 

@@ -4,6 +4,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using EditorScene.Scenes.Views;
 using VisualizerScene.Settings;
+using Sundex.Engine.Input;
 
 namespace EditorScene.Scenes;
 
@@ -115,7 +116,7 @@ public partial class EditorInterface
         else State.NudgePlacements(dx * _arrangement.SnapQuarterNotes, -dy, _arrangement.Channels - 1);
     }
 
-    public void MouseEvent(MouseState mouseState, Vector2 scale)
+    public void MouseEvent(PointerInput mouseState, Vector2 scale)
     {
         RootPanel.Test(mouseState, scale);
         // The framework only routes left/right buttons; middle-drag panning is fed here.

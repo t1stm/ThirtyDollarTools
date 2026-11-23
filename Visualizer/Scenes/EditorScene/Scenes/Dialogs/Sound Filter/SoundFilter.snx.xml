@@ -1,6 +1,5 @@
 <sundex version="1.0" component="sound-filter">
   <style language="sundex" src="Scenes/Dialogs/Sound Filter/SoundFilter.snx.ss"/>
-  <logic language="csharp" src="Scenes/Dialogs/Sound Filter/SoundFilter.snx.csx" imports="[EditorScene.Scenes]"/>
 
   <layout>
     <!-- A second, independent sound picker in multi-select mode: the track-automation

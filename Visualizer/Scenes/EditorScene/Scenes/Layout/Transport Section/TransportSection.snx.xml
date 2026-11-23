@@ -1,6 +1,5 @@
 <sundex version="1.0" component="transport-section">
   <style language="sundex" src="Scenes/Layout/Transport Section/TransportSection.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/Transport Section/TransportSection.snx.csx" imports="[EditorScene.Scenes]"/>
 
   <layout>
     <flex id="transport">

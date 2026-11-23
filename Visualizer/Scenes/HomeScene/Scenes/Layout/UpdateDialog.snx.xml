@@ -1,15 +1,15 @@
-<sundex version="1.0">
+<sundex version="2.0" context="HomeScene.Scenes.UpdateDialog">
   <style language="sundex" src="Scenes/Layout/UpdateDialog.snx.ss"/>
 
   <layout>
-    <flex id="update-dialog" class="dialog-frame">
+    <flex id="update-dialog" class="dialog-frame" ref="Context.Frame">
       <flex class="dialog-header">
-        <flex id="update-title-clip" class="update-title-clip">
-          <clipped-label id="update-title" class="dialog-title"/>
+        <flex id="update-title-clip" class="update-title-clip" ref="Context.TitleClip">
+          <clipped-label id="update-title" class="dialog-title" ref="Context.Title"/>
         </flex>
-        <label id="update-subtitle" class="dialog-subtitle" value=""/>
+        <label id="update-subtitle" class="dialog-subtitle" ref="Context.Subtitle" value=""/>
         <panel class="spacer"/>
-        <button id="close-button" class="icon-button">
+        <button id="close-button" class="icon-button" ref="Context.CloseButton">
           <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
         </button>
       </flex>
@@ -17,35 +17,35 @@
       <flex id="update-build" class="project-card">
         <flex class="update-build-side">
           <label class="update-build-caption" value="Your build"/>
-          <label id="update-your-tag" class="update-build-tag" value=""/>
+          <label id="update-your-tag" class="update-build-tag" ref="Context.YourTag" value=""/>
         </flex>
         <flex class="update-build-gain">
-          <flex id="update-tiles" class="update-tiles"/>
-          <label id="update-gain" class="update-build-caption" value=""/>
+          <flex id="update-tiles" class="update-tiles" ref="Context.Tiles"/>
+          <label id="update-gain" class="update-build-caption" ref="Context.Gain" value=""/>
         </flex>
         <flex class="[update-build-side,update-build-side-end]">
           <label class="update-build-caption" value="Newest"/>
-          <label id="update-newest-tag" class="[update-build-tag,update-build-tag-newest]" value=""/>
+          <label id="update-newest-tag" class="[update-build-tag,update-build-tag-newest]" ref="Context.NewestTag" value=""/>
         </flex>
       </flex>
 
       <!-- UpdateDialog.cs keeps one of these two: the notes, or the line saying there are none. -->
-      <markdown id="update-notes" class="update-notes"/>
-      <flex id="update-empty" class="update-empty">
-        <label id="update-empty-label" class="empty-state-text" value=""/>
+      <markdown id="update-notes" class="update-notes" ref="Context.Notes"/>
+      <flex id="update-empty" class="update-empty" ref="Context.Empty">
+        <label id="update-empty-label" class="empty-state-text" ref="Context.EmptyLabel" value=""/>
       </flex>
 
       <panel class="rule"/>
 
       <flex class="dialog-actions-split">
-        <button id="update-release-page" class="[dialog-button-quiet,update-release-page]">
+        <button id="update-release-page" class="[dialog-button-quiet,update-release-page]" ref="Context.ReleasePage">
           <label class="quiet-label" value="Release page"/>
         </button>
         <panel class="spacer"/>
-        <button id="update-later" class="dialog-button">
+        <button id="update-later" class="dialog-button" ref="Context.Later">
           <label value="Later"/>
         </button>
-        <button id="update-open" class="dialog-button-primary">
+        <button id="update-open" class="dialog-button-primary" ref="Context.Open">
           <label class="light-label" value="Open download page"/>
         </button>
       </flex>

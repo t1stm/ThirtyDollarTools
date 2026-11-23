@@ -1,35 +1,34 @@
-<sundex version="1.0">
+<sundex version="2.0" context="VisualizerScene.UI.PlayerBar">
   <style language="sundex" src="UI/Layout/PlayerBar.snx.ss"/>
-  <logic language="csharp" src="UI/Layout/PlayerBar.snx.csx" imports="[VisualizerScene.UI]"/>
 
   <layout>
-    <panel id="bar-root">
+    <panel id="bar-root" ref="Context.RootPanel">
       <!-- The timeline is the bar's top edge. It comes first so the playhead paints over
            it, and the controls last so they paint over the playhead. -->
-      <progress id="progress-bar"/>
+      <progress id="progress-bar" ref="Context.ProgressBar"/>
 
       <!-- Home's playhead, standing where the cover is. PlayerBar moves it. -->
-      <panel id="playhead">
+      <panel id="playhead" ref="Context.Playhead">
         <panel id="playhead-line"/>
         <panel id="playhead-stem"/>
       </panel>
 
-      <flex id="left-group">
-        <button id="play-pause-button">
+      <flex id="left-group" ref="Context.LeftGroup">
+        <button id="play-pause-button" ref="Context.PlayPauseButton" on.click="{Context.OnPlayPause}">
           <label value="Play"/>
         </button>
-        <button id="restart-button">
+        <button id="restart-button" ref="Context.RestartButton" on.click="{Context.OnRestart}">
           <label value="Restart"/>
         </button>
         <flex id="clock">
-          <label id="current-time" value="00:00.00"/>
+          <label id="current-time" ref="Context.CurrentTimeLabel" value="00:00.00"/>
           <label id="time-separator" value="/"/>
-          <label id="total-time" value="00:00.00"/>
+          <label id="total-time" ref="Context.TotalTimeLabel" value="00:00.00"/>
         </flex>
       </flex>
 
       <flex id="right-group">
-        <button id="back-button">
+        <button id="back-button" ref="Context.BackButton" on.click="{Context.OnBack}">
           <label value="Back"/>
         </button>
       </flex>

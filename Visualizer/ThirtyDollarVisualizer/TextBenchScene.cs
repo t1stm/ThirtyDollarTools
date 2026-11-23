@@ -12,6 +12,7 @@ using Sundex.Engine;
 using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
+using Sundex.Engine.Input;
 
 namespace ThirtyDollarVisualizer;
 
@@ -48,9 +49,9 @@ public class TextBenchScene : Scene
     private bool _done;
     private string _renderer = "";
 
-    public TextBenchScene(Game game) : base(game)
+    public TextBenchScene(GameRuntime runtime) : base(runtime)
     {
-        _camera = new DollarStoreCamera(Vector3.Zero, game.ClientSize);
+        _camera = new DollarStoreCamera(Vector3.Zero, runtime.ClientSize);
         _context = new UIContext { Camera = _camera };
     }
 
@@ -71,7 +72,7 @@ public class TextBenchScene : Scene
 
         _context.Clear();
         _timer?.Dispose();
-        _timer = Game.Device.CreateGpuTimer();
+        _timer = Runtime.Device.CreateGpuTimer();
         _cpuSamples.Clear();
         _glyphs = 0;
         _frames = 0;
@@ -108,7 +109,7 @@ public class TextBenchScene : Scene
         var p95 = GpuTimer.Percentile(gpu, 95);
         _failed |= p95 > GateMs;
 
-        var size = Game.FramebufferSize;
+        var size = Runtime.FramebufferSize;
         Logger.Information(
             "[TextBench] variant={Variant:l} size={Width}x{Height} glyphs={Glyphs} gpu_median={Median:0.000}ms " +
             "gpu_p95={P95:0.000}ms gpu_max={Max:0.000}ms cpu_median={Cpu:0.000}ms renderer=\"{Renderer:l}\"",
@@ -165,7 +166,7 @@ public class TextBenchScene : Scene
     {
         if (_done)
         {
-            Game.Close();
+            Runtime.Host.Close();
             return;
         }
 
@@ -176,7 +177,7 @@ public class TextBenchScene : Scene
     public override void Resize(int w, int h)
     {
         // ClientSize, not the framebuffer size passed in: the camera works in logical units.
-        _camera.Viewport = Game.ClientSize;
+        _camera.Viewport = Runtime.ClientSize;
         _camera.UpdateMatrix();
     }
 
@@ -189,11 +190,11 @@ public class TextBenchScene : Scene
     {
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
     }
 }

@@ -1,6 +1,5 @@
 <sundex version="1.0" component="editor-header">
   <style language="sundex" src="Scenes/Layout/Editor Header/EditorHeader.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/Editor Header/EditorHeader.snx.csx" imports="[EditorScene.Scenes]"/>
 
   <layout>
     <!-- A plain panel, not a flex: the bar fills it, and the Draw/Select switch

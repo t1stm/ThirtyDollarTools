@@ -10,7 +10,6 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using Sundex.Markup;
-using Sundex.Markup.Legacy;
 using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
@@ -30,7 +29,6 @@ namespace EditorScene.Tests;
 /// </summary>
 public class EditorTestContext : TestUIContext
 {
-    static EditorTestContext() => CSharp.Register();
 
     [SetsRequiredMembers]
     public EditorTestContext()

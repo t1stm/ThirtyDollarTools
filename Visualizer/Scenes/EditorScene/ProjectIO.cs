@@ -4,15 +4,19 @@ using Microsoft.Extensions.Logging;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
+using Shared;
+using Sundex.Reactive;
 
 namespace EditorScene;
 
 /// <summary>
 ///     Project file lifecycle for <see cref="Scenes.EditorInterface" />: save/load, TDW
 ///     import/export, and timestamped backups on a dirty timer. Failures are logged and
-///     reported through the dialog host rather than thrown.
+///     reported through the dialog host rather than thrown. Files go through the
+///     <see cref="Workspace" />, whose disk calls finish before they return, so on the desktop
+///     every one of these completes before the call does.
 /// </summary>
-public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger logger)
+public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger logger, Workspace workspace)
 {
     private const long BackupIntervalMs = 5 * 60_000;
     private const int MaxBackups = 20;
@@ -20,14 +24,24 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
 
     private readonly Stopwatch _sinceBackup = Stopwatch.StartNew();
 
+    /// <summary>The latest save; the next one waits for it, so two never write a file at once.</summary>
+    private Task _lastSave = Task.CompletedTask;
+
     /// <summary>Saving clears Dirty without firing OnProjectChanged, so the owner hooks its title refresh here.</summary>
     public Action? OnSaved { get; set; }
 
-    public void Load(string path)
+    public void Load(string path) => Async.Run(() => LoadProject(path));
+
+    private async Task LoadProject(string path)
     {
         try
         {
-            state.LoadProjectFromFile(path);
+            var previous = state.Project;
+            var revision = state.Revision;
+            using var stream = await workspace.Open(path);
+            // An edit or another open while the file was on its way wins over this one.
+            if (!ReferenceEquals(previous, state.Project) || revision != state.Revision) return;
+            state.LoadProject(ProjectFile.Load(stream), path);
             logger.ProjectLoaded(path, state.Project.Tracks.Count);
         }
         catch (Exception e)
@@ -37,12 +51,15 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         }
     }
 
-    /// <summary>Saves to the known path, or asks for one; runs the continuation only on success.</summary>
+    /// <summary>
+    ///     Saves to the known path, or asks for one; runs the continuation only once the
+    ///     project is saved with nothing changed since.
+    /// </summary>
     public void Save(Action? andThen = null)
     {
         if (state.ProjectPath is { } path)
         {
-            if (Write(path)) andThen?.Invoke();
+            QueueWrite(path, andThen);
             return;
         }
 
@@ -57,10 +74,8 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     public void SaveAs(Action? andThen = null)
     {
         var name = state.ProjectPath is { } path ? Path.GetFileName(path) : $"{state.Project.Info.Name}.tdwproj";
-        dialogHost.ShowFileDialog("Save project as", name, ".tdwproj", picked =>
-        {
-            if (Write(picked)) andThen?.Invoke();
-        }, "Save", Path.GetDirectoryName(state.ProjectPath));
+        dialogHost.ShowFileDialog("Save project as", name, ".tdwproj",
+            picked => QueueWrite(picked, andThen), "Save", Path.GetDirectoryName(state.ProjectPath));
     }
 
     /// <summary>
@@ -68,12 +83,12 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     ///     import dialog to show. A file that can't be read or parsed is reported here and gives
     ///     null, so no dialog opens.
     /// </summary>
-    public (Sequence Sequence, ImportPreview Preview)? ReadTdw(string path,
+    public async Task<(Sequence Sequence, ImportPreview Preview)?> ReadTdw(string path,
         IReadOnlyDictionary<string, Sound>? soundMap)
     {
         try
         {
-            var sequence = Sequence.FromString(File.ReadAllText(path));
+            var sequence = Sequence.FromString(await workspace.ReadText(path));
             return (sequence, SequenceImporter.Preview(sequence, soundMap));
         }
         catch (Exception e)
@@ -118,11 +133,13 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         dialogHost.Alert($"Couldn't import {Path.GetFileName(path)}", e);
     }
 
-    public void ExportTdw(string path, SequenceStyle style)
+    public void ExportTdw(string path, SequenceStyle style) => Async.Run(() => WriteTdw(path, style));
+
+    private async Task WriteTdw(string path, SequenceStyle style)
     {
         try
         {
-            File.WriteAllText(path, SequenceText.Serialize(state.Project.ToSequence(style)));
+            await workspace.WriteText(path, SequenceText.Serialize(state.Project.ToSequence(style)));
             logger.Exported(path);
         }
         catch (Exception e)
@@ -140,21 +157,45 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         _sinceBackup.Restart();
     }
 
-    private bool Write(string path)
+    private void QueueWrite(string path, Action? andThen)
+    {
+        var save = WriteAfter(_lastSave, path, andThen);
+        _lastSave = save;
+        Async.Run(() => save);
+    }
+
+    private async Task WriteAfter(Task previous, string path, Action? andThen)
     {
         try
         {
-            state.SaveProjectToFile(path);
-            OnSaved?.Invoke();
-            logger.ProjectSaved(path);
-            return true;
+            await previous;
+        }
+        catch
+        {
+            // Reported when it failed; this save still goes ahead.
+        }
+
+        var project = state.Project;
+        var revision = state.Revision;
+        try
+        {
+            await workspace.Write(path, stream => ProjectFile.Save(project, stream));
         }
         catch (Exception e)
         {
             logger.SaveFailed(e, path);
             dialogHost.Alert($"Couldn't save {Path.GetFileName(path)}", e, writing: true);
-            return false;
+            return;
         }
+
+        // A project opened while the file was being written keeps its own path.
+        if (!ReferenceEquals(project, state.Project)) return;
+        state.RecordSavedProject(path, revision);
+        OnSaved?.Invoke();
+        logger.ProjectSaved(path);
+
+        // An edit made during the write leaves the project dirty, and what waited on the save waits on.
+        if (!state.Dirty) andThen?.Invoke();
     }
 
     /// <summary>

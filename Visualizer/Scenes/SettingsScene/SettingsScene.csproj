@@ -15,9 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Scenes\Layout\SettingsInterface.snx.xml"/>
     <EmbeddedResource Include="Scenes\Layout\SettingsInterface.snx.ss"/>
-    <EmbeddedResource Include="Scenes\Layout\SettingsInterface.snx.csx"/>
   </ItemGroup>
 
 </Project>

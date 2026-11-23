@@ -5,6 +5,7 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
 using Sundex.Engine.Renderer.Buffers;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
+using Sundex.Engine.Input;
 
 namespace DrumMasterScene.UI;
 
@@ -46,7 +47,7 @@ public class SoundListElement : FlexPanel
         }
     }
 
-    public override void Test(MouseState mouse, Vector2 scale)
+    public override void Test(PointerInput mouse, Vector2 scale)
     {
         base.Test(mouse, scale);
 

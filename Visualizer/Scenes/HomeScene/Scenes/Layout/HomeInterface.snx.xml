@@ -1,20 +1,19 @@
-<sundex version="1.0">
+<sundex version="2.0" context="HomeScene.Scenes.HomeInterface">
   <style language="sundex" src="Scenes/Layout/HomeInterface.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/HomeInterface.snx.csx" imports="[HomeScene.Scenes]"/>
 
   <!-- The three tools are one continuous row split by hairlines, the way a Thirty Dollar
        sequence is one row of steps - not three floating cards. `page` covers the whole
        stage, so everything meant to sit on top of it (footer, settings) comes after it:
        ties in hit-testing go to the later sibling. -->
   <layout>
-    <panel id="stage">
+    <panel id="stage" ref="Context.RootPanel">
       <flex id="page">
         <!-- The head is the platform's own mark, and the only thing on this screen that
              reacts: it nods and takes on a tool's colour as the playhead enters that
              tool's cell, the way a moai does over a sound on the website. -->
         <flex id="masthead">
           <panel id="moai-slot">
-            <image id="moai" src="Assets/Textures/moai.png" storage="assembly" texture-fit="fit"/>
+            <image id="moai" ref="Context.Moai" src="Assets/Textures/moai.png" storage="assembly" texture-fit="fit"/>
           </panel>
 
           <flex id="masthead-text">
@@ -23,21 +22,22 @@
           </flex>
         </flex>
 
-        <panel id="band">
-          <panel id="cell-visualizer" class="cell">
-            <flex id="steps-visualizer" class="steps"/>
+        <!-- The whole cell is the target, not a button inside it - the row is the affordance. -->
+        <panel id="band" ref="Context.Band">
+          <panel id="cell-visualizer" class="cell" on.click="{Context.OnVisualizer}">
+            <flex id="steps-visualizer" class="steps" ref="Context.VisualizerSteps"/>
             <label class="cell-title" value="Visualizer"/>
             <label class="cell-desc" value="Play a cover back with no dropped notes."/>
           </panel>
 
-          <panel id="cell-drum-master" class="cell">
-            <flex id="steps-drum-master" class="steps"/>
+          <panel id="cell-drum-master" class="cell" on.click="{Context.OnDrumMaster}">
+            <flex id="steps-drum-master" class="steps" ref="Context.DrumMasterSteps"/>
             <label class="cell-title" value="Drum Master"/>
             <label class="cell-desc" value="Play a loaded sequence live on taiko lanes."/>
           </panel>
 
-          <panel id="cell-editor" class="cell">
-            <flex id="steps-editor" class="steps"/>
+          <panel id="cell-editor" class="cell" on.click="{Context.OnEditor}">
+            <flex id="steps-editor" class="steps" ref="Context.EditorSteps"/>
             <label class="cell-title" value="Editor"/>
             <label class="cell-desc" value="Build a cover track by track and export it."/>
           </panel>
@@ -45,7 +45,7 @@
           <panel class="divider" id="divider-left"/>
           <panel class="divider" id="divider-right"/>
 
-          <panel id="playhead">
+          <panel id="playhead" ref="Context.Playhead">
             <panel id="playhead-line"/>
           </panel>
         </panel>
@@ -54,13 +54,13 @@
       <!-- Both values are the defaults for a build that isn't checking for updates; Home
            overwrites them once it knows the version and what the check found. -->
       <flex id="footer">
-        <label id="version-label" value="Developer Build"/>
-        <link id="update-label" class="update-note" value="Check for updates at t1stm.github.io/ThirtyDollarTools"
-              open="https://t1stm.github.io/ThirtyDollarTools/#download"/>
+        <label id="version-label" ref="Context.VersionLabel" value="Developer Build"/>
+        <link id="update-label" class="update-note" ref="Context.UpdateLabel" value="Check for updates at t1stm.github.io/ThirtyDollarTools"
+              url="https://t1stm.github.io/ThirtyDollarTools/#download"/>
       </flex>
 
       <flex id="topbar">
-        <button id="settings-button">
+        <button id="settings-button" on.click="{Context.OnSettings}">
           <label value="Settings"/>
         </button>
       </flex>

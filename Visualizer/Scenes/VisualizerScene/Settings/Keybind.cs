@@ -1,6 +1,7 @@
 using System.Text;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Engine.Input;
 
 namespace VisualizerScene.Settings;
 
@@ -88,7 +89,7 @@ public readonly record struct Keybind(Keys Key, KeyModifiers Modifiers)
     }
 
     /// <summary>The per-frame path: pressed this frame, with exactly these modifiers held.</summary>
-    public bool IsPressed(KeyboardState state)
+    public bool IsPressed(KeyboardInput state)
     {
         return state.IsKeyPressed(Key) && Held(state) == Modifiers;
     }
@@ -100,7 +101,7 @@ public readonly record struct Keybind(Keys Key, KeyModifiers Modifiers)
     ///     False lets modifiers the binding doesn't name through. The seek keys need it:
     ///     there Shift and Ctrl scale the step size rather than forming part of the binding.
     /// </param>
-    public bool IsDown(KeyboardState state, bool exact = true)
+    public bool IsDown(KeyboardInput state, bool exact = true)
     {
         if (!state.IsKeyDown(Key)) return false;
         var held = Held(state);
@@ -109,9 +110,9 @@ public readonly record struct Keybind(Keys Key, KeyModifiers Modifiers)
 
     /// <summary>
     ///     Rebuilds the modifier set from the key states, because
-    ///     <see cref="KeyboardState" /> has no modifier bitfield of its own.
+    ///     <see cref="KeyboardInput" /> has no modifier bitfield of its own.
     /// </summary>
-    private static KeyModifiers Held(KeyboardState state)
+    private static KeyModifiers Held(KeyboardInput state)
     {
         var modifiers = (KeyModifiers)0;
         if (state.IsKeyDown(Keys.LeftControl) || state.IsKeyDown(Keys.RightControl))

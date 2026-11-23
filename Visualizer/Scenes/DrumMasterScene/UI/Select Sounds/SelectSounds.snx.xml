@@ -1,6 +1,5 @@
-<sundex version="1.0">
+<sundex version="2.0" context="DrumMasterScene.DrumMaster">
   <style language="sundex" src="UI/Select Sounds/SelectSounds.snx.ss"/>
-  <logic language="csharp" src="UI/Select Sounds/SelectSounds.snx.csx" imports="[DrumMasterScene]"/>
 
   <layout>
     <panel id="main-holder">
@@ -16,21 +15,22 @@
         <flex id="top-bar">
           <label id="title" value="Drum Master"/>
           <panel class="spacer"/>
-          <button id="add-lane-button">
+          <button id="add-lane-button" on.click="{Context.AddLane}">
             <label value="Add Lane"/>
           </button>
         </flex>
 
         <flex id="content-area">
-          <flex id="taiko-lane-list">
-            <!-- Custom "TaikoLaneConfiguration" components will take place here that will be added by code. -->
+          <flex id="taiko-lane-list" ref="Context.LaneList">
+            <!-- DrumMaster.AddLane puts a TaikoLaneConfiguration here per lane. -->
           </flex>
 
-          <sound-list id="available-sounds"/>
+          <!-- DrumMaster puts its SoundList (#available-sounds) here: it needs the atlas store. -->
+          <region ref="Context.SoundListSlot"/>
         </flex>
 
         <flex id="footer">
-          <button id="back-button">
+          <button id="back-button" on.click='{() => Context.SceneManager.TransitionTo("home")}'>
             <label value="Back"/>
           </button>
 
@@ -38,7 +38,7 @@
             <button id="speed-influences">
               <label value="!speed Influences Scroll Speed"/>
             </button>
-            <button id="play-button">
+            <button id="play-button" on.click="{Context.StartPlayback}">
               <label value="Start Drumming!"/>
             </button>
           </flex>

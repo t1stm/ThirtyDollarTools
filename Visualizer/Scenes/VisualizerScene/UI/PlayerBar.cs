@@ -5,9 +5,8 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
-using Sundex.Markup.Attributes;
+using Sundex.Engine.Input;
 
 namespace VisualizerScene.UI;
 
@@ -45,21 +44,8 @@ public class PlayerBar
         OnRestart = onRestart;
         OnSeek = onSeek;
 
-        var sundexContext = new SundexContext(context);
-        var source = context.AssetProvider.LoadString("UI/Layout/PlayerBar.snx.xml");
-
-        Component = sundexContext.NewComponent(source);
-        sundexContext.RunLogicAndVerify(Component,
-            () => RootPanel,
-            () => ProgressBar,
-            () => Playhead,
-            () => LeftGroup,
-            () => CurrentTimeLabel,
-            () => TotalTimeLabel,
-            () => PlayPauseButton,
-            () => BackButton,
-            () => RestartButton);
-
+        // The markup sets the element properties below and wires the buttons to the actions.
+        new Markup.PlayerBar(new SundexContext<PlayerBar>(context, this)).Create();
         RootPanel.DrawTo(context);
     }
 
@@ -88,17 +74,15 @@ public class PlayerBar
     [UsedImplicitly] public Action OnRestart { get; }
     private Action<float> OnSeek { get; }
 
-    [UsedImplicitly] public SundexComponent Component { get; }
-
-    [SetFromLogic] public Panel RootPanel { get; set; } = null!;
-    [SetFromLogic] public ProgressBar ProgressBar { get; set; } = null!;
-    [SetFromLogic] public Panel Playhead { get; set; } = null!;
-    [SetFromLogic] public FlexPanel LeftGroup { get; set; } = null!;
-    [SetFromLogic] public Label CurrentTimeLabel { get; set; } = null!;
-    [SetFromLogic] public Label TotalTimeLabel { get; set; } = null!;
-    [SetFromLogic] public Button PlayPauseButton { get; set; } = null!;
-    [SetFromLogic] public Button BackButton { get; set; } = null!;
-    [SetFromLogic] public Button RestartButton { get; set; } = null!;
+    public Panel RootPanel { get; set; } = null!;
+    public ProgressBar ProgressBar { get; set; } = null!;
+    public Panel Playhead { get; set; } = null!;
+    public FlexPanel LeftGroup { get; set; } = null!;
+    public Label CurrentTimeLabel { get; set; } = null!;
+    public Label TotalTimeLabel { get; set; } = null!;
+    public Button PlayPauseButton { get; set; } = null!;
+    public Button BackButton { get; set; } = null!;
+    public Button RestartButton { get; set; } = null!;
 
     public void Resize()
     {
@@ -119,7 +103,7 @@ public class PlayerBar
     ///     pointer was last seen inside, so a pointer that left across the bottom edge would
     ///     keep the bar up until the inactivity delay ran out.
     /// </param>
-    public void UpdateAlpha(MouseState mouse, Vector2i windowSize, bool cursorInWindow, float deltaTime,
+    public void UpdateAlpha(PointerInput mouse, Vector2i windowSize, bool cursorInWindow, float deltaTime,
         bool forceVisible = false)
     {
         if (forceVisible && !Hidden)
@@ -157,7 +141,7 @@ public class PlayerBar
         _alpha.Apply(RootPanel, CurrentAlpha);
     }
 
-    public void MouseEvent(MouseState mouse, Vector2 scale)
+    public void MouseEvent(PointerInput mouse, Vector2 scale)
     {
         if (CurrentAlpha < 0.01f) return;
 

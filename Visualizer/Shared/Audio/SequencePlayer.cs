@@ -196,7 +196,14 @@ public class SequencePlayer
     public void Start(ThreadRunner threadRunner)
     {
         Playback?.Play();
-        threadRunner.RunThread(UpdateLoop);
+        if (_updateRunning) return;
+        _updateRunning = true;
+        threadRunner.RunLoop(() =>
+        {
+            if (!_updateRunning || _dead) return false;
+            UpdatePlaybackOnce();
+            return true;
+        });
     }
 
     public void Stop()
@@ -294,24 +301,16 @@ public class SequencePlayer
     }
 
 
-    protected void UpdateLoop()
+    private void UpdatePlaybackOnce()
     {
-        if (_updateRunning) return;
-        _updateRunning = true;
-
-        while (_updateRunning && !_dead)
+        UpdateLock.Wait();
+        try
         {
-            UpdateLock.Wait();
-            try
-            {
-                PlaybackUpdate();
-            }
-            finally
-            {
-                UpdateLock.Release();
-            }
-
-            Thread.Sleep(1);
+            PlaybackUpdate();
+        }
+        finally
+        {
+            UpdateLock.Release();
         }
     }
 

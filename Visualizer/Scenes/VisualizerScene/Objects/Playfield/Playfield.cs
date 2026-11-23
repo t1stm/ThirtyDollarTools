@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using Shared;
 using Sundex.Core.Renderer.Planes;
 using Sundex.Core.Animations;
+using Sundex.Engine.Threading;
 using ThirtyDollarConverter.Parser;
 using VisualizerScene.Objects.Playfield.Batch;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
@@ -239,6 +240,13 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
         slot.ChunkIndex = chunk;
         _slotOf[chunk] = slot.Id;
 
+        // Without a fill thread the slot fills now, on the frame.
+        if (!ThreadRunner.CanStartThreads)
+        {
+            FillSlot(slot);
+            return;
+        }
+
         lock (_fillQueue)
         {
             _fillQueue.Enqueue(slot);
@@ -298,30 +306,35 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
                 slot = _fillQueue.Dequeue();
             }
 
-            lock (_fillLock)
+            FillSlot(slot);
+        }
+    }
+
+    private void FillSlot(Slot slot)
+    {
+        lock (_fillLock)
+        {
+            if (_disposed) return;
+
+            // Dropped once the camera has moved on - after a seek, the chunks now on screen
+            // mustn't wait behind the fills it left behind.
+            var chunk = slot.ChunkIndex;
+            if (chunk < Volatile.Read(ref _wantedFirst) || chunk > Volatile.Read(ref _wantedLast))
             {
-                if (_disposed) return;
-
-                // Dropped once the camera has moved on - after a seek, the chunks now on screen
-                // mustn't wait behind the fills it left behind.
-                var chunk = slot.ChunkIndex;
-                if (chunk < Volatile.Read(ref _wantedFirst) || chunk > Volatile.Read(ref _wantedLast))
-                {
-                    Volatile.Write(ref slot.State, Free);
-                    continue;
-                }
-
-                var size = _fillGenerator.ChunkSize;
-                var start = chunk * size;
-                var state = _layouts[chunk].State;
-                _fillGenerator.LayoutHandler.SeekTo(state.SoundIndex, state.Y, state.Height);
-
-                slot.Chunk.Fill(_events.AsSpan(start, Math.Min(_events.Length - start, size)),
-                    _fillGenerator.LayoutHandler, settings);
-                _fillGenerator.PositionChunk(slot.Chunk, state);
-
-                Volatile.Write(ref slot.State, Ready);
+                Volatile.Write(ref slot.State, Free);
+                return;
             }
+
+            var size = _fillGenerator.ChunkSize;
+            var start = chunk * size;
+            var state = _layouts[chunk].State;
+            _fillGenerator.LayoutHandler.SeekTo(state.SoundIndex, state.Y, state.Height);
+
+            slot.Chunk.Fill(_events.AsSpan(start, Math.Min(_events.Length - start, size)),
+                _fillGenerator.LayoutHandler, settings);
+            _fillGenerator.PositionChunk(slot.Chunk, state);
+
+            Volatile.Write(ref slot.State, Ready);
         }
     }
 

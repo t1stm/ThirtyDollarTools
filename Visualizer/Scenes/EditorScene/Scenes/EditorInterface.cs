@@ -13,7 +13,6 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using Sundex.Markup;
-using Sundex.Markup.Attributes;
 using Serilog.Extensions.Logging;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Dialogs;
@@ -146,17 +145,7 @@ public partial class EditorInterface
             _toolSwitch.Peek(tool);
         };
 
-        // Runs every component's logic depth-first, then verifies that no [SetFromLogic]
-        // property was left null. The getters catch one nulled back out during logic.
-        sundexContext.RunLogicAndVerify(Component,
-            () => Header,
-            () => TransportProgress, () => TransportElapsed, () => TransportTotal, () => TransportPlay,
-            () => HintBar, () => HintGutter, () => HintLines, () => HintLabel,
-            () => ArrangementPanel, () => TrackEditorPanel, () => OpenedTrackName, () => InstrumentButton,
-            () => FaithfulPanel, () => FaithfulBody, () => FaithfulTrackName,
-            () => InspectorPanelElement, () => InspectorRows, () => InspectorStatusBar, () => InspectorStatusLabel,
-            () => SoundFilterModal, () => SoundFilterTray, () => SoundFilterCount, () => SoundFilterInput,
-            () => SoundFilterClear, () => SoundFilterDone);
+        BindLayout();
         _transport = new TransportController(Playback,
             TransportProgress, TransportElapsed, TransportTotal, TransportPlay);
         _hint = new HintBarController(context, HintBar, HintGutter, HintLines, HintLabel, _gridArea, HeaderHeight);
@@ -172,13 +161,11 @@ public partial class EditorInterface
         WireSoundFilter();
 
         RootPanel.DrawTo(context);
-        _dialogHost = new DialogHost(context, RootPanel, Component.StyleSheet);
-        // The field, not the parameter: a lambda over a constructor parameter moves `this` into a
-        // closure, and the markup logic above resolves its context through these lambdas' target.
-        _dialogHost.CopyText = text => _workflow.Game.ClipboardString = text;
-        _projectIo = new ProjectIO(State, _dialogHost, State.Logger) { OnSaved = RefreshTitle };
+        _dialogHost = new DialogHost(context, RootPanel, Component.StyleSheet, workflow.Workspace.Root);
+        _dialogHost.CopyText = text => _workflow.Runtime.Host.ClipboardString = text;
+        _projectIo = new ProjectIO(State, _dialogHost, State.Logger, workflow.Workspace) { OnSaved = RefreshTitle };
 
-        _defaultTitle = workflow.Game.Title;
+        _defaultTitle = workflow.Runtime.Host.Title;
 
         _trackList.OnAddTrack = ShowTrackTypeDialog;
         _faithfulPalette.OnHint = SetHint;
@@ -288,45 +275,42 @@ public partial class EditorInterface
     private readonly ElementAlpha _alpha = new();
     private float _appliedAlpha = 1f;
 
-    // Assigned by each region's .snx.csx. They live flat on this class rather than on the
-    // controllers because RunLogicAndVerify only reflects over the one target type - a
-    // nested object's properties are never checked.
     /// <summary>The top bar's document; <see cref="EditorHeaderController" /> takes its handles from it.</summary>
-    [SetFromLogic] public SundexComponent Header { get; set; } = null!;
+    public SundexComponent Header { get; set; } = null!;
 
-    [SetFromLogic] public ProgressBar TransportProgress { get; set; } = null!;
-    [SetFromLogic] public Label TransportElapsed { get; set; } = null!;
-    [SetFromLogic] public Label TransportTotal { get; set; } = null!;
-    [SetFromLogic] public Button TransportPlay { get; set; } = null!;
+    public ProgressBar TransportProgress { get; set; } = null!;
+    public Label TransportElapsed { get; set; } = null!;
+    public Label TransportTotal { get; set; } = null!;
+    public Button TransportPlay { get; set; } = null!;
 
-    [SetFromLogic] public FlexPanel HintBar { get; set; } = null!;
-    [SetFromLogic] public Panel HintGutter { get; set; } = null!;
-    [SetFromLogic] public FlexPanel HintLines { get; set; } = null!;
-    [SetFromLogic] public Label HintLabel { get; set; } = null!;
+    public FlexPanel HintBar { get; set; } = null!;
+    public Panel HintGutter { get; set; } = null!;
+    public FlexPanel HintLines { get; set; } = null!;
+    public Label HintLabel { get; set; } = null!;
 
-    [SetFromLogic] public ModalLayer SoundFilterModal { get; set; } = null!;
-    [SetFromLogic] public ScrollView SoundFilterTray { get; set; } = null!;
-    [SetFromLogic] public Label SoundFilterCount { get; set; } = null!;
-    [SetFromLogic] public TextInput SoundFilterInput { get; set; } = null!;
-    [SetFromLogic] public Button SoundFilterClear { get; set; } = null!;
-    [SetFromLogic] public Button SoundFilterDone { get; set; } = null!;
+    public ModalLayer SoundFilterModal { get; set; } = null!;
+    public ScrollView SoundFilterTray { get; set; } = null!;
+    public Label SoundFilterCount { get; set; } = null!;
+    public TextInput SoundFilterInput { get; set; } = null!;
+    public Button SoundFilterClear { get; set; } = null!;
+    public Button SoundFilterDone { get; set; } = null!;
 
-    [SetFromLogic] public Panel InspectorPanelElement { get; set; } = null!;
-    [SetFromLogic] public ScrollView InspectorRows { get; set; } = null!;
-    [SetFromLogic] public ProgressBar InspectorStatusBar { get; set; } = null!;
-    [SetFromLogic] public Label InspectorStatusLabel { get; set; } = null!;
+    public Panel InspectorPanelElement { get; set; } = null!;
+    public ScrollView InspectorRows { get; set; } = null!;
+    public ProgressBar InspectorStatusBar { get; set; } = null!;
+    public Label InspectorStatusLabel { get; set; } = null!;
 
-    [SetFromLogic] public FlexPanel ArrangementPanel { get; set; } = null!;
-    [SetFromLogic] public FlexPanel TrackEditorPanel { get; set; } = null!;
-    [SetFromLogic] public TextInput OpenedTrackName { get; set; } = null!;
-    [SetFromLogic] public Button InstrumentButton { get; set; } = null!;
+    public FlexPanel ArrangementPanel { get; set; } = null!;
+    public FlexPanel TrackEditorPanel { get; set; } = null!;
+    public TextInput OpenedTrackName { get; set; } = null!;
+    public Button InstrumentButton { get; set; } = null!;
 
-    [SetFromLogic] public FlexPanel FaithfulPanel { get; set; } = null!;
+    public FlexPanel FaithfulPanel { get; set; } = null!;
 
     /// <summary>The faithful panel's content area - the palettes and sequence view mount here.</summary>
-    [SetFromLogic] public FlexPanel FaithfulBody { get; set; } = null!;
+    public FlexPanel FaithfulBody { get; set; } = null!;
 
-    [SetFromLogic] public TextInput FaithfulTrackName { get; set; } = null!;
+    public TextInput FaithfulTrackName { get; set; } = null!;
 
     /// <summary>
     ///     The playfield look the faithful views draw with: the same atlases, fonts and badge
@@ -431,7 +415,7 @@ public partial class EditorInterface
 
     private void PerformBack()
     {
-        if (_titleActive) _workflow.Game.Title = _defaultTitle;
+        if (_titleActive) _workflow.Runtime.Host.Title = _defaultTitle;
         _titleActive = false;
         OnBack();
     }
@@ -446,7 +430,7 @@ public partial class EditorInterface
     private void RefreshTitle()
     {
         if (!_titleActive) return;
-        _workflow.Game.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} - {_defaultTitle}";
+        _workflow.Runtime.Host.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} - {_defaultTitle}";
     }
 
     private void RefreshProject()

@@ -1,6 +1,5 @@
 <sundex version="1.0" component="inspector-shell">
   <style language="sundex" src="Scenes/Layout/Inspector Shell/InspectorShell.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/Inspector Shell/InspectorShell.snx.csx" imports="[EditorScene.Scenes]"/>
 
   <layout>
     <!-- Chrome only. The rows inside inspector-rows are built per selection by

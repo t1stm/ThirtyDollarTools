@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thirty Dollar Visualizer</title>
+  <link rel="icon" href="data:,">
+  <script type="module" src="./main.js"></script>
+  <style>
+    :root { color-scheme: dark; background: #15151b; font: 1rem system-ui, sans-serif; }
+    body { margin: 0; }
+    canvas { display: block; width: 100vw; height: 100dvh; touch-action: none; outline: none; }
+    #status { position: fixed; inset: 0; display: grid; place-content: center; gap: 1rem; }
+    #status[hidden] { display: none; }
+    #message { margin: 0; white-space: pre-wrap; max-width: min(36rem, 90vw); }
+    button { padding: 0.4rem 0.7rem; background: #202338; color: #e4e8f5; border: 1px solid #39405a; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <canvas id="sundex" tabindex="0" aria-label="Thirty Dollar Visualizer"></canvas>
+  <div id="status">
+    <p id="message" role="status">Loading the Visualizer…</p>
+    <button id="start" type="button" hidden>Choose working folder</button>
+  </div>
+</body>
+</html>

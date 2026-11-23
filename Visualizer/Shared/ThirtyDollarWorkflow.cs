@@ -73,26 +73,27 @@ public class ThirtyDollarWorkflow
     /// <summary>The last build, kept for its resampled sounds: a reload of the same files reuses them.</summary>
     private VoiceRender? _render;
 
-    public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
-        AudioDevice? device = null)
+    public ThirtyDollarWorkflow(GameRuntime runtime, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
+        Workspace workspace, AudioDevice? device = null)
     {
-        _assetProvider = game.AssetProvider;
-        Game = game;
+        _assetProvider = runtime.AssetProvider;
+        Runtime = runtime;
+        Workspace = workspace;
         Logger = logger.ForContext<ThirtyDollarWorkflow>();
         SequencePlayer = new SequencePlayer(logger, device);
         AtlasStore = atlasStore;
 
         // The song can mix on the GPU when the context has compute shaders and there is something
         // to hear; a --no-audio run keeps the CPU mixer. GpuMixing switches it.
-        if (game.Device is GLGraphicsDevice glDevice && glDevice.Capabilities.SupportsCompute &&
+        if (runtime.Device is GLGraphicsDevice glDevice && glDevice.Capabilities.SupportsCompute &&
             !SequencePlayer.AudioDevice.Silent)
         {
-            var mixer = GpuMixer = new GpuVoiceMixer(logger, game.AssetProvider, glDevice);
+            var mixer = GpuMixer = new GpuVoiceMixer(logger, runtime.AssetProvider, glDevice);
             SequencePlayer.CursorFactory = mixer.CreateCursor;
-            game.UpdateFrame += _ => mixer.Pump();
+            runtime.UpdateFrame += _ => mixer.Pump();
         }
 
-        game.UpdateFrame += frame => LogAudio(frame.Time);
+        runtime.UpdateFrame += frame => LogAudio(frame.Time);
         SampleHolder = sampleHolder;
 
         EncoderSettings = new EncoderSettings
@@ -118,7 +119,10 @@ public class ThirtyDollarWorkflow
 
     public AtlasStore AtlasStore { get; }
     public SampleHolder SampleHolder { get; }
-    public Game Game { get; }
+    public GameRuntime Runtime { get; }
+
+    /// <summary>Where sequences, projects and exports are read and written.</summary>
+    public Workspace Workspace { get; }
     public ILogger Logger { get; }
     public SequencePlayer SequencePlayer { get; }
 
@@ -187,7 +191,7 @@ public class ThirtyDollarWorkflow
         for (var index = 0; index < SequenceInfos.Length; index++)
         {
             var sequence_info = SequenceInfos[index];
-            var sequence = Sequence.FromString(_assetProvider.LoadString(sequence_info.FileLocation));
+            var sequence = Sequence.FromString(await Workspace.ReadText(sequence_info.FileLocation));
             sequence_array[index] = sequence;
         }
 
@@ -246,15 +250,15 @@ public class ThirtyDollarWorkflow
         // the player's own reference, taken here: this render may be replaced before it starts
         render.Voices.Retain();
 
-        _ = Game.ThreadRunner.RunTask(UpdateExtractedSpeedEvents);
-        Game.ThreadRunner.RunThread(() => UpdateAndStart(render.Voices, restartPlayer));
+        _ = Runtime.ThreadRunner.RunTask(UpdateExtractedSpeedEvents);
+        Runtime.ThreadRunner.RunThread(() => UpdateAndStart(render.Voices, restartPlayer));
     }
 
     private void UpdateAndStart(VoiceList voices, bool restartPlayer)
     {
         SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, voices, () => RenderAheadSeconds);
         if (restartPlayer)
-            SequencePlayer.Start(Game.ThreadRunner);
+            SequencePlayer.Start(Runtime.ThreadRunner);
         else SequencePlayer.AlignToTime();
     }
 
@@ -330,14 +334,19 @@ public class ThirtyDollarWorkflow
 
         if (!anyChanged) return;
 
-        try
+        // Off the frame, as a dropped file loads: the browser reads files asynchronously, and the
+        // frame thread there can't wait for one.
+        string?[] locations = [.. SequenceInfos.Select(s => s.FileLocation).Where(File.Exists)];
+        Runtime.ThreadRunner.RunTask(async () =>
         {
-            UpdateSequences([.. SequenceInfos.Select(s => s.FileLocation).Where(File.Exists)], false)
-                .GetAwaiter().GetResult();
-        }
-        catch (Exception e)
-        {
-            Logger.Debug("[Sequence Loader] Failed to load sequence with error: '{Exception}'", e);
-        }
+            try
+            {
+                await UpdateSequences(locations, false);
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("[Sequence Loader] Failed to load sequence with error: '{Exception}'", e);
+            }
+        });
     }
 }

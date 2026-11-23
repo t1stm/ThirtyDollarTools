@@ -1,4 +1,5 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Engine.Input;
 
 namespace DrumMasterScene.Components;
 
@@ -13,7 +14,7 @@ public class TaikoSoundMap
         SoundToKeyMap[sound] = key;
     }
 
-    public string? GetPressedSound(KeyboardState keyboardState)
+    public string? GetPressedSound(KeyboardInput keyboardState)
     {
         foreach (var (key, sound) in KeyToSoundMap)
             if (keyboardState.IsKeyPressed(key))

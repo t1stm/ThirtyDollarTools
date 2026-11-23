@@ -28,7 +28,6 @@
     <ProjectReference Include="..\SettingsScene\SettingsScene.csproj"/>
     <!-- for the shared UIContext mocks (MockFontProvider and friends) -->
     <PackageReference Include="Sundex.Testing" Version="$(SundexVersion)"/>
-    <PackageReference Include="Sundex.Markup.Legacy" Version="$(SundexVersion)"/>
   </ItemGroup>
 
 </Project>

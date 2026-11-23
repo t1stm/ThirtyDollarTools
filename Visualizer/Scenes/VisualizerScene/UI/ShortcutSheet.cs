@@ -1,13 +1,11 @@
 using System.Diagnostics;
-using JetBrains.Annotations;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
-using Sundex.Markup.Attributes;
 using VisualizerScene.Settings;
+using Sundex.Engine.Input;
 
 namespace VisualizerScene.UI;
 
@@ -37,15 +35,7 @@ public class ShortcutSheet
     {
         UI = context;
 
-        var sundexContext = new SundexContext(context);
-        var source = context.AssetProvider.LoadString("UI/Layout/ShortcutSheet.snx.xml");
-
-        Component = sundexContext.NewComponent(source);
-        sundexContext.RunLogicAndVerify(Component,
-            () => RootPanel,
-            () => Header,
-            () => Groups,
-            () => Footnote);
+        new Markup.ShortcutSheet(new SundexContext<ShortcutSheet>(context, this)).Create();
 
         BuildGroups();
         Refresh();
@@ -56,12 +46,10 @@ public class ShortcutSheet
 
     public UIContext UI { get; }
 
-    [UsedImplicitly] public SundexComponent Component { get; }
-
-    [SetFromLogic] public FlexPanel RootPanel { get; set; } = null!;
-    [SetFromLogic] public FlexPanel Header { get; set; } = null!;
-    [SetFromLogic] public FlexPanel Groups { get; set; } = null!;
-    [SetFromLogic] public Label Footnote { get; set; } = null!;
+    public FlexPanel RootPanel { get; set; } = null!;
+    public FlexPanel Header { get; set; } = null!;
+    public FlexPanel Groups { get; set; } = null!;
+    public Label Footnote { get; set; } = null!;
 
     private float CurrentAlpha { get; set; }
 
@@ -109,7 +97,8 @@ public class ShortcutSheet
             Digits("Go to mark", 0),
             Digits("Set mark", primary),
             Digits("Clear mark", primary | KeyModifiers.Shift),
-            Bound(Bind.VisualizerReloadSequences, "Reload files"));
+            Bound(Bind.VisualizerReloadSequences, "Reload files"),
+            Bound(Bind.VisualizerOpenSequence, "Open file"));
 
         AddGroup("VIEW",
             Bound(Bind.VisualizerCycleCamera, "Camera mode"),
@@ -178,7 +167,7 @@ public class ShortcutSheet
     }
 
     /// <summary>Marks the tiles whose keys are held. Called from the scene's keyboard pass, which only runs while a key is down.</summary>
-    public void TrackKeys(KeyboardState state)
+    public void TrackKeys(KeyboardInput state)
     {
         var now = _clock.Elapsed.TotalSeconds;
         foreach (var tile in _tiles)
@@ -240,7 +229,7 @@ public class ShortcutSheet
     private sealed class Tile(
         string caption,
         Func<Keybind> binding,
-        Func<KeyboardState, bool> isDown,
+        Func<KeyboardInput, bool> isDown,
         string? face = null)
     {
         private Label _face = null!;
@@ -251,7 +240,7 @@ public class ShortcutSheet
         public FlexPanel Column { get; private set; } = null!;
         public double LastDown { get; set; } = double.NegativeInfinity;
 
-        public bool IsDown(KeyboardState state)
+        public bool IsDown(KeyboardInput state)
         {
             return isDown(state);
         }

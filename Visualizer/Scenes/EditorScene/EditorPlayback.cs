@@ -73,7 +73,8 @@ public class EditorPlayback
     {
         _workflow = workflow;
         _state = state;
-        _wave = new WavePlayback(workflow.SequencePlayer.AudioDevice, state.Logger, (title, e) => SetError(title, e));
+        _wave = new WavePlayback(workflow.SequencePlayer.AudioDevice, state.Logger, (title, e) => SetError(title, e),
+            workflow.Workspace);
         Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings,
             indexReport: (done, total) =>
             {
@@ -455,7 +456,7 @@ public class EditorPlayback
                 StatusProgress = 0f;
                 StatusDone = 0;
                 StatusTotal = 0;
-                Encoder.WriteAsWavFile(path, rendered.Audio);
+                await _workflow.Workspace.Write(path, stream => Encoder.WriteAsWavFile(stream, rendered.Audio));
                 _state.Logger.Exported(path);
 
                 _lastAlertedError = null;
@@ -639,7 +640,7 @@ public class EditorPlayback
         _timedEvents = events;
         TotalMs = LengthMs(rendered);
 
-        if (startPlayback) player.Start(_workflow.Game.ThreadRunner);
+        if (startPlayback) player.Start(_workflow.Runtime.ThreadRunner);
         else player.AlignToTime();
     }
 }

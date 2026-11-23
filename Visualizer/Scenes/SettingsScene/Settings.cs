@@ -11,6 +11,7 @@ using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 using VisualizerScene.Settings;
+using Sundex.Engine.Input;
 
 namespace SettingsScene;
 
@@ -26,11 +27,11 @@ public class Settings : Scene
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
 
-    public Settings(Game game, VisualizerSettings settings) : base(game)
+    public Settings(GameRuntime runtime, VisualizerSettings settings) : base(runtime)
     {
         _settings = settings;
-        var clientSize = game.ClientSize;
-        if (game.TryGetScreenScale(out var scaleX, out var scaleY))
+        var clientSize = runtime.ClientSize;
+        if (runtime.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
@@ -52,7 +53,7 @@ public class Settings : Scene
     private SettingsInterface BuildInterface(UIContext context)
     {
         return new SettingsInterface(context, _settings,
-            () => { Game.SceneManager.TransitionTo("home"); });
+            () => { Runtime.SceneManager.TransitionTo("home"); });
     }
 
     public override void ReloadUI()
@@ -65,13 +66,7 @@ public class Settings : Scene
 
         _context = context;
         _settingsInterface = ui;
-        Resize(Game.ClientSize.X, Game.ClientSize.Y);
-    }
-
-    public override void ReloadStyles()
-    {
-        _settingsInterface.Component.ReloadStyleSheet();
-        _settingsInterface.Resize();
+        Resize(Runtime.ClientSize.X, Runtime.ClientSize.Y);
     }
 
     public override void Initialize(InitArguments initArguments)
@@ -89,7 +84,7 @@ public class Settings : Scene
 
     public override void TransitionedTo()
     {
-        Game.OnWindowActionUnavailable = (title, message) =>
+        Runtime.OnWindowActionUnavailable = (title, message) =>
             MessageDialog.Show(_context, _settingsInterface.RootPanel, title, message);
     }
 
@@ -108,15 +103,15 @@ public class Settings : Scene
             _ => MouseCursor.Default
         };
 
-        if (Game.Cursor != cursor)
-            Game.Cursor = cursor;
+        if (Runtime.Host.Cursor != cursor)
+            Runtime.Host.Cursor = cursor;
     }
 
     public override void Resize(int w, int h)
     {
         float width = w;
         float height = h;
-        if (Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        if (Runtime.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             width /= scaleX;
             height /= scaleY;
@@ -138,7 +133,7 @@ public class Settings : Scene
     {
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
     }
 
@@ -152,7 +147,7 @@ public class Settings : Scene
         _context.DispatchKeyDown(e);
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
         _settingsInterface.MouseEvent(mouseState, _lastScale);
     }

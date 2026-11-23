@@ -6,6 +6,7 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
+using Sundex.Engine.Input;
 
 namespace DrumMasterScene.UI;
 
@@ -95,7 +96,7 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
         if (element != null) AddChild(element);
     }
 
-    public override void Test(MouseState mouse, Vector2 scale)
+    public override void Test(PointerInput mouse, Vector2 scale)
     {
         base.Test(mouse, scale);
         if (!mouse.IsButtonReleased(MouseButton.Left) || DragManager.DraggedElement == null) return;

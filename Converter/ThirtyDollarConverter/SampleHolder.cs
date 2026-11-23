@@ -48,6 +48,7 @@ public class SampleHolder(ILogger logger)
 
     public string SamplesLocation { get; init; } = $".{Slash}Sounds";
     public string ImagesLocation => $"{SamplesLocation}{Slash}Images";
+    public Uri? AssetBaseUri { get; init; }
 
 
     /// <summary>
@@ -68,7 +69,8 @@ public class SampleHolder(ILogger logger)
         _logger.Information("Loading sounds.json file.");
         try
         {
-            await using var response = await Client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json", new CancellationTokenSource(2500).Token);
+            await using var response = await Client.GetStreamAsync(
+                AssetUrl("sounds.json"), new CancellationTokenSource(2500).Token);
             await using var download_file_stream = File.Open(sample_list_location, FileMode.Create,
                 FileAccess.ReadWrite, FileShare.ReadWrite);
 
@@ -137,11 +139,11 @@ public class SampleHolder(ILogger logger)
             return true;
         }
 
-        await Parallel.ForEachAsync(SampleList, async (pair, token) =>
+        await Parallel.ForEachAsync(SampleList, Downloads, async (pair, token) =>
         {
             var sound = pair.Key;
 
-            var requestUrl = $"{DownloadSampleUrl}/{sound.Id}.wav";
+            var requestUrl = AssetUrl($"sounds/{sound.Id}.wav");
             var dll = $"{SamplesLocation}{Slash}{sound.Id}.wav";
 
             if (File.Exists(dll)) return;
@@ -184,7 +186,7 @@ public class SampleHolder(ILogger logger)
         PrepareDirectory();
         var i = 0;
 
-        await Parallel.ForEachAsync(SampleList, async (pair, token) =>
+        await Parallel.ForEachAsync(SampleList, Downloads, async (pair, token) =>
         {
             var sound = pair.Key;
 
@@ -197,7 +199,7 @@ public class SampleHolder(ILogger logger)
             if (Exists($"{file}.*")) return;
 
             {
-                var stream = await Client.GetStreamAsync(sound.IconUrl, token);
+                await using var stream = await Client.GetStreamAsync(IconUrl(sound), token);
                 await using var fs = File.Open(download_location, FileMode.CreateNew);
                 await stream.CopyToAsync(fs, token);
                 await fs.FlushAsync(token);
@@ -208,7 +210,7 @@ public class SampleHolder(ILogger logger)
 
         i = 0;
 
-        await Parallel.ForEachAsync(ActionsArray, async (action, token) =>
+        await Parallel.ForEachAsync(ActionsArray, Downloads, async (action, token) =>
         {
             var file_name = $"{action}";
             var download_location = $"{ImagesLocation}{Slash}{file_name}.png";
@@ -217,7 +219,7 @@ public class SampleHolder(ILogger logger)
 
             {
                 await using var stream =
-                    await Client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
+                    await Client.GetStreamAsync(AssetUrl($"assets/{file_name}.png"), token);
                 await using var fs = File.Open(download_location, FileMode.CreateNew);
                 await stream.CopyToAsync(fs, token);
             }
@@ -228,6 +230,25 @@ public class SampleHolder(ILogger logger)
             }, i++, ActionsArray.Length);
         });
     }
+
+    /// <summary>
+    ///     At least eight downloads at once: they wait on the network rather than the processor,
+    ///     and the browser build reports a single processor.
+    /// </summary>
+    private static readonly ParallelOptions Downloads = new()
+    {
+        MaxDegreeOfParallelism = Math.Max(8, Environment.ProcessorCount)
+    };
+
+    /// <summary>
+    ///     The catalog's URL for a sound's icon, some on the Twemoji CDN, or the staged copy under
+    ///     <c>icons/</c> by sound ID when the assets come from <see cref="AssetBaseUri" />.
+    /// </summary>
+    private string IconUrl(Sound sound) => AssetBaseUri == null ? sound.IconUrl : AssetUrl($"icons/{sound.Id}.png");
+
+    private string AssetUrl(string path) => AssetBaseUri == null
+        ? $"{ThirtyDollarWebsiteUrl}/{path}"
+        : new Uri(AssetBaseUri, path).AbsoluteUri;
 
     /// <summary>
     ///     Loads all sounds into memory.

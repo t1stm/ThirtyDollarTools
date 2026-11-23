@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmDebugLevel Condition="'$(Configuration)' == 'Release'">0</WasmDebugLevel>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EmccExtraLDFlags>$(EmccExtraLDFlags) -lGL -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2</EmccExtraLDFlags>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Sundex.Engine" Version="$(SundexVersion)"/>
+    <ProjectReference Include="../ThirtyDollarVisualizer.Game/ThirtyDollarVisualizer.Game.csproj"/>
+    <NativeFileReference Include="browser.c"/>
+    <NativeFileReference Include="$(SundexBrowserAudioSource)"/>
+    <Content Update="wwwroot/**" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
+</Project>

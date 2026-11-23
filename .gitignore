@@ -14,6 +14,7 @@ sixlabors.lic
 Sounds/
 Sounds/*.json
 Sounds/Images/
+/site/visualizer-assets/
 BenchmarkDotNet.Artifacts/
 
 # written by the release workflow

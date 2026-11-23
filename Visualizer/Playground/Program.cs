@@ -52,7 +52,7 @@ var game = new Game(serilogLogger, assemblies, new GameWindowSettings(), new Nat
     Flags = ContextFlags.ForwardCompatible
 }, "Playground");
 
-game.Enqueue(instance =>
-    instance.SceneManager.LoadScene<PlaygroundScene>("playground", _ => new PlaygroundScene(instance)));
-game.Enqueue(instance => instance.SceneManager.TransitionTo("playground"));
+game.Runtime.Enqueue(runtime =>
+    runtime.SceneManager.LoadScene<PlaygroundScene>("playground", _ => new PlaygroundScene(runtime)));
+game.Runtime.Enqueue(runtime => runtime.SceneManager.TransitionTo("playground"));
 game.Run();

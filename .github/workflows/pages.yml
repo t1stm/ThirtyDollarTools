@@ -6,7 +6,15 @@ name: Deploy site to GitHub Pages
 on:
   push:
     branches: [ master ]
-    paths: [ 'site/**', '.github/workflows/pages.yml' ]
+    paths:
+      - 'site/**'
+      - 'Visualizer/**'
+      - 'Converter/**'
+      - 'Sundex.props'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - '.github/workflows/pages.yml'
+      - '.github/scripts/stage-visualizer-assets.mjs'
   workflow_run:
     workflows: [ 'Attach Binaries to Release' ]
     types: [ completed ]
@@ -40,6 +48,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node site/prerender.mjs
+
+      - name: Stage Visualizer assets
+        run: node .github/scripts/stage-visualizer-assets.mjs site/visualizer-assets
+
+      - name: Set up .NET for the browser build
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.x'
+
+      - name: Publish the browser Visualizer
+        working-directory: Visualizer/ThirtyDollarVisualizer.WASM
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+        run: |
+          dotnet workload restore
+          dotnet publish -c Release
+          mkdir -p ../../site/visualizer
+          cp -a bin/Release/net10.0/publish/wwwroot/. ../../site/visualizer/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

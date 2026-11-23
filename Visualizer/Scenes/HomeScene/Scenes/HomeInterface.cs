@@ -5,10 +5,9 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
 using Shared.Animations;
-using Sundex.Markup.Attributes;
+using Sundex.Engine.Input;
 using Image = Sundex.Components.Panels.Image;
 
 namespace HomeScene.Scenes;
@@ -87,17 +86,32 @@ public class HomeInterface
 
     public HomeInterface(UIContext context, Action visualizer, Action drumMaster, Action editor, Action settings)
     {
-        var sundexContext = new SundexContext(context);
-        var componentSource = context.AssetProvider.LoadString("Scenes/Layout/HomeInterface.snx.xml");
-
         UI = context;
         OnVisualizer = visualizer;
         OnEditor = editor;
         OnDrumMaster = drumMaster;
         OnSettings = settings;
 
-        Component = sundexContext.NewComponent(componentSource);
-        sundexContext.RunLogicAndVerify(Component, () => RootPanel);
+        new Markup.HomeInterface(new SundexContext<HomeInterface>(context, this)).Create();
+
+        // Eight steps to a cell: one bar. Built here rather than in the markup because the sweep
+        // wants them as one ordered list across all three cells, and twenty-four identical tags
+        // would say nothing the loop doesn't.
+        foreach (var (row, hue) in new[]
+                 {
+                     (VisualizerSteps, "step-blue"),
+                     (DrumMasterSteps, "step-orange"),
+                     (EditorSteps, "step-green")
+                 })
+        {
+            for (var index = 0; index < StepsPerCell; index++)
+            {
+                var step = new Panel(context) { Classes = ["step", hue] };
+                row.AddChild(step);
+                Steps.Add(step);
+            }
+        }
+
         RootPanel.DrawTo(context);
 
         _moaiRestY = Moai.Y.Value;
@@ -113,25 +127,26 @@ public class HomeInterface
         return peak > 0f ? color / peak : Vector3.One;
     }
 
-    /// <summary>The context the logic block builds the step panels against.</summary>
-    [UsedImplicitly] public UIContext UI { get; }
+    /// <summary>The context the step panels are built against.</summary>
+    public UIContext UI { get; }
 
     [UsedImplicitly] public Action OnVisualizer { get; }
     [UsedImplicitly] public Action OnEditor { get; }
     [UsedImplicitly] public Action OnDrumMaster { get; }
     [UsedImplicitly] public Action OnSettings { get; }
 
-    [UsedImplicitly] public SundexComponent Component { get; }
-
-    [SetFromLogic] public Panel RootPanel { get; set; } = null!;
-    [SetFromLogic] public Panel Band { get; set; } = null!;
-    [SetFromLogic] public Image Moai { get; set; } = null!;
-    [SetFromLogic] public Panel Playhead { get; set; } = null!;
-    [SetFromLogic] public Label VersionLabel { get; set; } = null!;
-    [SetFromLogic] public Link UpdateLabel { get; set; } = null!;
+    public Panel RootPanel { get; set; } = null!;
+    public Panel Band { get; set; } = null!;
+    public Image Moai { get; set; } = null!;
+    public Panel Playhead { get; set; } = null!;
+    public Label VersionLabel { get; set; } = null!;
+    public Link UpdateLabel { get; set; } = null!;
+    public FlexPanel VisualizerSteps { get; set; } = null!;
+    public FlexPanel DrumMasterSteps { get; set; } = null!;
+    public FlexPanel EditorSteps { get; set; } = null!;
 
     /// <summary>Every cell's steps, left to right, as one row - the sweep reads them in order.</summary>
-    [UsedImplicitly] public List<Panel> Steps { get; } = [];
+    public List<Panel> Steps { get; } = [];
 
     /// <summary>
     ///     Scene-wide opacity. The loading screen drives this from 0 to 1 as it fades itself
@@ -179,7 +194,7 @@ public class HomeInterface
         _appliedAlpha = Alpha;
     }
 
-    public void MouseEvent(MouseState mouseState, Vector2 scale)
+    public void MouseEvent(PointerInput mouseState, Vector2 scale)
     {
         RootPanel.Test(mouseState, scale);
     }

@@ -13,4 +13,4 @@ namespace LoadingScene;
 ///     Builds and registers the scene. Runs on the render thread, one per frame, and is
 ///     handed the workflow every tool scene shares.
 /// </param>
-public record ScenePreload(string Message, Action<Game, ThirtyDollarWorkflow> Load);
+public record ScenePreload(string Message, Action<GameRuntime, ThirtyDollarWorkflow> Load);

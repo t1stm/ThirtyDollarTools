@@ -5,6 +5,8 @@ using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Reactive;
+using Shared;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Components;
@@ -77,8 +79,7 @@ public partial class EditorInterface
         if (shown.Parent != SoundFilterTray) SoundFilterTray.AddChild(shown);
     }
 
-    /// <summary>Public because SoundFilter.snx.csx wires every way out of the sound filter to it.</summary>
-    [UsedImplicitly]
+    /// <summary>Applies the selected sounds and closes the filter.</summary>
     public void CommitAndCloseSoundFilter()
     {
         if (_editingTrackAutomation is { } automation)
@@ -87,8 +88,6 @@ public partial class EditorInterface
         _inspector.Rebuild();
     }
 
-    /// <summary>Wired from TrackEditorPanel.snx.csx - the workflow only exists once the root is drawn.</summary>
-    [UsedImplicitly]
     public void OpenInstrumentSelector()
     {
         _instrumentWorkflow.OpenSelector();
@@ -150,10 +149,12 @@ public partial class EditorInterface
     ///     doesn't parse is reported and opens nothing. Replacing the project needs no second
     ///     confirm: the dialog says so on that choice, unsaved changes included.
     /// </summary>
-    public void ImportSequenceFile(string path)
+    public void ImportSequenceFile(string path) => Async.Run(() => ReadSequenceFile(path));
+
+    private async Task ReadSequenceFile(string path)
     {
         var sounds = SoundMap();
-        if (_projectIo.ReadTdw(path, sounds) is not ({ } sequence, { } preview)) return;
+        if (await _projectIo.ReadTdw(path, sounds) is not ({ } sequence, { } preview)) return;
 
         var dialog = new ImportDialog(_context, _workflow.AtlasStore, Path.GetFileName(path), sequence, preview,
             sounds, _arrangement.ClipPalette, State.Project.Info.Name, State.Dirty);
@@ -317,10 +318,11 @@ public partial class EditorInterface
     /// <param name="colorIndex">The new track's clip color, as picked in the Add a track dialog.</param>
     public void ImportWaveFile(string path, int? colorIndex = null)
     {
-        Playback.PrepareWave(path).ContinueWith(decode =>
+        var stored = _workflow.Workspace.ProjectPath(path);
+        Playback.PrepareWave(stored).ContinueWith(decode =>
         {
             if (decode.Result is not { } seconds) return;
-            _pendingEdits.Enqueue(() => State.AddWaveTrack(path, seconds, colorIndex));
+            _pendingEdits.Enqueue(() => State.AddWaveTrack(stored, seconds, colorIndex));
         });
     }
 
@@ -328,11 +330,14 @@ public partial class EditorInterface
     private void ShowWaveReplaceDialog(WaveTrack track)
     {
         _dialogHost.ShowFileDialog("Open audio", null, ".wav", path =>
-            Playback.PrepareWave(path).ContinueWith(decode =>
+        {
+            var stored = _workflow.Workspace.ProjectPath(path);
+            Playback.PrepareWave(stored).ContinueWith(decode =>
             {
                 if (decode.Result is not { } seconds) return;
-                _pendingEdits.Enqueue(() => State.SetWaveFile(track, path, seconds));
-            }));
+                _pendingEdits.Enqueue(() => State.SetWaveFile(track, stored, seconds));
+            });
+        });
     }
 
     /// <summary>
@@ -576,11 +581,9 @@ public partial class EditorInterface
     }
 
     /// <summary>
-    ///     Open/Save, wired from EditorHeader.snx.csx - a .csx only reaches the public surface.
-    ///     Open asks about unsaved changes before the picker, the way leaving the editor does;
-    ///     the changes are only gone once a file is actually picked.
+    ///     Asks about unsaved changes before opening the picker. The current project
+    ///     stays open until a file is picked.
     /// </summary>
-    [UsedImplicitly]
     public void ShowLoadDialog()
     {
         AskToSave(OpenTitle, Pick, Pick);

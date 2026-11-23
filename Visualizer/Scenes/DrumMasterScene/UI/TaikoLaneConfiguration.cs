@@ -7,6 +7,7 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Markup;
 using Sundex.Markup.Abstract;
+using Sundex.Engine.Input;
 
 namespace DrumMasterScene.UI;
 
@@ -100,7 +101,7 @@ public class TaikoLaneConfiguration : FlexPanel
         SelectedSounds.Clear();
     }
 
-    public override void Test(MouseState mouse, Vector2 scale)
+    public override void Test(PointerInput mouse, Vector2 scale)
     {
         base.Test(mouse, scale);
         if (!mouse.IsButtonReleased(MouseButton.Left) || DragManager.DraggedElement == null) return;

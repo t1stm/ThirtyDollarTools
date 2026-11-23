@@ -1,3 +1,4 @@
+using Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using Sundex.Engine.Audio;
 using ThirtyDollarConverter.Editor;
@@ -39,7 +40,8 @@ public class WavePlaybackSyncTests : IDisposable
 
     private WavePlayback NewPlayback()
     {
-        return new WavePlayback(AudioDevice.Open(Serilog.Core.Logger.None, silent: true), NullLogger.Instance, (title, _) => _errors.Add(title));
+        return new WavePlayback(AudioDevice.Open(Serilog.Core.Logger.None, silent: true), NullLogger.Instance, (title, _) => _errors.Add(title),
+            new Workspace());
     }
 
     private (ThirtyDollarProject Project, TrackPlacement Placement) ProjectWithClip(double startQuarters = 0)

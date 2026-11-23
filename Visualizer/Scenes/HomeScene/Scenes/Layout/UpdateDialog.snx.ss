@@ -4,6 +4,13 @@ import "Scenes/Styles/Theme.snx.ss" as theme;
 import "Scenes/Styles/Controls.snx.ss";
 import "Scenes/Styles/Dialogs.snx.ss";
 
+// A label with no class of its own (Later). Home's sheet used to reach this dialog once it was
+// mounted; a 2.0 document is styled by its own sheet only, so its fallback is repeated here.
+component label {
+    font-size = 14;
+    font-color = $theme.text;
+}
+
 // Fits inside the 1080x720 minimum window. The height goes when there are no notes to scroll.
 id update-dialog {
     width = 680;

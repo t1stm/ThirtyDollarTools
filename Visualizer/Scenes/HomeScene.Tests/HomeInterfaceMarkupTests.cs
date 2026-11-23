@@ -11,7 +11,7 @@ using Sundex.Engine;
 using Sundex.Engine.AssetManagement;
 using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
-using Sundex.Markup.Legacy;
+using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract.Values;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
@@ -23,8 +23,6 @@ namespace HomeScene.Tests;
 /// <summary>Headless UIContext over the HomeScene assembly's embedded assets.</summary>
 public class HomeTestContext : TestUIContext
 {
-    static HomeTestContext() => CSharp.Register();
-
     [SetsRequiredMembers]
     public HomeTestContext()
         : base(new LoggerConfiguration().CreateLogger(),
@@ -44,51 +42,13 @@ public class HomeInterfaceMarkupTests
 {
     private readonly HomeTestContext _context = new();
 
-    private string LoadMarkup()
+    private StyleSheet LoadSheet()
     {
-        return _context.AssetProvider.LoadString("Scenes/Layout/HomeInterface.snx.xml", StorageLocation.Assembly);
-    }
-
-    /// <summary>Every id HomeInterface.snx.csx reaches for, and the four click targets.</summary>
-    [Theory]
-    [InlineData("stage")]
-    [InlineData("band")]
-    [InlineData("playhead")]
-    [InlineData("moai")]
-    [InlineData("version-label")]
-    [InlineData("update-label")]
-    [InlineData("cell-visualizer")]
-    [InlineData("cell-drum-master")]
-    [InlineData("cell-editor")]
-    [InlineData("settings-button")]
-    [InlineData("steps-visualizer")]
-    [InlineData("steps-drum-master")]
-    [InlineData("steps-editor")]
-    public void HomeMarkup_RegistersEveryWiredId(string id)
-    {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-        Assert.True(component.RegisteredIDs.ContainsKey(id), $"markup lost id \"{id}\"");
+        return new SundexContext<object>(_context, new object()).LoadStyleSheet("Scenes/Layout/HomeInterface.snx.ss");
     }
 
     /// <summary>
-    ///     A class in markup that no rule defines is silent - the element keeps its bare
-    ///     framework defaults and renders wrong. The step classes are excluded: the logic
-    ///     block sets those on panels it builds itself, so they never reach this map.
-    /// </summary>
-    [Fact]
-    public void EveryClassInMarkup_IsDefinedByTheStylesheet()
-    {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-
-        var missing = component.RegisteredClasses.Keys
-            .Where(cls => component.StyleSheet?.Classes.ContainsKey(cls) != true)
-            .ToList();
-
-        Assert.Empty(missing);
-    }
-
-    /// <summary>
-    ///     The classes the logic block and the sweep apply by name. They are set from code,
+    ///     The classes HomeInterface and the sweep apply by name. They are set from code,
     ///     so nothing else notices when a rule is renamed out from under them.
     /// </summary>
     [Theory]
@@ -101,8 +61,7 @@ public class HomeInterfaceMarkupTests
     [InlineData("note-attention")]
     public void StylesheetDefines_TheClassesSetFromCode(string cls)
     {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-        Assert.True(component.StyleSheet?.Classes.ContainsKey(cls), $"stylesheet lost class \"{cls}\"");
+        Assert.True(LoadSheet().Classes.ContainsKey(cls), $"stylesheet lost class \"{cls}\"");
     }
 
     /// <summary>The note's base colour must lose to this class, which an id's would not.</summary>

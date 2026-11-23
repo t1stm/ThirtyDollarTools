@@ -14,7 +14,9 @@ namespace EditorScene.Scenes.Dialogs;
 ///     Mounts and removes the editor's modals on the root panel. Popups here are always a
 ///     ModalLayer, never a DropDownLabel.
 /// </summary>
-public sealed class DialogHost(UIContext context, Panel root, StyleSheet? fileDialogStyle = null)
+/// <param name="fileRoot">A folder the file dialogs can't leave, or null for the whole disk.</param>
+public sealed class DialogHost(UIContext context, Panel root, StyleSheet? fileDialogStyle = null,
+    string? fileRoot = null)
 {
     /// <summary>
     ///     The panel modals mount on, for components that own a hand-built ModalLayer they
@@ -111,7 +113,7 @@ public sealed class DialogHost(UIContext context, Panel root, StyleSheet? fileDi
     public void ShowFileDialog(string title, string? saveFileName, string extension, Action<string> onPicked,
         string confirmLabel = "Open", string? directory = null)
     {
-        var selection = new FileSelection(context, saveFileName, extension, confirmLabel, directory, title)
+        var selection = new FileSelection(context, saveFileName, extension, confirmLabel, directory, title, fileRoot)
             { ID = "file-dialog", Classes = ["dialog-frame"] };
         // FileSelection leaves its two actions unstyled, so they match every other dialog's.
         selection.CancelButton.Classes = ["dialog-button"];
@@ -119,14 +121,7 @@ public sealed class DialogHost(UIContext context, Panel root, StyleSheet? fileDi
         KeyChip.Add(selection.CancelButton, "Esc");
         KeyChip.Add(selection.ConfirmButton, "Enter");
         if (fileDialogStyle != null) selection.ApplyHostStyleSheet(fileDialogStyle);
-        var modal = Show(selection, selection.Confirm);
-        selection.OnSelect = _ =>
-        {
-            if (selection.SelectedPath is not { } path) return;
-            Close(modal);
-            onPicked(path);
-        };
-        selection.OnCancel = _ => Close(modal);
+        selection.CloseWith(Show(selection, selection.Confirm), onPicked);
     }
 
     /// <summary>

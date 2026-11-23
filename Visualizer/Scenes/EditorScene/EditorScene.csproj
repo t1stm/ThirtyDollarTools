@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Scenes\**\*.snx.xml"/>
-    <EmbeddedResource Include="Scenes\**\*.snx.csx"/>
     <!-- Globs, not per-file entries: a missing line is not a build error, the asset load
          just returns nothing and the component fails at runtime. The shared style
          vocabulary lives in Scenes\Styles, component-specific rules next to the markup

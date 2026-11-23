@@ -1,5 +1,4 @@
-using System.Globalization;
-using System.Text;
+using VisualizerScene.Settings;
 
 namespace ThirtyDollarVisualizer.VisualizerSettings;
 
@@ -28,59 +27,7 @@ public static class SettingsHandler
             return;
         }
 
-        var text = File.ReadAllText(fileLocation);
-        var lines = text.Split(Environment.NewLine);
-
-        var type = Settings.GetType();
-        var properties = type.GetProperties().Select(p => (p.Name, p)).ToDictionary();
-
-        foreach (var line in lines)
-        {
-            if (string.IsNullOrEmpty(line)) continue;
-            if (line.StartsWith('#')) continue;
-            if (line.StartsWith('[')) continue;
-
-            var split = line.Split('=');
-            if (split.Length < 2) continue;
-
-            var remainder = split[1..];
-            var name = split[0].Trim();
-            var value = string.Join('=', remainder).Trim();
-
-            // remove comments from value
-            value = value.Split(" # ")[0];
-
-            if (!properties.TryGetValue(name, out var property)) continue;
-            var property_type = property.PropertyType;
-
-            if (property_type == typeof(int))
-            {
-                if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var int_value)) continue;
-                property.SetValue(Settings, int_value, null);
-                continue;
-            }
-
-            if (property_type == typeof(float))
-            {
-                // Files saved before the switch to the invariant culture hold commas on
-                // comma-decimal locales; reading them back keeps the user's values.
-                if (!float.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture,
-                        out var float_value)) continue;
-                property.SetValue(Settings, float_value, null);
-                continue;
-            }
-
-            if (property_type == typeof(bool))
-            {
-                if (!bool.TryParse(value, out var bool_value)) continue;
-                property.SetValue(Settings, bool_value, null);
-                continue;
-            }
-
-            if (property_type != typeof(string)) continue;
-            property.SetValue(Settings, value, null);
-        }
-
+        SettingsText.Read(Settings, File.ReadAllText(fileLocation));
         Loaded = true;
     }
 
@@ -100,23 +47,7 @@ public static class SettingsHandler
     {
         _fileLocation = fileLocation;
 
-        var type = Settings.GetType();
-        var properties = type.GetProperties();
-
-        var builder = new StringBuilder();
-        builder.AppendLine("# This is the settings file of the Thirty Dollar Visualizer.");
-        builder.AppendLine("# Please don't try to break the program. I haven't implemented any fallback behavior.");
-        builder.AppendLine();
-
-        foreach (var property in properties)
-        {
-            var name = property.Name;
-            var value = Convert.ToString(property.GetValue(Settings), CultureInfo.InvariantCulture);
-            if (string.IsNullOrEmpty(value)) continue;
-            builder.AppendLine($"{name} = {value}");
-        }
-
-        File.WriteAllText(_fileLocation, builder.ToString());
+        File.WriteAllText(_fileLocation, SettingsText.Write(Settings));
     }
 
     /// <summary>

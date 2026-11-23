@@ -12,6 +12,7 @@ using Sundex.Engine;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
+using Sundex.Engine.Input;
 
 namespace HomeScene;
 
@@ -40,12 +41,12 @@ public class Home : Scene, IFadeInScene
     ///     during the boot, before the setting has been answered or the settings screen can
     ///     change it, so a copy taken here would be stale.
     /// </param>
-    public Home(Game game, string version, Func<bool> checkingForUpdates) : base(game)
+    public Home(GameRuntime runtime, string version, Func<bool> checkingForUpdates) : base(runtime)
     {
         _checkingForUpdates = checkingForUpdates;
         _version = version;
-        var clientSize = game.ClientSize;
-        if (game.TryGetScreenScale(out var scaleX, out var scaleY))
+        var clientSize = runtime.ClientSize;
+        if (runtime.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
@@ -66,10 +67,10 @@ public class Home : Scene, IFadeInScene
     private HomeInterface BuildInterface(UIContext context)
     {
         var ui = new HomeInterface(context,
-            () => { Game.SceneManager.TransitionTo("visualizer"); },
-            () => { Game.SceneManager.TransitionTo("drum-master"); },
-            () => { Game.SceneManager.TransitionTo("editor"); },
-            () => { Game.SceneManager.TransitionTo("settings"); });
+            () => { Runtime.SceneManager.TransitionTo("visualizer"); },
+            () => { Runtime.SceneManager.TransitionTo("drum-master"); },
+            () => { Runtime.SceneManager.TransitionTo("editor"); },
+            () => { Runtime.SceneManager.TransitionTo("settings"); });
 
         ui.VersionLabel.SetTextContents(_version);
 
@@ -92,13 +93,7 @@ public class Home : Scene, IFadeInScene
 
         _context = context;
         _homeInterface = ui;
-        Resize(Game.ClientSize.X, Game.ClientSize.Y);
-    }
-
-    public override void ReloadStyles()
-    {
-        _homeInterface.Component.ReloadStyleSheet();
-        _homeInterface.Resize();
+        Resize(Runtime.ClientSize.X, Runtime.ClientSize.Y);
     }
 
     /// <summary>
@@ -127,7 +122,7 @@ public class Home : Scene, IFadeInScene
     public override void TransitionedTo()
     {
         _homeInterface.PlayIntro();
-        Game.OnWindowActionUnavailable = (title, message) =>
+        Runtime.OnWindowActionUnavailable = (title, message) =>
             MessageDialog.Show(_context, _homeInterface.RootPanel, title, message);
     }
 
@@ -168,8 +163,8 @@ public class Home : Scene, IFadeInScene
             _ => MouseCursor.Default
         };
 
-        if (Game.Cursor != cursor)
-            Game.Cursor = cursor;
+        if (Runtime.Host.Cursor != cursor)
+            Runtime.Host.Cursor = cursor;
     }
 
     private void OpenUpdateDialog()
@@ -206,7 +201,7 @@ public class Home : Scene, IFadeInScene
     {
         float width = w;
         float height = h;
-        if (Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        if (Runtime.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             width /= scaleX;
             height /= scaleY;
@@ -228,11 +223,11 @@ public class Home : Scene, IFadeInScene
     {
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
         // Nothing is clickable until the screen is fully up: this scene renders under the
         // loading screen for the length of the entrance fade.

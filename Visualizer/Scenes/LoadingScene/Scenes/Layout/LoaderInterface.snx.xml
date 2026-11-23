@@ -1,12 +1,11 @@
-<sundex version="1.0">
+<sundex version="2.0" context="LoadingScene.Scenes.LoaderInterface">
   <style language="sundex" src="Scenes/Layout/LoaderInterface.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/LoaderInterface.snx.csx" imports="[LoadingScene.Scenes]"/>
 
   <!-- Nothing paints the stage: the sound field renders behind this tree, and over it sit
        the atmosphere and then the strip. Everything else lives inside the strip, placed
        from its top edge, because the strip's height is what animates. -->
   <layout>
-    <panel id="stage">
+    <panel id="stage" ref="Context.RootPanel">
       <!-- First child, so the strip and every pane paint over it. The gradient ids come
            from LoaderGradients.snx.ss; they carry no class because they need no rule of
            this sheet's own. -->
@@ -18,24 +17,24 @@
         <panel id="grad-5"/>
       </panel>
 
-      <panel id="strip">
+      <panel id="strip" ref="Context.Strip">
         <panel id="strip-rule"/>
 
         <!-- Segments are built by the logic block - three for the setup, thirty for the
              download - so the count can change without the markup knowing about it. -->
-        <flex id="ticks"/>
+        <flex id="ticks" ref="Context.Ticks"/>
 
-        <panel id="status">
+        <panel id="status" ref="Context.Status">
           <flex id="status-left">
-            <label id="status-message" value="Starting"/>
-            <label id="status-detail" value=""/>
+            <label id="status-message" ref="Context.StatusMessage" value="Starting"/>
+            <label id="status-detail" ref="Context.StatusDetail" value=""/>
           </flex>
-          <label id="status-percent" value="0%"/>
+          <label id="status-percent" ref="Context.StatusPercent" value="0%"/>
         </panel>
 
         <!-- The first-run setup: three panes stacked in one slot, one shown at a time.
              LoaderInterface owns the order; Loader owns what the answers mean. -->
-        <panel id="pane-welcome" class="pane">
+        <panel id="pane-welcome" class="pane" ref="Context.PaneWelcome">
           <flex class="pane-text">
             <flex class="pane-head">
               <label class="eyebrow" value="S E T U P"/>
@@ -45,19 +44,19 @@
               <label class="pane-line" value="This is the Thirty Dollar Visualizer. It plays, edits and exports"/>
               <flex class="pane-run">
                 <label class="pane-line" value="covers from "/>
-                <link class="pane-line" value="thirtydollar.website" open="https://thirtydollar.website"/>
+                <link class="pane-line" value="thirtydollar.website" url="https://thirtydollar.website"/>
                 <label class="pane-line" value="."/>
               </flex>
             </flex>
           </flex>
           <flex class="pane-actions">
-            <button id="welcome-next" class="button-primary">
+            <button id="welcome-next" class="button-primary" ref="Context.WelcomeNext">
               <label value="Next"/>
             </button>
           </flex>
         </panel>
 
-        <panel id="pane-updates" class="pane">
+        <panel id="pane-updates" class="pane" ref="Context.PaneUpdates">
           <flex class="pane-text">
             <flex class="pane-head">
               <label class="eyebrow" value="U P D A T E S"/>
@@ -68,21 +67,21 @@
               <label class="pane-line" value="It sends nothing about you and never installs anything on its own."/>
             </flex>
             <flex class="pane-options">
-              <checkbox id="include-prereleases" value="Include prereleases"/>
-              <checkbox id="include-nightlies" value="Include nightly builds"/>
+              <checkbox id="include-prereleases" ref="Context.IncludePrereleases" value="Include prereleases"/>
+              <checkbox id="include-nightlies" ref="Context.IncludeNightlies" value="Include nightly builds"/>
             </flex>
           </flex>
           <flex class="pane-actions">
-            <button id="updates-decline" class="button-quiet">
+            <button id="updates-decline" class="button-quiet" ref="Context.UpdatesDecline">
               <label value="Don't check"/>
             </button>
-            <button id="updates-accept" class="button-primary">
+            <button id="updates-accept" class="button-primary" ref="Context.UpdatesAccept">
               <label value="Check for updates"/>
             </button>
           </flex>
         </panel>
 
-        <panel id="pane-sounds" class="pane">
+        <panel id="pane-sounds" class="pane" ref="Context.PaneSounds">
           <flex class="pane-text">
             <flex class="pane-head">
               <label class="eyebrow" value="S O U N D S"/>
@@ -91,7 +90,7 @@
             <flex class="pane-body">
               <flex class="pane-run">
                 <label class="pane-line" value="Every sound and icon comes from "/>
-                <link class="pane-line" value="thirtydollar.website" open="https://thirtydollar.website"/>
+                <link class="pane-line" value="thirtydollar.website" url="https://thirtydollar.website"/>
                 <label class="pane-line" value=", and the"/>
               </flex>
               <label class="pane-line" value="Visualizer needs them all before it can play anything. They are"/>
@@ -99,7 +98,7 @@
             </flex>
           </flex>
           <flex class="pane-actions">
-            <button id="sounds-start" class="button-primary">
+            <button id="sounds-start" class="button-primary" ref="Context.SoundsStart">
               <label value="Start downloading"/>
             </button>
           </flex>

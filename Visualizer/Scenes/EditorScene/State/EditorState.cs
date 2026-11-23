@@ -186,16 +186,27 @@ public partial class EditorState
 
     public void LoadProjectFromFile(string path)
     {
-        using (var stream = File.OpenRead(path))
-            Replace(ProjectFile.Load(stream));
+        using var stream = File.OpenRead(path);
+        LoadProject(ProjectFile.Load(stream), path);
+    }
+
+    /// <summary>Replaces the project with one read from <paramref name="path" />.</summary>
+    public void LoadProject(ThirtyDollarProject project, string path)
+    {
+        Replace(project);
         ProjectPath = path;
     }
 
     public void SaveProjectToFile(string path)
     {
         ProjectFile.SaveToFile(Project, path);
-        Dirty = false;
+        RecordSavedProject(path, Revision);
+    }
+
+    internal void RecordSavedProject(string path, int revision)
+    {
         ProjectPath = path;
+        if (revision == Revision) Dirty = false;
     }
 
     private void Replace(ThirtyDollarProject project)

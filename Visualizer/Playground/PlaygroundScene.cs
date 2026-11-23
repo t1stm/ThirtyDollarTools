@@ -12,6 +12,7 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using Sundex.Engine;
+using Sundex.Engine.Input;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 
@@ -31,10 +32,10 @@ public class PlaygroundScene : Scene
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
 
-    public PlaygroundScene(Game game) : base(game)
+    public PlaygroundScene(GameRuntime runtime) : base(runtime)
     {
-        var clientSize = Game.ClientSize;
-        if (Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        var clientSize = Runtime.ClientSize;
+        if (Runtime.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
@@ -219,15 +220,15 @@ public class PlaygroundScene : Scene
             _ => MouseCursor.Default
         };
 
-        if (Game.Cursor != cursor)
-            Game.Cursor = cursor;
+        if (Runtime.Host.Cursor != cursor)
+            Runtime.Host.Cursor = cursor;
     }
 
     public override void Resize(int w, int h)
     {
         float width = w;
         float height = h;
-        if (Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        if (Runtime.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             width /= scaleX;
             height /= scaleY;
@@ -250,11 +251,11 @@ public class PlaygroundScene : Scene
     {
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
         _root.Test(mouseState, _lastScale);
     }

@@ -16,7 +16,7 @@ using Sundex.Engine;
 using Sundex.Engine.AssetManagement;
 using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
-using Sundex.Markup.Legacy;
+using Sundex.Style.DSL;
 using VisualizerScene.Settings;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
@@ -28,8 +28,6 @@ namespace SettingsScene.Tests;
 /// <summary>Headless UIContext over the SettingsScene assembly's embedded assets.</summary>
 public class SettingsTestContext : TestUIContext
 {
-    static SettingsTestContext() => CSharp.Register();
-
     [SetsRequiredMembers]
     public SettingsTestContext()
         : base(new LoggerConfiguration().CreateLogger(),
@@ -48,22 +46,9 @@ public class SettingsInterfaceMarkupTests
 {
     private readonly SettingsTestContext _context = new();
 
-    private string LoadMarkup()
+    private StyleSheet LoadSheet()
     {
-        return _context.AssetProvider.LoadString("Scenes/Layout/SettingsInterface.snx.xml", StorageLocation.Assembly);
-    }
-
-    /// <summary>Every id the logic block reaches for, plus the click target.</summary>
-    [Theory]
-    [InlineData("stage")]
-    [InlineData("settings-list")]
-    [InlineData("strip-view")]
-    [InlineData("strip")]
-    [InlineData("back-button")]
-    public void SettingsMarkup_RegistersEveryWiredId(string id)
-    {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-        Assert.True(component.RegisteredIDs.ContainsKey(id), $"markup lost id \"{id}\"");
+        return new SundexContext<object>(_context, new object()).LoadStyleSheet("Scenes/Layout/SettingsInterface.snx.ss");
     }
 
     /// <summary>
@@ -95,8 +80,7 @@ public class SettingsInterfaceMarkupTests
     [InlineData("reset-shortcuts")]
     public void StylesheetDefines_TheClassesSetFromCode(string cls)
     {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-        Assert.True(component.StyleSheet?.Classes.ContainsKey(cls), $"stylesheet lost class \"{cls}\"");
+        Assert.True(LoadSheet().Classes.ContainsKey(cls), $"stylesheet lost class \"{cls}\"");
     }
 
     /// <summary>

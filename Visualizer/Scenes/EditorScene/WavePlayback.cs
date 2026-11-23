@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Shared;
 using Shared.Audio;
 using Sundex.Engine.Audio;
 using System.Collections.Concurrent;
@@ -20,7 +21,8 @@ namespace EditorScene;
 ///     but not its code: a clip here starts at an offset, carries its own gain, follows mute and
 ///     solo, and holds still outside its own span.
 /// </summary>
-public sealed class WavePlayback(AudioDevice device, ILogger logger, Action<string, Exception> onError)
+public sealed class WavePlayback(AudioDevice device, ILogger logger, Action<string, Exception> onError,
+    Workspace workspace)
 {
     /// <summary>
     ///     How far a clip may sit from where the transport says it should be before it is
@@ -205,7 +207,17 @@ public sealed class WavePlayback(AudioDevice device, ILogger logger, Action<stri
         await _decodes.WaitAsync();
         try
         {
-            return await Task.Run(() => Read(path));
+            Stream stream;
+            try
+            {
+                stream = await workspace.Open(path);
+            }
+            catch (Exception e)
+            {
+                return Failed(e, path);
+            }
+
+            using (stream) return await Task.Run(() => Read(path, stream));
         }
         finally
         {
@@ -227,11 +239,10 @@ public sealed class WavePlayback(AudioDevice device, ILogger logger, Action<stri
     ///     read it - the clip then draws at its saved length and stays silent, rather than the
     ///     project failing to load.
     /// </summary>
-    private WaveFile? Read(string path)
+    private WaveFile? Read(string path, Stream stream)
     {
         try
         {
-            using var stream = File.OpenRead(path);
             var pcm = new WaveDecoder().Read(stream);
             var frameBytes = (int)pcm.Channels * ((int)pcm.Encoding / 8);
             var frames = frameBytes > 0 ? (pcm.AudioData?.Length ?? 0) / frameBytes : 0;
@@ -246,10 +257,16 @@ public sealed class WavePlayback(AudioDevice device, ILogger logger, Action<stri
         }
         catch (Exception e)
         {
-            logger.WaveReadFailed(e, path);
-            onError($"Couldn't read {Path.GetFileName(path)}", e);
-            return null;
+            return Failed(e, path);
         }
+    }
+
+    /// <summary>Reports a file that can't be opened or decoded, once, and gives no file.</summary>
+    private WaveFile? Failed(Exception e, string path)
+    {
+        logger.WaveReadFailed(e, path);
+        onError($"Couldn't read {Path.GetFileName(path)}", e);
+        return null;
     }
 
     /// <summary>

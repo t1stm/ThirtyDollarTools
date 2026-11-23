@@ -13,6 +13,7 @@ using Shared.Objects;
 using Shared.Renderer.Settings;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
+using Sundex.Components.FileSelector;
 using Sundex.Components.Panels;
 using Sundex.Engine;
 using Sundex.Engine.AssetManagement;
@@ -30,6 +31,7 @@ using ThirtyDollarConverter.Parser;
 using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Settings;
 using VisualizerScene.UI;
+using Sundex.Engine.Input;
 using Placement = ThirtyDollarConverter.Objects.Placement;
 
 namespace VisualizerScene;
@@ -82,14 +84,14 @@ public class Visualizer : Scene, IGamePreloadable
     /// <param name="workflow">The workflow dependency.</param>
     /// ///
     /// <param name="sequenceLocations">The location of the sequence.</param>
-    public Visualizer(Game game, VisualizerSettings settings,
-        ThirtyDollarWorkflow workflow, string?[] sequenceLocations) : base(game)
+    public Visualizer(GameRuntime runtime, VisualizerSettings settings,
+        ThirtyDollarWorkflow workflow, string?[] sequenceLocations) : base(runtime)
     {
         _workflow = workflow;
         _seekDelayStopwatch = new Stopwatch();
 
-        _width = game.ClientSize.X;
-        _height = game.ClientSize.Y;
+        _width = runtime.ClientSize.X;
+        _height = runtime.ClientSize.Y;
         _settings = settings;
         _startingSequences =
         [
@@ -210,24 +212,6 @@ public class Visualizer : Scene, IGamePreloadable
         PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
     }
 
-    /// <summary>
-    ///     Reapplies styles only. The player bar and the shortcut sheet are the only trees
-    ///     here a stylesheet reaches; the playfield is state rather than markup, and
-    ///     rebuilding it would drop the cover being played.
-    /// </summary>
-    public override void ReloadStyles()
-    {
-        if (_playerBar is not null)
-        {
-            _playerBar.Component.ReloadStyleSheet();
-            _playerBar.Resize();
-        }
-
-        if (_shortcutSheet is null) return;
-        _shortcutSheet.Component.ReloadStyleSheet();
-        _shortcutSheet.Resize();
-    }
-
     public override void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);
@@ -274,7 +258,7 @@ public class Visualizer : Scene, IGamePreloadable
         if (_playerBar is not null)
         {
             var idle = TimedEvents.Placement.Length == 0;
-            _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, Game.IsCursorInWindow, (float)deltaTime, idle);
+            _playerBar.UpdateAlpha(Runtime.Pointer, Runtime.ClientSize, Runtime.Host.IsCursorInWindow, (float)deltaTime, idle);
             _shortcutSheet?.UpdateAlpha((float)deltaTime, idle);
             _playerBar.RootPanel.Context.Render(args.Commands);
         }
@@ -289,11 +273,11 @@ public class Visualizer : Scene, IGamePreloadable
     {
         TextContainer.Greeting.Value = Greeting ?? _settings.Greeting;
         if (_dialogHost is not null)
-            Game.OnWindowActionUnavailable = (title, message) =>
+            Runtime.OnWindowActionUnavailable = (title, message) =>
                 MessageDialog.Show(_dialogHost.Context, _dialogHost, title, message);
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
-        Resize(Game.ClientSize.X, Game.ClientSize.Y);
+        Resize(Runtime.ClientSize.X, Runtime.ClientSize.Y);
 
         LoadStartingSequences();
     }
@@ -357,8 +341,8 @@ public class Visualizer : Scene, IGamePreloadable
             _ => MouseCursor.Default
         };
 
-        if (Game.Cursor != cursor)
-            Game.Cursor = cursor;
+        if (Runtime.Host.Cursor != cursor)
+            Runtime.Host.Cursor = cursor;
 
         // checks if there is a backing audio
         if (_backingAudio is null) return;
@@ -394,7 +378,32 @@ public class Visualizer : Scene, IGamePreloadable
         FileDrop(locations, true);
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    /// <summary>Opens a picker for a sequence to play, as dropping one on the window does.</summary>
+    private void ShowSequencePicker()
+    {
+        if (_dialogHost is not { Children.Count: 0 } root) return;
+        var context = root.Context;
+        var picker = new FileSelection(context, extensionFilter: ".tdw", confirmLabel: "Open", title: "Open sequence",
+            workspaceRoot: _workflow.Workspace.Root) { Width = 640, Height = 460 };
+        var modal = new ModalLayer(context) { AutoFocusContent = false, OnConfirmRequested = _ => picker.Confirm() };
+        modal.OnDismissRequested = _ => root.RemoveChild(modal);
+        picker.CloseWith(modal, path => FileDrop([path], true));
+        modal.AddChild(picker);
+        root.AddChild(modal);
+    }
+
+    /// <summary>Where playback is, for the browser build's check.</summary>
+    public long PlaybackMilliseconds => SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
+
+    public override void TextInput(TextInputEventArgs args) => _dialogHost?.Context.DispatchTextInput(args);
+
+    public override void KeyDown(KeyboardKeyEventArgs args)
+    {
+        if (_dialogHost is not { Children.Count: > 0 } root || root.Context.DispatchKeyDown(args)) return;
+        root.Children.OfType<ModalLayer>().LastOrDefault()?.HandleKeyDown(args);
+    }
+
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
         // An open dialog is modal: it takes the pointer, and neither the bar nor the
         // playfield's scrolling sees it.
@@ -422,8 +431,9 @@ public class Visualizer : Scene, IGamePreloadable
             PlayfieldContainer.Camera.ScrollDelta(new_delta);
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
+        if (_dialogHost is { Children.Count: > 0 }) return;
         const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
         _shortcutSheet?.TrackKeys(state);
@@ -439,6 +449,12 @@ public class Visualizer : Scene, IGamePreloadable
 
         if (Keybinds.Get(Bind.VisualizerShowShortcuts).IsPressed(state))
             _shortcutSheet?.Toggle();
+
+        if (Keybinds.Get(Bind.VisualizerOpenSequence).IsPressed(state))
+        {
+            ShowSequencePicker();
+            return;
+        }
 
         // toggle play / pause, loudly or quietly
         var playPause = Keybinds.Get(Bind.VisualizerPlayPause).IsPressed(state);
@@ -828,7 +844,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             var ms = gpu_mixer.MsPerFrame;
             int gpu_written;
-            if (Game.VSync == VSyncMode.Off)
+            if (Runtime.Host.VSync == VSyncMode.Off)
                 gpu_buffer.TryWrite(CultureInfo.InvariantCulture, $"{ms:0.000} ms", out gpu_written);
             else
                 gpu_buffer.TryWrite(CultureInfo.InvariantCulture, $"{ms * fps / 10:0.00}%", out gpu_written);
@@ -916,7 +932,9 @@ public class Visualizer : Scene, IGamePreloadable
 
         if (locations.Count < 1) return;
 
-        Task.Run(async () =>
+        _ = Task.Run(Load, Token);
+
+        async Task Load()
         {
             log.Value = "Loading...";
             try
@@ -925,13 +943,14 @@ public class Visualizer : Scene, IGamePreloadable
             }
             catch (Exception e)
             {
+                _workflow.Logger.Error(e, "[Sequence Loader] Failed to load sequence");
                 SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
             }
             finally
             {
                 log.Value = string.Empty;
             }
-        }, Token);
+        }
     }
 
     private bool IsSeekTimeoutPassed(int divide = 1)

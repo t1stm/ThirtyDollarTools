@@ -12,7 +12,7 @@ using Sundex.Engine;
 using Sundex.Engine.AssetManagement;
 using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
-using Sundex.Markup.Legacy;
+using Sundex.Style.DSL;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
 // so this suite must also run sequentially.
@@ -23,8 +23,6 @@ namespace LoadingScene.Tests;
 /// <summary>Headless UIContext over the LoadingScene assembly's embedded assets.</summary>
 public class LoaderTestContext : TestUIContext
 {
-    static LoaderTestContext() => CSharp.Register();
-
     [SetsRequiredMembers]
     public LoaderTestContext()
         : base(new LoggerConfiguration().CreateLogger(),
@@ -42,10 +40,10 @@ public class FakeReport : IProgressReport
 }
 
 /// <summary>
-///     Headless cover for the loading screen: its layout and stylesheet parse, the ids its
-///     logic block looks up are all there, and the first-run setup walks from the greeting
-///     to the download. The app is a GLFW window that can't be screenshotted in this
-///     environment, so nothing else would catch a renamed id or a broken step order.
+///     Headless cover for the loading screen: its stylesheet parses and has the rules its code
+///     relies on, and the first-run setup walks from the greeting to the download. The app is a
+///     GLFW window that can't be screenshotted in this environment, so nothing else would catch
+///     a renamed class or a broken step order.
 /// </summary>
 public class LoaderInterfaceTests
 {
@@ -56,50 +54,9 @@ public class LoaderInterfaceTests
         return new FakeReport { Message = "Downloading sounds", Percentage = percentage };
     }
 
-    private string LoadMarkup()
+    private StyleSheet LoadSheet()
     {
-        return _context.AssetProvider.LoadString("Scenes/Layout/LoaderInterface.snx.xml", StorageLocation.Assembly);
-    }
-
-    /// <summary>Every id LoaderInterface.snx.csx reaches for.</summary>
-    [Theory]
-    [InlineData("stage")]
-    [InlineData("strip")]
-    [InlineData("strip-rule")]
-    [InlineData("ticks")]
-    [InlineData("status")]
-    [InlineData("status-message")]
-    [InlineData("status-detail")]
-    [InlineData("status-percent")]
-    [InlineData("pane-welcome")]
-    [InlineData("pane-updates")]
-    [InlineData("pane-sounds")]
-    [InlineData("include-prereleases")]
-    [InlineData("include-nightlies")]
-    [InlineData("welcome-next")]
-    [InlineData("updates-decline")]
-    [InlineData("updates-accept")]
-    [InlineData("sounds-start")]
-    public void LoaderMarkup_RegistersEveryWiredId(string id)
-    {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-        Assert.True(component.RegisteredIDs.ContainsKey(id), $"markup lost id \"{id}\"");
-    }
-
-    /// <summary>
-    ///     A class in markup that no rule defines is silent - the element keeps its bare
-    ///     framework defaults and renders wrong.
-    /// </summary>
-    [Fact]
-    public void EveryClassInMarkup_IsDefinedByTheStylesheet()
-    {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-
-        var missing = component.RegisteredClasses.Keys
-            .Where(cls => component.StyleSheet?.Classes.ContainsKey(cls) != true)
-            .ToList();
-
-        Assert.Empty(missing);
+        return new SundexContext<object>(_context, new object()).LoadStyleSheet("Scenes/Layout/LoaderInterface.snx.ss");
     }
 
     /// <summary>The meter's classes, which only ever reach an element from code.</summary>
@@ -109,8 +66,7 @@ public class LoaderInterfaceTests
     [InlineData("tick-next")]
     public void StylesheetDefines_TheClassesSetFromCode(string cls)
     {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-        Assert.True(component.StyleSheet?.Classes.ContainsKey(cls), $"stylesheet lost class \"{cls}\"");
+        Assert.True(LoadSheet().Classes.ContainsKey(cls), $"stylesheet lost class \"{cls}\"");
     }
 
     /// <summary>
@@ -140,10 +96,7 @@ public class LoaderInterfaceTests
     [InlineData("grad-5")]
     public void TheAtmosphere_IsStyledByTheImportedGradientSheet(string id)
     {
-        var component = new SundexContext(_context).NewComponent(LoadMarkup());
-
-        Assert.True(component.RegisteredIDs.ContainsKey(id), $"markup lost id \"{id}\"");
-        Assert.True(component.StyleSheet?.IDTags.ContainsKey(id),
+        Assert.True(LoadSheet().IDTags.ContainsKey(id),
             $"\"{id}\" has no rule - the LoaderGradients import did not resolve");
     }
 

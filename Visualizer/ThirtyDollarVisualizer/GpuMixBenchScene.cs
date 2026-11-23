@@ -13,6 +13,7 @@ using Sundex.Engine.Scenes.Arguments;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Voices;
+using Sundex.Engine.Input;
 
 namespace ThirtyDollarVisualizer;
 
@@ -28,7 +29,7 @@ namespace ThirtyDollarVisualizer;
 ///         <c>GPU_MIX_WINDOW=from,seconds</c> tune a run.
 ///     </para>
 /// </summary>
-public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, string? sequence) : Scene(game)
+public sealed class GpuMixBenchScene(GameRuntime runtime, ThirtyDollarWorkflow workflow, string? sequence) : Scene(runtime)
 {
     /// <summary>Go if the GPU's 10 s peak stays under this share of real time (Kris, 2026-11-01: 85%)...</summary>
     private const double GatePeak10S = 0.85;
@@ -66,7 +67,7 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
     public override void Initialize(InitArguments initArguments)
     {
         _renderer = initArguments.Capabilities.Renderer;
-        if (initArguments.Capabilities.SupportsCompute) _device = Game.Device as GLGraphicsDevice;
+        if (initArguments.Capabilities.SupportsCompute) _device = Runtime.Device as GLGraphicsDevice;
     }
 
     public override void Start()
@@ -92,7 +93,7 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
     {
         if (_done)
         {
-            Game.Close();
+            Runtime.Host.Close();
             return;
         }
 
@@ -186,7 +187,7 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
             return (left, right, Stopwatch.GetElapsedTime(start).TotalSeconds);
         });
 
-        _kernels = new GpuVoiceKernels(Game.AssetProvider, Env("GPU_MIX_CHUNK", 1024));
+        _kernels = new GpuVoiceKernels(Runtime.AssetProvider, Env("GPU_MIX_CHUNK", 1024));
         var upload = Stopwatch.GetTimestamp();
         if (!_kernels.SetList(list))
         {
@@ -420,11 +421,11 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
     {
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
     }
 }

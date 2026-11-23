@@ -1,5 +1,6 @@
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Engine.Input;
 
 namespace VisualizerScene.Settings;
 
@@ -27,6 +28,7 @@ public enum Bind
     VisualizerRestart,
     VisualizerRestartPaused,
     VisualizerReloadSequences,
+    VisualizerOpenSequence,
     VisualizerZoomIn,
     VisualizerZoomOut,
     VisualizerToggleDebug,
@@ -120,6 +122,8 @@ public static class Keybinds
         new(Bind.VisualizerReloadSequences, BindScene.Visualizer, "Reload sequences",
             "Re-read the loaded files from disk.",
             new Keybind(Keys.R, Primary | KeyModifiers.Shift)),
+        new(Bind.VisualizerOpenSequence, BindScene.Visualizer, "Open sequence",
+            "Pick a .tdw file to play.", new Keybind(Keys.O, Primary)),
         new(Bind.VisualizerZoomIn, BindScene.Visualizer, "Zoom in",
             "Hold to move the camera closer.", new Keybind(Keys.Equal, Primary)),
         new(Bind.VisualizerZoomOut, BindScene.Visualizer, "Zoom out",
@@ -222,7 +226,7 @@ public static class Keybinds
     }
 
     /// <summary>Ctrl held, or Cmd on macOS. For the mouse gestures, which aren't rebindable.</summary>
-    public static bool PrimaryDown(KeyboardState state)
+    public static bool PrimaryDown(KeyboardInput state)
     {
         return OperatingSystem.IsMacOS()
             ? state.IsKeyDown(Keys.LeftSuper) || state.IsKeyDown(Keys.RightSuper)

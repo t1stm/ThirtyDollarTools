@@ -5,27 +5,18 @@
 
 using System.Reflection;
 using CommandLine;
-using DrumMasterScene;
-using EditorScene;
-using HomeScene;
 using LoadingScene;
+using Shared;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
-using SettingsScene;
-using Shared;
-using Shared.Audio;
-using Shared.Updates;
 using SixLabors.ImageSharp;
-using Sundex.Components;
 using Sundex.Engine;
 using Sundex.Engine.Audio;
-using Sundex.Markup.Legacy;
 using ThirtyDollarVisualizer;
 using ThirtyDollarVisualizer.VisualizerSettings;
-using VisualizerScene;
 using VisualizerScene.Settings;
 
 #endregion
@@ -135,94 +126,28 @@ var nativeWindowSettings = new NativeWindowSettings
     ClientSize = (width, height)
 };
 
-Assembly[] assemblies =
-[
-    Assembly.GetExecutingAssembly(),
-    SharedAssembly.Assembly,
-    ComponentsAssembly.Assembly,
-    LoaderAssembly.Assembly,
-    HomeAssembly.Assembly,
-    VisualizerAssembly.Assembly,
-    EditorAssembly.Assembly,
-    DrumMasterAssembly.Assembly,
-    SettingsAssembly.Assembly
-];
-
-CSharp.Register();
-using var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings,
-    "ThirtyDollarVisualizer");
-game.Globals.Set("visualizer-settings", settings);
+using var game = new Game(serilogLogger, VisualizerStartup.GetAssetAssemblies(Assembly.GetExecutingAssembly()),
+    gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
 
 if (game.TryGetScreenScale(out var horizontal_scale, out var vertical_scale) &&
     settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
-game.Enqueue(instance =>
-{
-    var version = VersionInfo.Read(instance.AssetProvider);
-    instance.SceneManager.LoadScene<Loader>("loader",
-        _ => new Loader(instance, audio_device, settings, version)
-        {
-            Preloads = BuildPreloads(version, sequence, greeting, scale, mode),
-            // Scene names, as LoadScene registers them: "visualizer", "drum-master",
-            // "editor", "settings", and in Debug builds "text-bench" and "gpu-mix-bench". An unknown
-            // one falls back to the home screen and says so in the log - see Loader.UpdateExit.
-            ExitTo = mode ?? "home"
-        });
-});
-
-game.Enqueue(instance => instance.SceneManager.TransitionTo("loader"));
-game.Run();
-
-return;
-
-/// <summary>
-///     Every scene the program has, and what the loading screen says while each is built.
-///     They are built before the sound download starts, so the work lands while the loading
-///     screen is animating rather than between the download finishing and the home screen.
-/// </summary>
-static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, string? greeting, float? scale,
-    string? mode)
-{
-    // Home first - the loading screen's exit fades into it, so it has to exist before the
-    // rest are worth building.
-    return
-    [
-        new ScenePreload("Preparing the home screen", (game, _) =>
-            game.SceneManager.LoadScene<Home>("home",
-                _ => new Home(game, version?.Display ?? VersionInfo.DeveloperBuild,
-                    () => SettingsHandler.Settings.CheckForUpdates))),
-
-        new ScenePreload("Preparing the visualizer", (game, workflow) =>
-            game.SceneManager.LoadScene<Visualizer>("visualizer",
-                _ => new Visualizer(game, SettingsHandler.Settings, workflow, [sequence])
-                {
-                    Greeting = greeting,
-                    Scale = scale ?? 1f
-                })),
-
-        new ScenePreload("Preparing Drum Master", (game, workflow) =>
-            game.SceneManager.LoadScene<DrumMaster>("drum-master",
-                _ => new DrumMaster(game, workflow))),
-
-        // -i is the visualizer's sequence unless the editor is the one being opened, in
-        // which case that is what the editor opens.
-        new ScenePreload("Preparing the editor", (game, workflow) =>
-            game.SceneManager.LoadScene<Editor>("editor",
-                _ => new Editor(game, workflow, mode == "editor" ? sequence : null))),
-
-        new ScenePreload("Preparing settings", (game, _) =>
-            game.SceneManager.LoadScene<Settings>("settings",
-                _ => new Settings(game, SettingsHandler.Settings))),
-
 #if DEBUG
-        // Only --mode text-bench opens it, and it builds nothing until it is shown.
-        new ScenePreload("Preparing the text benchmark", (game, _) =>
-            game.SceneManager.LoadScene<TextBenchScene>("text-bench", _ => new TextBenchScene(game))),
+ScenePreload[] debugPreloads =
+[
+    // Only --mode text-bench opens it, and it builds nothing until it is shown.
+    new("Preparing the text benchmark", (runtime, _) =>
+        runtime.SceneManager.LoadScene<TextBenchScene>("text-bench", _ => new TextBenchScene(runtime))),
 
-        // Only --mode gpu-mix-bench opens it; it reads -i once it is shown.
-        new ScenePreload("Preparing the GPU mixer benchmark", (game, workflow) =>
-            game.SceneManager.LoadScene<GpuMixBenchScene>("gpu-mix-bench",
-                _ => new GpuMixBenchScene(game, workflow, sequence)))
+    // Only --mode gpu-mix-bench opens it; it reads -i once it is shown.
+    new("Preparing the GPU mixer benchmark", (runtime, workflow) =>
+        runtime.SceneManager.LoadScene<GpuMixBenchScene>("gpu-mix-bench",
+            _ => new GpuMixBenchScene(runtime, workflow, sequence)))
+];
+#else
+ScenePreload[] debugPreloads = [];
 #endif
-    ];
-}
+
+VisualizerStartup.Start(game.Runtime, audio_device, settings, new Workspace(), mode, sequence, greeting, scale,
+    debugPreloads);
+game.Run();

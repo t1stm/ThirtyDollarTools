@@ -109,6 +109,16 @@ public class VisualizerSettings
     } = Shared.Audio.VoicePlayback.DefaultBlockFrames;
 
     /// <summary>
+    ///     Milliseconds a cut fades the voice it stops over. Mirrored into
+    ///     <see cref="ThirtyDollarConverter.Objects.EncoderSettings.CutFadeLengthMs" />.
+    /// </summary>
+    public int CutFadeLength
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = 4;
+
+    /// <summary>
     ///     Mix the song on the GPU where the context can (OpenGL 4.3). Mirrored into
     ///     <see cref="Shared.ThirtyDollarWorkflow.GpuMixing" />, which applies it to the song playing.
     /// </summary>

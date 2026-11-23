@@ -12,6 +12,7 @@ using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 using VisualizerScene.Settings;
+using Sundex.Engine.Input;
 
 namespace EditorScene;
 
@@ -32,11 +33,11 @@ public class Editor : Scene, IFadeInScene
     ///     A project or sequence to open on boot, from <c>--mode editor -i</c>. Handled as
     ///     if it had been dropped on the window - see <see cref="FileDrop" />.
     /// </param>
-    public Editor(Game game, ThirtyDollarWorkflow workflow, string? initialFile = null) : base(game)
+    public Editor(GameRuntime runtime, ThirtyDollarWorkflow workflow, string? initialFile = null) : base(runtime)
     {
         _workflow = workflow;
-        var clientSize = game.ClientSize;
-        if (game.TryGetScreenScale(out var scaleX, out var scaleY))
+        var clientSize = runtime.ClientSize;
+        if (runtime.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
@@ -62,7 +63,7 @@ public class Editor : Scene, IFadeInScene
         return new EditorInterface(context, _workflow, () =>
         {
             _editorInterface?.Playback.Stop();
-            Game.SceneManager.TransitionTo("home");
+            Runtime.SceneManager.TransitionTo("home");
         });
     }
 
@@ -85,13 +86,13 @@ public class Editor : Scene, IFadeInScene
 
         _context = context;
         _editorInterface = ui;
-        Resize(Game.ClientSize.X, Game.ClientSize.Y);
+        Resize(Runtime.ClientSize.X, Runtime.ClientSize.Y);
     }
 
     public override void ReloadStyles()
     {
         _editorInterface.Component.ReloadStyleSheet();
-        _editorInterface.Resize(Game.ClientSize.X, Game.ClientSize.Y);
+        _editorInterface.Resize(Runtime.ClientSize.X, Runtime.ClientSize.Y);
     }
 
     /// <summary>
@@ -120,7 +121,7 @@ public class Editor : Scene, IFadeInScene
     public override void TransitionedTo()
     {
         _editorInterface.SceneShown();
-        Game.OnWindowActionUnavailable = (title, message) =>
+        Runtime.OnWindowActionUnavailable = (title, message) =>
             MessageDialog.Show(_context, _editorInterface.RootPanel, title, message);
 
         // Dropped once the editor is first shown rather than when it is built: by then the
@@ -145,15 +146,15 @@ public class Editor : Scene, IFadeInScene
             _ => MouseCursor.Default
         };
 
-        if (Game.Cursor != cursor)
-            Game.Cursor = cursor;
+        if (Runtime.Host.Cursor != cursor)
+            Runtime.Host.Cursor = cursor;
     }
 
     public override void Resize(int w, int h)
     {
         float width = w;
         float height = h;
-        if (Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        if (Runtime.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             width /= scaleX;
             height /= scaleY;
@@ -218,11 +219,11 @@ public class Editor : Scene, IFadeInScene
         return [.. locations.Where(l => l.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))];
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardInput state)
     {
     }
 
-    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(PointerInput mouseState, KeyboardInput keyboardState)
     {
         // Runs every frame (unlike Keyboard, which only fires while a key is down),
         // so modifier releases are seen too.

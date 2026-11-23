@@ -3,6 +3,7 @@ using System.Diagnostics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Core.Renderer.Planes;
 using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Input;
 
 namespace VisualizerScene.UI;
 
@@ -59,7 +60,7 @@ public sealed class CameraScrollBar(PlayfieldContainer playfield)
     ///     Whether the bar has the pointer: pressed on it and held. The player bar under the
     ///     track's foot mustn't act on that press as well.
     /// </returns>
-    public bool Mouse(MouseState mouse)
+    public bool Mouse(PointerInput mouse)
     {
         Measure();
         if (!mouse.IsButtonDown(MouseButton.Left) || !Visible)
