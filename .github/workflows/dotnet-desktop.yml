@@ -12,6 +12,7 @@ on:
       - 'UseLocalSundex.sh'
       - 'ThirtyDollarTools.slnx'
       - '.github/workflows/dotnet-desktop.yml'
+      - '.github/scripts/nightly-version.sh'
       - '.github/changelog-config.json'
   workflow_dispatch:
 
@@ -73,12 +74,7 @@ jobs:
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
-          # The date is what the in-app update check compares against: a nightly's tag
-          # never changes, so it can't say which of two builds is newer.
-          jq -n --arg tag "nightly-$BRANCH" --arg title "Nightly Build of [$BRANCH]" \
-            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{tag: $tag, releaseTitle: $title, nightly: true, prerelease: true, date: $date}' \
-            > ./Visualizer/ThirtyDollarVisualizer/VERSION
+          bash .github/scripts/nightly-version.sh "$BRANCH" > ./Visualizer/ThirtyDollarVisualizer/VERSION
           cat ./Visualizer/ThirtyDollarVisualizer/VERSION
 
       - name: Publish ThirtyDollarVisualizer

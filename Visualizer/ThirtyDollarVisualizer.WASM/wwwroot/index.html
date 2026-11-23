@@ -7,20 +7,72 @@
   <link rel="icon" href="data:,">
   <script type="module" src="./main.js"></script>
   <style>
-    :root { color-scheme: dark; background: #15151b; font: 1rem system-ui, sans-serif; }
+    :root {
+      color-scheme: dark;
+      background: #15151b;
+      color: #eef0fa;
+      font: 1rem/1.55 "Lato", "Segoe UI", system-ui, sans-serif;
+    }
     body { margin: 0; }
     canvas { display: block; width: 100vw; height: 100dvh; touch-action: none; outline: none; }
-    #status { position: fixed; inset: 0; display: grid; place-content: center; gap: 1rem; }
+    #status {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      overflow: auto;
+      padding: 1rem;
+      background: #101a78;
+    }
     #status[hidden] { display: none; }
-    #message { margin: 0; white-space: pre-wrap; max-width: min(36rem, 90vw); }
-    button { padding: 0.4rem 0.7rem; background: #202338; color: #e4e8f5; border: 1px solid #39405a; border-radius: 5px; }
+
+    .setup {
+      box-sizing: border-box;
+      width: min(100%, 32rem);
+      margin: auto;
+      padding: clamp(1.25rem, 5vw, 2.5rem);
+      background: #0b0e2e;
+      border: 1px solid #2a3596;
+      border-radius: 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.75rem, 6vw, 2.75rem);
+      font-weight: 900;
+      line-height: 1.05;
+      text-wrap: balance;
+    }
+    .setup p { margin: 1rem 0 0; color: #a9b0d8; }
+    #message { white-space: pre-wrap; overflow-wrap: anywhere; }
+    #message:empty { margin: 0; }
+
+    #start {
+      min-height: 44px;
+      margin-top: 1.5rem;
+      padding: 0.625rem 1rem;
+      background: #3d8bd9;
+      color: #0b0e2e;
+      border: 0;
+      border-radius: 6px;
+      box-shadow: 0 3px 0 #2a3596;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    #start:enabled:hover { filter: brightness(1.12); }
+    #start:enabled:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a3596; }
+    #start:focus-visible { outline: 3px solid #eef0fa; outline-offset: 4px; }
+    #start:disabled { opacity: 0.7; cursor: wait; }
   </style>
 </head>
 <body>
-  <canvas id="sundex" tabindex="0" aria-label="Thirty Dollar Visualizer"></canvas>
-  <div id="status">
-    <p id="message" role="status">Loading the Visualizer…</p>
-    <button id="start" type="button" hidden>Choose working folder</button>
-  </div>
+  <canvas id="sundex" tabindex="0" aria-label="Thirty Dollar Visualizer" inert></canvas>
+  <main id="status">
+    <div class="setup">
+      <h1>Thirty Dollar Visualizer</h1>
+      <p>Choose a folder with your Thirty Dollar Website saves, or create an empty one to start fresh. The Visualizer opens and saves files in that folder.</p>
+      <button id="start" type="button" hidden>Choose working folder</button>
+      <p id="message" role="status">Loading the Visualizer…</p>
+    </div>
+  </main>
 </body>
 </html>

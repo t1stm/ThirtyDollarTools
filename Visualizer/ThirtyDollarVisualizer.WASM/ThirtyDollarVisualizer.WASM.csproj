@@ -13,6 +13,9 @@
     <EmccExtraLDFlags>$(EmccExtraLDFlags) -lGL -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2</EmccExtraLDFlags>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../ThirtyDollarVisualizer/VERSION"
+                      Condition="Exists('../ThirtyDollarVisualizer/VERSION')"
+                      LogicalName="$(AssemblyName).VERSION"/>
     <PackageReference Include="Sundex.Engine" Version="$(SundexVersion)"/>
     <ProjectReference Include="../ThirtyDollarVisualizer.Game/ThirtyDollarVisualizer.Game.csproj"/>
     <NativeFileReference Include="browser.c"/>

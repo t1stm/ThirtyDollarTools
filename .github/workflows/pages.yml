@@ -14,6 +14,7 @@ on:
       - 'Directory.Build.props'
       - 'global.json'
       - '.github/workflows/pages.yml'
+      - '.github/scripts/nightly-version.sh'
       - '.github/scripts/stage-visualizer-assets.mjs'
   workflow_run:
     workflows: [ 'Attach Binaries to Release' ]
@@ -56,6 +57,11 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.x'
+
+      - name: Write VERSION file
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: bash .github/scripts/nightly-version.sh "$BRANCH" > ./Visualizer/ThirtyDollarVisualizer/VERSION
 
       - name: Publish the browser Visualizer
         working-directory: Visualizer/ThirtyDollarVisualizer.WASM

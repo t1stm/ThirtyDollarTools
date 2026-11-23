@@ -11,6 +11,7 @@ let stopped = false;
 
 function fail(error) {
     stopped = true;
+    canvas.inert = true;
     status.hidden = false;
     start.hidden = true;
     message.textContent = String(error);
@@ -46,17 +47,18 @@ async function setup() {
     await runtime.runMain(runtime.getConfig().mainAssemblyName, []);
     const exports = await runtime.getAssemblyExports(runtime.getConfig().mainAssemblyName);
     const visualizer = exports.ThirtyDollarVisualizer.WASM.Program;
-    message.hidden = true;
+    message.textContent = '';
     start.hidden = false;
 
     start.addEventListener('click', async () => {
         start.disabled = true;
+        message.textContent = '';
         try {
             workspace = await chooseWorkspace();
         } catch (error) {
             start.disabled = false;
+            start.focus({ preventScroll: true });
             if (error.name !== 'AbortError') {
-                message.hidden = false;
                 message.textContent = String(error);
             }
             return;
@@ -67,10 +69,10 @@ async function setup() {
             visualizer.Start(...initialSize, assets.href, JSON.stringify(workspace.entries), verify);
             window.miniaudio?.unlock?.();
             status.hidden = true;
+            canvas.inert = false;
             canvas.focus({ preventScroll: true });
             run(visualizer, initialSize);
         } catch (error) {
-            message.hidden = false;
             fail(error);
         }
     });
@@ -163,7 +165,6 @@ function run(visualizer, dimensions) {
             }
             requestAnimationFrame(animate);
         } catch (error) {
-            message.hidden = false;
             fail(error);
         }
     }

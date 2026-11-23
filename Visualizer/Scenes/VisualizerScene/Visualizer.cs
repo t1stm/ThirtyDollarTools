@@ -214,7 +214,12 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void Resize(int w, int h)
     {
-        var resize = new Vector2i(w, h);
+        var resize = Runtime.TryGetScreenScale(out var scaleX, out var scaleY)
+            ? Runtime.ClientSize
+            : new Vector2i(w, h);
+        (w, h) = resize;
+        if (_dialogHost is not null) _dialogHost.Context.PixelScale = new Vector2(scaleX, scaleY);
+
         _textCamera.Viewport = resize;
         _textCamera.UpdateMatrix();
 
@@ -276,8 +281,7 @@ public class Visualizer : Scene, IGamePreloadable
             Runtime.OnWindowActionUnavailable = (title, message) =>
                 MessageDialog.Show(_dialogHost.Context, _dialogHost, title, message);
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
-        // TODO: this is a workaround for now
-        Resize(Runtime.ClientSize.X, Runtime.ClientSize.Y);
+        Resize(Runtime.FramebufferSize.X, Runtime.FramebufferSize.Y);
 
         LoadStartingSequences();
     }
