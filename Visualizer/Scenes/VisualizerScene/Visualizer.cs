@@ -387,8 +387,10 @@ public class Visualizer : Scene, IGamePreloadable
     {
         if (_dialogHost is not { Children.Count: 0 } root) return;
         var context = root.Context;
-        var picker = new FileSelection(context, extensionFilter: ".tdw", confirmLabel: "Open", title: "Open sequence",
-            workspaceRoot: _workflow.Workspace.Root) { Width = 640, Height = 460 };
+        var picker = FileSelection.Open(context, [".tdw", ".moai", ".🗿"], title: "Open sequence",
+            workspaceRoot: _workflow.Workspace.Root);
+        picker.Width = 640;
+        picker.Height = 460;
         var modal = new ModalLayer(context) { AutoFocusContent = false, OnConfirmRequested = _ => picker.Confirm() };
         modal.OnDismissRequested = _ => root.RemoveChild(modal);
         picker.CloseWith(modal, path => FileDrop([path], true));

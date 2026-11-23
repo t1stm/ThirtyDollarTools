@@ -123,7 +123,7 @@ public static class Keybinds
             "Re-read the loaded files from disk.",
             new Keybind(Keys.R, Primary | KeyModifiers.Shift)),
         new(Bind.VisualizerOpenSequence, BindScene.Visualizer, "Open sequence",
-            "Pick a .tdw file to play.", new Keybind(Keys.O, Primary)),
+            "Pick a sequence file to play.", new Keybind(Keys.O, Primary)),
         new(Bind.VisualizerZoomIn, BindScene.Visualizer, "Zoom in",
             "Hold to move the camera closer.", new Keybind(Keys.Equal, Primary)),
         new(Bind.VisualizerZoomOut, BindScene.Visualizer, "Zoom out",
